@@ -1,0 +1,19 @@
+# .bash_profile
+
+# Get the aliases and functions
+if [ -f ~/.bashrc ]; then
+	. ~/.bashrc
+fi
+
+set -o vi
+
+export HISTFILESIZE=2000
+# show timestamps with history command
+export HISTTIMEFORMAT="%F %T "
+
+
+# User specific environment and startup programs
+export KA_DATA_DIR=/home/ec2-user/kadata/daily/csv
+export PATH=$PATH:$HOME/bin:$HOME/mongo/mongodb-linux-x86_64-2.0.4/bin
+export PYTHONPATH=$HOME/src/ka:$HOME/src/fetch-entities:$HOME/src/stable:$HOME/google_appengine
+

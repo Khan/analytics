@@ -1,0 +1,5 @@
+This is a dashboard of daily problem log statistics.
+
+It can be sliced and diced on multiple dimensions, and depends on the daily problem logs downloaded using logic from the fetch-entities/ sub-directory.
+
+You can access this at http://toby.khanacademy.org/daily_ex_stats.html

@@ -1,0 +1,27 @@
+{
+    "appcfg": "/home/ec2-user/google_appengine/appcfg.py",
+    "appurl": "http://khan-academy.appspot.com/remote_api",
+    "max_tries": 1,
+    "result_directory": "/home/ec2-user/kabackup",
+    "emails": ["jace@khanacademy.org", "joelburget+backup@gmail.com", "yunfang@khanacademy.org"],
+    "password": "/home/ec2-user/private_pw",
+    "parallelism": 2,
+    "kinds": [
+        "Exercise",
+        "ExercisePlaylist",
+        "ExerciseStatistic",
+        "ExerciseVideo",
+        "Feedback",
+        "Playlist",
+        "Setting",
+        "StemmedIndex",
+        "UserBadge",
+        "UserData",
+        "UserExercise",
+        "UserPlaylist",
+        "UserVideo",
+        "UserVideoCss",
+        "Video",
+        "VideoPlaylist"
+  ]
+}

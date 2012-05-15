@@ -1,0 +1,15 @@
+# TODO(csilvers): get a different admin for this machine?
+MAILTO=toby-admin+ka-high-mem@khanacademy.org
+
+# Each day, fetch entities from the datastore in protobuf format.
+# Sourcing bash_profile is done to set up $PYTHONPATH.
+00 1 * * * . ~/.bash_profile; ~/analytics/src/fetch_entities.sh
+
+# Fetch logs every hour.  We fetch the previous hour by default, so
+# start a few minutes after the hour to give those logs time to flush.
+# The 'echo' will get sent as mail, if the cronjob fails or the
+# timeout triggers.
+03 * * * * /usr/bin/timeout 59m ~/analytics/src/fetch_logs.sh || echo "ka-high-mem: fetch-logs failed with error $? [redo it manually?]"
+
+# Fetch appengine statistics (memcache, etc) every 10 minutes.
+*/10 * * * * curl -s 'http://www.khanacademy.org/stats/memcache?output=txt' >> ~/kalogs/`date +"\%m-\%d-\%Y.appengine_stats.log"` 2>&1
