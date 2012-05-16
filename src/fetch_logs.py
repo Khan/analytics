@@ -1,4 +1,4 @@
-#!/usr/bin/env python2.7
+#!/usr/bin/env python
 
 """Script that fetches appengine logs from Khan Academy.
 
