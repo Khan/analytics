@@ -103,17 +103,18 @@ def main():
             try:
                 compressed_response = fetch_problem_logs(start_dt, next_dt)
                 response = zlib.decompress(compressed_response)
+                print response,
                 break
             except Exception, why:
-                if tries + 1 == max_retries:   # our last time, give up
-                    raise
                 sleep_secs = 2 ** tries
                 print >>sys.stderr, ('ERROR: %s.\n'
                                      'Retrying in %s seconds...'
                                      % (why, sleep_secs))
                 time.sleep(sleep_secs)
+        else:  # for/else: if we get here, we never succeeded in fetching
+            print >>sys.stderr, ('SKIPPING logs from %s to %s: error fetching.'
+                                 % (start_dt, next_dt))
 
-        print response,
         start_dt = next_dt
 
 
