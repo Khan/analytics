@@ -14,7 +14,7 @@ try:
     from access_token import ACCESS_TOKEN_RESPONSE
 except ImportError:
     sys.exit("""\
-Run 'cd backup-and-analytics/oauth_util && ./get_access_token.py' to
+Run 'cd analytics/src/oauth_util && ./get_access_token.py' to
 generate an OAuth token.  You will probably need to run it from your
 local machine (since it requires a web browser), and then manually
 update the contents of oauth_util/access_token.py on this machine.
