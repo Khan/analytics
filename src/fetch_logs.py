@@ -113,7 +113,7 @@ def main():
                                      % (why, sleep_secs))
                 time.sleep(sleep_secs)
 
-        print zlib.decompress(response)
+        print zlib.decompress(response),
         start_dt = next_dt
 
 
