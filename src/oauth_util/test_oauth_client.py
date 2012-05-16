@@ -60,7 +60,7 @@ class TestOAuthClient(object):
         else:
             response = post_response(full_url, oauth_request.to_postdata())
 
-        return response.strip()
+        return response
 
 def get_response(url):
     response = ""
