@@ -25,6 +25,6 @@ ROOT="$(dirname $0)"
 
 export PYTHONPATH="$ROOT/..:$PYTHONPATH"
 
-"$ROOT/fetch_logs.py" -s "$hour" -e "$hour_next" \
+exec "$ROOT/fetch_logs.py" -s "$hour" -e "$hour_next" \
     2> "$log_dir/$hour-error.log" \
     | gzip -c > "$log_dir/$hour.log.gz"

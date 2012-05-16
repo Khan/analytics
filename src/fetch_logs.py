@@ -102,9 +102,10 @@ def main():
 
         for tries in xrange(max_retries):
             try:
-                response = fetch_problem_logs(start_dt, next_dt)
+                compressed_response = fetch_problem_logs(start_dt, next_dt)
+                response = zlib.decompress(compressed_response)
                 break
-            except urllib2.URLError, why:
+            except Exception, why:
                 if tries + 1 == max_retries:   # our last time, give up
                     raise
                 sleep_secs = 2 ** tries
@@ -113,7 +114,7 @@ def main():
                                      % (why, sleep_secs))
                 time.sleep(sleep_secs)
 
-        print zlib.decompress(response),
+        print response,
         start_dt = next_dt
 
 
