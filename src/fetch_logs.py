@@ -21,7 +21,6 @@ import datetime
 import optparse
 import sys
 import time
-import urllib2
 import zlib
 
 import oauth_util.fetch_url

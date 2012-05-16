@@ -29,3 +29,7 @@ pip-log.txt
 # You may well have an access_token.py file in your oauth_util dir.
 # That file is *not* to be checked in!  It has sekrets in it.
 access_token.py
+
+# Developer constants for convenience for testing with local
+# or non-production instances of the main webserver
+dev_consts.py

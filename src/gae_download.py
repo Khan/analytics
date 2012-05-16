@@ -19,18 +19,15 @@ import os
 import pickle
 import re
 import subprocess
-import sys 
 import time
 
 from optparse import OptionParser
 from multiprocessing import Process, active_children
   
-import pymongo 
-from pymongo.errors import (InvalidDocument, DuplicateKeyError, AutoReconnect)
-
-from google.appengine.ext import db
 from google.appengine.datastore import entity_pb
 from google.appengine.api import datastore, datastore_types, users
+import pymongo
+from pymongo.errors import InvalidDocument, AutoReconnect
 
 import fetch_entities 
 
@@ -109,12 +106,14 @@ def get_cmd_line_args():
     parser.add_option("-r", "--redo", default = 0,
         help="Re-fetch and overwrite db entries. default to 0. ")
     
-    options, extra_args = parser.parse_args()
+    options, _ = parser.parse_args()
 
     if not options.config:
         g_logger.fatal('Please specify the json config file')
         exit(1)
     return options
+
+
 def get_archive_file_name(config, kind, start_dt, end_dt): 
     """get the archive file name. has the format of 
        {ARCHIVE_DIR}/YY-mm-dd/{kind}/kind-start_dt-end_dt.pickle   
@@ -126,6 +125,7 @@ def get_archive_file_name(config, kind, start_dt, end_dt):
         str(start_dt.date()), str(start_dt.time()),
         str(end_dt.date()), str(end_dt.time()))
     return filename 
+
 
 def fetch_and_process_data(kind, start_dt_arg, end_dt_arg, 
     fetch_interval, config): 
@@ -182,7 +182,7 @@ def open_db_conn(config):
     while True:
         try:
             tries += 1
-	    mongo = pymongo.Connection(config['dbhost'], config['dbport'])
+            mongo = pymongo.Connection(config['dbhost'], config['dbport'])
         except AutoReconnect:
             if tries < int(config['max_tries']):
                 time.sleep(3)
@@ -203,7 +203,7 @@ def ensure_db_indices(config):
     """Ensure all the indices built""" 
     mongo = open_db_conn(config)
     for kind, indices in COLLECTION_INDICES.iteritems():
-         for index in indices:
+        for index in indices:
             ensure_db_index(config, mongo, kind, index)
     
 def ensure_db_index(config, mongo, kind, index):
@@ -214,8 +214,8 @@ def ensure_db_index(config, mongo, kind, index):
     while True:
         try:
             tries += 1
-	    mongo_db = mongo[get_db_name(config, kind)]
-	    mongo_db[kind].ensure_index(index)
+            mongo_db = mongo[get_db_name(config, kind)]
+            mongo_db[kind].ensure_index(index)
         except AutoReconnect:
             if tries < int(config['max_tries']):
                 time.sleep(3)
@@ -243,8 +243,8 @@ def put_document(entity, config, mongo):
     while True:
         try:
             tries += 1
-	    mongo_db = mongo[get_db_name(config, kind)]
-	    mongo_collection = mongo_db[kind]
+            mongo_db = mongo[get_db_name(config, kind)]
+            mongo_collection = mongo_db[kind]
             mongo_collection.save(document) 
         except InvalidDocument:
             g_logger.error("InvalidDocument %s" % ( document))
