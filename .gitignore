@@ -25,3 +25,7 @@ pip-log.txt
 
 #Mr Developer
 .mr.developer.cfg
+
+# You may well have an access_token.py file in your oauth_util dir.
+# That file is *not* to be checked in!  It has sekrets in it.
+access_token.py
