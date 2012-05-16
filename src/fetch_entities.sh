@@ -21,7 +21,7 @@ mkdir -p "$log_dir"
 
 ROOT="$(dirname $0)"
 
-export PYTHONPATH="$ROOT/..:$PYTHONPATH"
+export PYTHONPATH="${ROOT}:${PYTHONPATH}"   # for oauth_util directory
 
 "$PYTHON" "$ROOT/fetch_entities.py" \
     -s "${day}T00:00:00Z" -e "${day_next}T00:00:00Z" \

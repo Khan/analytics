@@ -23,7 +23,7 @@ mkdir -p "$log_dir"
 
 ROOT="$(dirname $0)"
 
-export PYTHONPATH="$ROOT/..:$PYTHONPATH"
+export PYTHONPATH="${ROOT}:${PYTHONPATH}"   # for oauth_util directory
 
 exec "$ROOT/fetch_logs.py" -s "$hour" -e "$hour_next" \
     2> "$log_dir/$hour-error.log" \
