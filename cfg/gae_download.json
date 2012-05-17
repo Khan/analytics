@@ -1,22 +1,34 @@
 {
   "max_threads": 6, # max number of parrellel threads  
   "max_tries": 4, # max number of tries to fetch entities 
-  "interval": 300, # data accumulated before writing into mongodb
   "sub_process_time_out": 1800, #sub process timeout in seconds
   "max_logs": 1000, # max number of entities from gae for each pbuf call
   "dbhost": "localhost", 
   "dbport": 12345,
   "emails": ["jace@khanacademy.org", "yunfang@khanacademy.org"], 
-  "kinds": {"UserData": 15, # entity to fetch interval mapping.
-            "VideoLog" : 10 ,
-            "ProblemLog" : 10}, 
+  # entity to (save interval, fetch interval) mapping.
+  "kinds": {
+            "VideoLog" : [300, 15] ,
+            "ProblemLog" : [300, 15],
+            "StackLog": [300, 15], 
+            "UserBadge": [600, 30],
+            "UserData": [600, 15], 
+            "UserVideo" : [1200, 100],
+            "Feedback": [1800, 1800], 
+            "Exercise": [1800, 1800], 
+            "ExerciseVideo": [1800, 1800], 
+            "Topic": [1800, 1800],
+            "TopicVersion": [1800, 1800], 
+            "Video" : [1800, 1800]
+           }, 
   "default_db": "kadb",
   # these tables have their own db because they are big
   "kinds_to_db": { "VideoLog":  "kadb_vl", "ProblemLog": "kadb_pl" },
+  "test_archive_dir": "/Users/yunfangjuan/kadata/archive", 
   #save the fetched data to this dir
-  "archive_dir": "/Users/yunfangjuan/kadata/archive", 
+  "archive_dir": "/home/ec2-user/kabackup/daily_new", 
   #coordinator config
-  "coordinator_cfg": {"control_db": "kacontrol", 
+  "coordinator_cfg": {"control_db": "ka_download_cntrl", 
                       "default_start_time": 86400,
                       "monitor_lag": 1800}
 }
