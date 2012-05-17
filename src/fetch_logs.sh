@@ -11,8 +11,10 @@ if [ -n "$1" ]; then
     hour="$1"
 else
     hour=$(date --date='-1 hour' '+%Y-%m-%dT%H:00:00Z')
-fi 
-hour_next=$(date --date="$nour + 1 hour" +'%Y-%m-%dT%H:00:00Z')
+fi
+# If we turn the T and Z into spaces, 'date' can parse this.
+hour_for_date=`echo "$hour" | tr TZ '  '`
+hour_next=$(date --date="$hour_for_date 1 hour" +'%Y-%m-%dT%H:00:00Z')
 
 if [ -n "$2" ]; then
     log_dir="$2"
