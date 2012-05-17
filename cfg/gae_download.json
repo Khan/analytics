@@ -1,5 +1,5 @@
 {
-  "max_threads": 6, # max number of parrellel threads  
+  "max_threads": 8, # max number of parrellel threads  
   "max_tries": 4, # max number of tries to fetch entities 
   "sub_process_time_out": 1800, #sub process timeout in seconds
   "max_logs": 1000, # max number of entities from gae for each pbuf call

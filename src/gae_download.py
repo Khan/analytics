@@ -71,17 +71,17 @@ def get_cmd_line_args():
     parser.add_option("-c", "--config", 
         help="json config file for all the download details")
     parser.add_option("-s", "--start_date",
-        default=fetch_entities.to_date_iso(yesterday_dt),
         help="Earliest inclusive date of logs to fetch, in ISO 8601 format. \
               Defaults to yesterday at 00:00.")
     parser.add_option("-e", "--end_date",
-        default=fetch_entities.to_date_iso(today_dt),
         help="Latest exclusive date of logs to fetch, in ISO 8601 format. \
               Defaults to today at 00:00.")
     parser.add_option("-r", "--redo", default = 0,
         help="Re-fetch and overwrite db entries. default to 0. ")
     parser.add_option("-t", "--test", default = 0,
         help="test mode. write data to test_archive_dir instead")
+    parser.add_option("-p", "--proc_interval", default = 3600,
+        help="process interval if no start_date end_date specified")
     
     options, extra_args = parser.parse_args()
 
@@ -235,6 +235,8 @@ def monitor(config, processes):
 
 def start_data_process(config, start_dt_arg, end_dt_arg) : 
     """Loop through the entity types and perform the main function """
+    g_logger.info("Start processing data from %s to %s" %
+                  (str(start_dt_arg), str(end_dt_arg)))
     #ensure the db index exist
     ensure_db_indices(config)
     processes = [] 
@@ -255,8 +257,8 @@ def start_data_process(config, start_dt_arg, end_dt_arg) :
                 start_dt = next_dt
             else: 
                 monitor(config, processes)
-            #wait for 5 sec to space out the queries
-            time.sleep(5)
+            #wait for 2 secs to space out the queries
+            time.sleep(2)
     while len(active_children()) > 0:
         monitor(config, processes)
         time.sleep(10)
@@ -267,8 +269,15 @@ def main():
     for key in DEFAULT_DOWNLOAD_SETTINGS.keys(): 
         if key not in config: 
             config[key] = DEFAULT_DOWNLOAD_SETTINGS[key]
-    start_dt = fetch_entities.from_date_iso(options.start_date)
-    end_dt = fetch_entities.from_date_iso(options.end_date)
+    if options.start_date and options.end_date: 
+        start_dt = fetch_entities.from_date_iso(options.start_date)
+        end_dt = fetch_entities.from_date_iso(options.end_date)
+    else:
+        ts = time.time()
+        end_ts = ts - (ts % int(options.proc_interval)) 
+        start_ts = end_ts - int(options.proc_interval)
+        start_dt = dt.datetime.fromtimestamp(start_ts)
+        end_dt = dt.datetime.fromtimestamp(end_ts)
     if options.test:
         config['archive_dir'] = config['test_archive_dir']
     start_data_process(config, start_dt, end_dt)
