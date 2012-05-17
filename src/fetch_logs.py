@@ -42,7 +42,7 @@ def to_date_iso(date):
     return "%sZ" % datestring
 
 
-def fetch_problem_logs(start_time, end_time):
+def fetch_appengine_logs(start_time, end_time):
     """start_time and end_time should be datetimes."""
     start_time_t = int(time.mktime(start_time.timetuple()))
     end_time_t = int(time.mktime(end_time.timetuple()))
@@ -103,7 +103,7 @@ def main():
 
         for tries in xrange(max_retries):
             try:
-                compressed_response = fetch_problem_logs(start_dt, next_dt)
+                compressed_response = fetch_appengine_logs(start_dt, next_dt)
                 response = zlib.decompress(compressed_response)
                 print response,
                 break
