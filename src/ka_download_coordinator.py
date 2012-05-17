@@ -13,7 +13,7 @@ import datetime as dt
 import re
 
 import pymongo
-from ka_download_util import (mkdir_p, load_unstripped_json,
+from ka_util import (mkdir_p, load_unstripped_json,
                               get_logger, db_decorator)
 
 class DownloadStatus: 
