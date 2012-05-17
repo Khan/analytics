@@ -86,6 +86,7 @@ def get_cmd_line_args():
 
 
 def main():
+    """Returns the number of fetches that resulted in an error."""
     options = get_cmd_line_args()
 
     start_dt = from_date_iso(options.start_date)
@@ -93,6 +94,7 @@ def main():
     interval = int(options.interval)
     max_retries = int(options.max_retries)
 
+    num_errors = 0
     while start_dt < end_dt:
         next_dt = min(start_dt + datetime.timedelta(seconds=interval), end_dt)
 
@@ -103,19 +105,23 @@ def main():
             try:
                 compressed_response = fetch_problem_logs(start_dt, next_dt)
                 response = zlib.decompress(compressed_response)
+                print response,
                 break
             except Exception, why:
-                if tries + 1 == max_retries:   # our last time, give up
-                    raise
                 sleep_secs = 2 ** tries
                 print >>sys.stderr, ('ERROR: %s.\n'
                                      'Retrying in %s seconds...'
                                      % (why, sleep_secs))
                 time.sleep(sleep_secs)
+        else:  # for/else: if we get here, we never succeeded in fetching
+            num_errors += 1
+            print >>sys.stderr, ('SKIPPING logs from %s to %s: error fetching.'
+                                 % (start_dt, next_dt))
 
-        print response,
         start_dt = next_dt
 
 
 if __name__ == '__main__':
-    main()
+    num_errors = main()
+    # Only return 1-127 on error, since 128+ means 'died with signal'
+    sys.exit(min(num_errors, 127))

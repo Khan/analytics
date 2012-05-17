@@ -11,8 +11,10 @@ if [ -n "$1" ]; then
     hour="$1"
 else
     hour=$(date --date='-1 hour' '+%Y-%m-%dT%H:00:00Z')
-fi 
-hour_next=$(date --date="$nour + 1 hour" +'%Y-%m-%dT%H:00:00Z')
+fi
+# If we turn the T and Z into spaces, 'date' can parse this.
+hour_for_date=`echo "$hour" | tr TZ '  '`
+hour_next=$(date --date="$hour_for_date 1 hour" +'%Y-%m-%dT%H:00:00Z')
 
 if [ -n "$2" ]; then
     log_dir="$2"
@@ -21,10 +23,15 @@ else
 fi
 mkdir -p "$log_dir"
 
+# We nest the directories, so 2012-05-07T08:00:00Z becomes
+# 2012/05/07/08:00:00Z
+outfile_prefix="$log_dir/`echo $hour | tr T- //`"
+mkdir -p "`dirname $outfile_prefix`"
+
 ROOT="$(dirname $0)"
 
 export PYTHONPATH="${ROOT}:${PYTHONPATH}"   # for oauth_util directory
 
 exec "$ROOT/fetch_logs.py" -s "$hour" -e "$hour_next" \
-    2> "$log_dir/$hour-error.log" \
-    | gzip -c > "$log_dir/$hour.log.gz"
+    2> "${outfile_prefix}-error.log" \
+    | gzip -c > "${outfile_prefix}.log.gz"
