@@ -1,8 +1,12 @@
 #!/bin/bash
 
-# This script is intended to be run hourly by a cron job -- it must be
-# run frequently because AppEngine only keeps logs around for so long
-# (about 20 hours on 15 May 2012, probably for less going forward).
+# This script is intended to be run hourly by a cron job.  We could
+# run it more often if we want, but the less often we run it, the more
+# likely we'll have to deal with the fact we need to fetch logs that
+# were made from a app-version other than the current app-version (KA
+# changes the app-version as part of the deploy process).  In theory
+# we should handle that case ok, but in case we don't, more frequent
+# fetches minimize the data loss due to app-version changes.
 
 # It just fetches the last hour's appengine (webserver) logs and puts
 # them in ~/kalogs.
@@ -15,6 +19,7 @@ fi
 # If we turn the T and Z into spaces, 'date' can parse this.
 hour_for_date=`echo "$hour" | tr TZ '  '`
 hour_next=$(date --date="$hour_for_date 1 hour" +'%Y-%m-%dT%H:00:00Z')
+hour_prev=$(date --date="$hour_for_date -1 hour" +'%Y-%m-%dT%H:00:00Z')
 
 if [ -n "$2" ]; then
     log_dir="$2"
@@ -30,8 +35,22 @@ mkdir -p "`dirname $outfile_prefix`"
 
 ROOT="$(dirname $0)"
 
-export PYTHONPATH="${ROOT}:${PYTHONPATH}"   # for oauth_util directory
+export PYTHONPATH="${ROOT}:${PYTHONPATH}"   # for oauth_util/ directory
+
+# We look in the error-log from the previous hour to figure out what
+# app-version (such as 0515-ae96fc55243b) was current then.  We tell
+# fetch_logs.py to pass through that app-version if we can't find logs
+# associated with the now-current app-version.  This deals with the
+# case where we deploy and flip the switch to change the default
+# app-version, and later try to fetch logs from before the
+# switch-flip.  By default, such a fetch will return no results,
+# because unless you tell it otherwise, appengine only returns logs
+# associated with the currently active app-version.  Looking at the
+# previous fetches will tell us what version was current when the
+# previous logs were generated, and we can tell that to appengine.
+prev_errorfile="$log_dir/`echo $hour_prev | tr T- //`-error.log"
 
 exec "$ROOT/fetch_logs.py" -s "$hour" -e "$hour_next" \
+    --file_for_alternate_appengine_versions="$prev_errorfile" \
     2> "${outfile_prefix}-error.log" \
     | gzip -c > "${outfile_prefix}.log.gz"

@@ -42,16 +42,21 @@ def to_date_iso(date):
     return "%sZ" % datestring
 
 
-def fetch_appengine_logs(start_time, end_time, appengine_version):
-    """start_time and end_time should be datetimes."""
-    start_time_t = int(time.mktime(start_time.timetuple()))
-    end_time_t = int(time.mktime(end_time.timetuple()))
+def _read_versions(filename):
+    """Look for lines 'appengine_versions: v1,v2,...'; return set(v1,v2,...)"""
+    prefix = 'appengine_versions: '
+    versions = set()
+    try:
+        f = open(filename)
+        for line in f:
+            if line.startswith(prefix):
+                versions.update(line[len(prefix):].strip().split(','))
+    except (IOError, OSError), why:
+        # Errors reading f?  We log, but otherwise just silently continue.
+        print >>sys.stderr, ('Could not open alternate-versions file %s: %s'
+                             % (filename, why))
 
-    response_url = LOGS_URL % {'start_time_t': start_time_t,
-                               'end_time_t': end_time_t}
-    if appengine_version:
-        response_url += '?appengine_version=%s' % appengine_version
-    return oauth_util.fetch_url.fetch_url(response_url)
+    return versions
 
 
 def _split_into_headers_and_body(loglines_string):
@@ -88,8 +93,8 @@ def _split_into_headers_and_body(loglines_string):
 
     if pos_after_header_blankline == -1:    # no blank line found
         return ('', loglines_string)
-    return (loglines_string[:pos_after_header_blankline+1],
-            loglines_string[pos_after_header_blankline+2:])
+    return (loglines_string[:pos_after_header_blankline + 1],
+            loglines_string[pos_after_header_blankline + 2:])
 
 
 def get_cmd_line_args():
@@ -120,12 +125,61 @@ def get_cmd_line_args():
                             "before failing. Defaults to 8."))
     parser.add_option("-v", "--appengine_version", default=None,
                       help=("If set, the appengine-version (e.g. "
-                            "0515-ae96fc55243b) to request the logs from."))
+                            "0515-ae96fc55243b) to request the logs from. "
+                            "If None, will use the current active version."))
+    parser.add_option("--file_for_alternate_appengine_versions", default=None,
+                      help=("If set, whenever fetching logs returns 0 "
+                            "loglines, look through this file to find "
+                            "alternate appengine_versions, and retry "
+                            "fetching the logs against those versions "
+                            "until one returns non-zero results.  The "
+                            "file should have text like "
+                            "appengine_versions=v1,v2,v3"))
+
     options, extra_args = parser.parse_args()
     if extra_args:
         sys.exit('This script takes no arguments!')
 
     return options
+
+
+def fetch_appengine_logs(start_time, end_time, appengine_versions):
+    """Return the output from /api/v1/fetch_logs.
+
+    Arguments:
+      start_time: a datetime object saying when to start fetching from.
+      end_time: a datetime object saying when to stop fetching.
+      appengine_versions: an ordered list (or tuple).  First, we tell
+        appengine to retrieve the logs from the first
+        appengine-version in the list.  If appengine can't find any
+        logs in that time period corresponding to that version, we'll
+        try the next version in the list.  If none of them ever give
+        any output, we return the empty string.  If appengine_versions
+        is the empty list, we just try once, telling appengine to use
+        the current default (live) appengine version.
+
+    Returns:
+      A string, the output of the /api/v1/fetch_logs/x/x?... command.
+    """
+    start_time_t = int(time.mktime(start_time.timetuple()))
+    end_time_t = int(time.mktime(end_time.timetuple()))
+    url_base = LOGS_URL % {'start_time_t': start_time_t,
+                           'end_time_t': end_time_t}
+
+    if not appengine_versions:
+        return oauth_util.fetch_url.fetch_url(url_base)
+
+    for appengine_version in appengine_versions:
+        if appengine_version is None:    # None means 'use the default'
+            url = url_base
+        else:
+            url = url_base + '?appengine_version=%s' % appengine_version
+        retval = oauth_util.fetch_url.fetch_url(url)
+        (_, loglines_as_string) = _split_into_headers_and_body(retval)
+        if loglines_as_string:
+            return retval
+
+    return ''      # We never found a non-empty body, so just bail.
 
 
 def main():
@@ -136,7 +190,10 @@ def main():
     end_dt = from_date_iso(options.end_date)
     interval = int(options.interval)
     max_retries = int(options.max_retries)
-    appengine_version = options.appengine_version
+    appengine_versions = [options.appengine_version]
+    if options.file_for_alternate_appengine_versions:
+        appengine_versions.extend(
+            _read_versions(options.file_for_alternate_appengine_versions))
 
     num_errors = 0
     while start_dt < end_dt:
@@ -148,7 +205,7 @@ def main():
         for tries in xrange(max_retries):
             try:
                 compressed_response = fetch_appengine_logs(start_dt, next_dt,
-                                                           appengine_version)
+                                                           appengine_versions)
                 response = zlib.decompress(compressed_response)
             except Exception, why:
                 sleep_secs = 2 ** tries
@@ -161,6 +218,8 @@ def main():
                 # fetch-log.  The rest goes into the actual logs.
                 (headers, body) = _split_into_headers_and_body(response)
                 sys.stderr.write(headers)
+                if not body:
+                    print >>sys.stderr, 'WARNING: No logs found'
                 print body,
                 break
         else:  # for/else: if we get here, we never succeeded in fetching
