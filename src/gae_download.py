@@ -35,7 +35,7 @@ from google.appengine.api import datastore, datastore_types, users
 
 import fetch_entities 
 from ka_util import (mkdir_p, load_unstripped_json,
-                              get_logger, db_decorator)
+                     get_logger, db_decorator)
 import ka_download_coordinator as kdc
 
 DEFAULT_DOWNLOAD_SETTINGS = {  
@@ -84,11 +84,11 @@ def get_cmd_line_args():
         help="process interval if no start_date end_date specified")
     
     options, extra_args = parser.parse_args()
-
     if not options.config:
         g_logger.fatal('Please specify the json config file')
         exit(1)
     return options
+
 def get_archive_file_name(config, kind, start_dt, end_dt): 
     """get the archive file name. has the format of 
        {ARCHIVE_DIR}/YY-mm-dd/{kind}/kind-start_dt-end_dt.pickle   
@@ -100,6 +100,23 @@ def get_archive_file_name(config, kind, start_dt, end_dt):
         str(start_dt.date()), str(start_dt.time()),
         str(end_dt.date()), str(end_dt.time()))
     return filename 
+
+def load_pbufs_to_db(config, mongo, entity_list, start_dt, end_dt, kind = None): 
+    """load protocol buffers to mongo"""
+    if not kind and len(entity_list) > 0: 
+        pb = entity_list[0]
+        entity = datastore.Entity._FromPb(entity_pb.EntityProto(pb))
+        kind = entity.key().kind()
+    else:
+        kind = 'unknown'      
+    for pb in entity_list: 
+        entity = datastore.Entity._FromPb(entity_pb.EntityProto(pb))
+        put_document(entity, config, mongo)
+    # assume all entities are from the same kind
+    g_logger.info("Writing to db for %s from %s to %s. # rows: %d finishes" % (
+        kind, start_dt, end_dt, len(entity_list)))
+    kdc.record_progress(mongo, config['coordinator_cfg'],
+        kind, start_dt, end_dt, kdc.DownloadStatus.LOADED)
 
 def fetch_and_process_data(kind, start_dt_arg, end_dt_arg, 
     fetch_interval, config): 
@@ -138,13 +155,8 @@ def fetch_and_process_data(kind, start_dt_arg, end_dt_arg,
     kdc.record_progress(mongo, config['coordinator_cfg'],
         kind, start_dt_arg, end_dt_arg, kdc.DownloadStatus.SAVED)
     # load to db
-    for pb in entity_list: 
-        entity = datastore.Entity._FromPb(entity_pb.EntityProto(pb))
-        put_document(entity, config, mongo)
-    g_logger.info("Writing to db for %s from %s to %s. # rows: %d finishes" % (
-        kind, start_dt_arg, end_dt_arg, len(entity_list)))
-    kdc.record_progress(mongo, config['coordinator_cfg'],
-        kind, start_dt_arg, end_dt_arg, kdc.DownloadStatus.LOADED)
+    load_pbufs_to_db(config, mongo, entity_list, 
+        start_dt_arg, end_dt_arg, kind)
 
 def apply_transform(doc):
     """transform the document to a format that can be accepted by mongodb """

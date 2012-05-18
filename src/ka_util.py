@@ -9,6 +9,7 @@ import logging
 import re
 import pymongo
 from pymongo.errors import (InvalidDocument, DuplicateKeyError, AutoReconnect)
+import time
 
 import csv_util
 
@@ -76,7 +77,7 @@ def db_decorator(max_tries, func):
                     time.sleep(3)
                     continue
                 else:
-                    g_logger.error(
+                    print (
                         "Can't connect to mongo after %s tries" % (tries))
                     raise
             return ret
