@@ -42,14 +42,54 @@ def to_date_iso(date):
     return "%sZ" % datestring
 
 
-def fetch_appengine_logs(start_time, end_time):
+def fetch_appengine_logs(start_time, end_time, appengine_version):
     """start_time and end_time should be datetimes."""
     start_time_t = int(time.mktime(start_time.timetuple()))
     end_time_t = int(time.mktime(end_time.timetuple()))
 
     response_url = LOGS_URL % {'start_time_t': start_time_t,
                                'end_time_t': end_time_t}
+    if appengine_version:
+        response_url += '?appengine_version=%s' % appengine_version
     return oauth_util.fetch_url.fetch_url(response_url)
+
+
+def _split_into_headers_and_body(loglines_string):
+    """Split the fetch_logs output into header lines and log lines.
+
+    hg commit c3887adcec6b added the ability for /api/v1/fetch_logs to
+    emit header lines before the actual log-lines.  These header lines
+    can include meta-information about the logs being fetched, such as
+    the version number of appengine that was active when these logs
+    were generated.  We want to log this meta-information to stderr,
+    while logging the actual log-lines, which follow the headers, to
+    stdout.  This routine helps in that separation, while also
+    handling the legacy case that there are no header lines.
+
+    The fetch_logs form is header lines<blank line>log lines.
+
+    Arguments:
+       loglines_string: the output of /api/v1/fetch_logs/...
+
+    Returns:
+       Two strings: the header lines and the log lines.  Each ends with \n.
+    """
+    # Old fetch_logs format doesn't have header lines.  So we have to
+    # guess if this is old-format output or new-format.  We know all
+    # old-format logs start with 0-9 (the first field of those
+    # loglines is an IP address), so that's one hint.  Another hint is
+    # if there's no blank line in the first X characters (where X is
+    # larger than our headers are ever likely to be).  If both are
+    # true, we assume there are no headers.
+    if loglines_string[0].isdigit():
+        pos_after_header_blankline = loglines_string.find('\n\n', 0, 4096)
+    else:
+        pos_after_header_blankline = loglines_string.find('\n\n')
+
+    if pos_after_header_blankline == -1:    # no blank line found
+        return ('', loglines_string)
+    return (loglines_string[:pos_after_header_blankline+1],
+            loglines_string[pos_after_header_blankline+2:])
 
 
 def get_cmd_line_args():
@@ -78,6 +118,9 @@ def get_cmd_line_args():
     parser.add_option("-r", "--max_retries", default=8,
                       help=("Maximum # of retries for request attempts "
                             "before failing. Defaults to 8."))
+    parser.add_option("-v", "--appengine_version", default=None,
+                      help=("If set, the appengine-version (e.g. "
+                            "0515-ae96fc55243b) to request the logs from."))
     options, extra_args = parser.parse_args()
     if extra_args:
         sys.exit('This script takes no arguments!')
@@ -93,6 +136,7 @@ def main():
     end_dt = from_date_iso(options.end_date)
     interval = int(options.interval)
     max_retries = int(options.max_retries)
+    appengine_version = options.appengine_version
 
     num_errors = 0
     while start_dt < end_dt:
@@ -103,16 +147,22 @@ def main():
 
         for tries in xrange(max_retries):
             try:
-                compressed_response = fetch_appengine_logs(start_dt, next_dt)
+                compressed_response = fetch_appengine_logs(start_dt, next_dt,
+                                                           appengine_version)
                 response = zlib.decompress(compressed_response)
-                print response,
-                break
             except Exception, why:
                 sleep_secs = 2 ** tries
                 print >>sys.stderr, ('ERROR: %s.\n'
                                      'Retrying in %s seconds...'
                                      % (why, sleep_secs))
                 time.sleep(sleep_secs)
+            else:
+                # The 'header' portion of the response goes into the
+                # fetch-log.  The rest goes into the actual logs.
+                (headers, body) = _split_into_headers_and_body(response)
+                sys.stderr.write(headers)
+                print body,
+                break
         else:  # for/else: if we get here, we never succeeded in fetching
             num_errors += 1
             print >>sys.stderr, ('SKIPPING logs from %s to %s: error fetching.'
