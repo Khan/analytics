@@ -43,6 +43,7 @@ def gz_pickle_to_mongo(config, gzfile):
     f = gzip.open(gzfile, "rb") 
     entity_list = pickle.load(f)
     f.close()
+    g_logger.info("Loading %s entries to db" % len(entity_list))
     gae_download.load_pbufs_to_db(config, mongo, entity_list, start_dt, end_dt) 
 def monitor(config, processes): 
     """Monitor the concurrent processes"""
@@ -63,7 +64,7 @@ def main():
     #hard code some args
     config['max_threads'] = 4
     config['coordinator_cfg']['control_db'] = "ka_backpopulate_cntrl"
-    config["sub_process_time_out"] = 3600
+    config["sub_process_time_out"] = 86400*3
     with open(options.file_list) as f:
         file_list = f.readlines()
     processes = []

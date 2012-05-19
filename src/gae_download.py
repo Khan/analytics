@@ -109,9 +109,15 @@ def load_pbufs_to_db(config, mongo, entity_list, start_dt, end_dt, kind = None):
         kind = entity.key().kind()
     else:
         kind = 'unknown'      
+    num = 0
     for pb in entity_list: 
         entity = datastore.Entity._FromPb(entity_pb.EntityProto(pb))
         put_document(entity, config, mongo)
+        num += 1
+        if (num % 100000) == 0:
+            g_logger.info(
+                "Writing to db for %s from %s to %s. # rows: %d loaded" % (
+                kind, start_dt, end_dt, num))
     # assume all entities are from the same kind
     g_logger.info("Writing to db for %s from %s to %s. # rows: %d finishes" % (
         kind, start_dt, end_dt, len(entity_list)))
