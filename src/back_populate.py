@@ -40,8 +40,9 @@ def gz_pickle_to_mongo(config, gzfile):
     (year, month, day)  = re.match(r'.*(\d{4})-(\d{2})-(\d{2})', gzfile).groups()
     start_dt = dt.datetime(int(year), int(month), int(day))
     end_dt = start_dt + dt.timedelta(days=1)
-    with gzip.open(gzfile, "rb") as f:
-        entity_list = pickle.load(f)
+    f = gzip.open(gzfile, "rb") 
+    entity_list = pickle.load(f)
+    f.close()
     gae_download.load_pbufs_to_db(config, mongo, entity_list, start_dt, end_dt) 
 def monitor(config, processes): 
     """Monitor the concurrent processes"""
