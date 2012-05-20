@@ -62,7 +62,7 @@ def main():
     options = get_cmd_line_args()
     config = ka_util.load_unstripped_json(options.config)
     #hard code some args
-    config['max_threads'] = 4
+    config['max_threads'] = 2
     config['coordinator_cfg']['control_db'] = "ka_backpopulate_cntrl"
     config["sub_process_time_out"] = 86400*3
     with open(options.file_list) as f:
@@ -70,7 +70,7 @@ def main():
     processes = []
     for gzfile in file_list:
         while True:
-            if len(active_children()) <= config['max_threads']:         
+            if len(active_children()) < config['max_threads']:         
                g_logger.info("Starting loading %s ...", gzfile)
                p = Process(target = gz_pickle_to_mongo,
                            args = (config, gzfile.strip()))
