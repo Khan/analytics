@@ -225,7 +225,10 @@ def put_document(entity, config, mongo):
         try:
 	    mongo_db = mongo[get_db_name(config, kind)]
 	    mongo_collection = mongo_db[kind]
-            mongo_collection.save(document) 
+            mongo_collection.insert(document) 
+        except DuplicateKeyError:
+            # ignore
+            pass
         except InvalidDocument:
             g_logger.error("InvalidDocument %s" % (document))
         except InvalidStringData as e:
