@@ -9,9 +9,9 @@ import pymongo
 import ka_util
 import mongo_util
 
-
-mongo = pymongo.Connection() 
-mongo_db = mongo['testdb']
+# TODO(jace): make all this configurable
+userdata_db = pymongo.Connection()['ka']  
+plog_db = pymongo.Connection(port=12345)['kadb_pl']
 report_db = pymongo.Connection('10.212.150.79')['report']
 
 ex_collection_name = 'daily_ex_stats'
@@ -35,20 +35,20 @@ def load_for_day(day):
     
     user_plogs = {}
     progress = ka_util.LoopProgressLogger()
-    for plog in mongo_db['ProblemLog'].find(query):
+    for plog in plog_db['ProblemLog'].find(query):
         user = plog['user']
         if user not in user_plogs:
             user_plogs[user] = []
         user_plogs[user].append(plog_shorten(plog))
         progress.log(mod=10000, msg=str(plog['time_done']))
         
-    #TODO(jace) replace with simpler list comprehension below when dugging/progress output not needed
+    #TODO(jace) replace with simpler list comprehension below when debugging/progress output not needed
     user_data_map = {}
     for user in user_plogs:
-        user_data_map[user] =  mongo['ka']['UserData'].find_one({'user':user})
+        user_data_map[user] =  userdata_db['UserData'].find_one({'user':user})
         if len(user_data_map) % 1000 == 0:
             print "Loaded %d user_data docs." % len(user_data_map)
-    #user_data_map = dict([(user, mongo['ka']['UserData'].find_one({'user':user})) for user in user_plogs])
+    #user_data_map = dict([(user, userdata_db['UserData'].find_one({'user':user})) for user in user_plogs])
 
     return user_plogs, user_data_map
 
@@ -110,7 +110,7 @@ def compute_for_day(day, super_mode, filter_mode, user_plogs, user_data_map):
         if not user_day_matches_mode(plogs, user_data, filter_mode):
             return
         
-        # sort by time for any advanced iner-problem logic
+        # sort by time for any advanced inner-problem logic
         plogs = sorted(plogs, key=lambda p: p['time_done'])
 
         user_exs = []  # keep a list of all exs done by this user
