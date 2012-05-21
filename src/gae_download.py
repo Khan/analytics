@@ -265,7 +265,7 @@ def start_data_process(config, start_dt_arg, end_dt_arg) :
         start_dt = start_dt_arg
         end_dt = end_dt_arg
         while start_dt < end_dt:
-            if len(active_children()) <= config['max_threads']:
+            if len(active_children()) < config['max_threads']:
                 next_dt = min(start_dt + interval, end_dt)
                 p = Process(target = fetch_and_process_data,
                     args = (kind, start_dt, next_dt, fetch_interval, config))
