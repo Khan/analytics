@@ -103,12 +103,13 @@ def get_archive_file_name(config, kind, start_dt, end_dt):
 
 def load_pbufs_to_db(config, mongo, entity_list, start_dt, end_dt, kind = None): 
     """load protocol buffers to mongo"""
-    if not kind and len(entity_list) > 0: 
-        pb = entity_list[0]
-        entity = datastore.Entity._FromPb(entity_pb.EntityProto(pb))
-        kind = entity.key().kind()
-    else:
-        kind = 'unknown'      
+    if not kind:
+        if len(entity_list) > 0: 
+            pb = entity_list[0]
+            entity = datastore.Entity._FromPb(entity_pb.EntityProto(pb))
+            kind = entity.key().kind()
+        else:
+            kind = 'unknown'      
     num = 0
     for pb in entity_list: 
         entity = datastore.Entity._FromPb(entity_pb.EntityProto(pb))
@@ -264,7 +265,7 @@ def start_data_process(config, start_dt_arg, end_dt_arg) :
         start_dt = start_dt_arg
         end_dt = end_dt_arg
         while start_dt < end_dt:
-            if len(active_children()) <= config['max_threads']:
+            if len(active_children()) < config['max_threads']:
                 next_dt = min(start_dt + interval, end_dt)
                 p = Process(target = fetch_and_process_data,
                     args = (kind, start_dt, next_dt, fetch_interval, config))
