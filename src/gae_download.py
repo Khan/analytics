@@ -215,6 +215,7 @@ def put_document(entity, config, mongo):
         kind = entity.key().kind()
         document = {}
         document.update(entity)
+        mutable = int(config['kinds'][kind][2])
         #make sure all records using the key field as the 
         #index key
         if 'key' not in document:
@@ -225,7 +226,10 @@ def put_document(entity, config, mongo):
         try:
 	    mongo_db = mongo[get_db_name(config, kind)]
 	    mongo_collection = mongo_db[kind]
-            mongo_collection.insert(document) 
+            if mutable == 0: 
+                mongo_collection.insert(document) 
+            else: 
+                mongo_collection.save(document) 
         except DuplicateKeyError:
             # ignore
             pass

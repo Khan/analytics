@@ -6,20 +6,20 @@
   "dbhost": "localhost", 
   "dbport": 12345,
   "emails": ["jace@khanacademy.org", "yunfang@khanacademy.org"], 
-  # entity to (save interval, fetch interval) mapping.
+  # entity to (save interval, fetch interval, mutable record) mapping.
   "kinds": {
-            "VideoLog" : [300, 15] ,
-            "ProblemLog" : [300, 15],
-            "StackLog": [300, 15], 
-            "UserBadge": [600, 30],
-            "UserData": [600, 15], 
-            "UserVideo" : [1200, 100],
-            "Feedback": [1800, 1800], 
-            "Exercise": [1800, 1800], 
-            "ExerciseVideo": [1800, 1800], 
-            "Topic": [1800, 1800],
-            "TopicVersion": [1800, 1800], 
-            "Video" : [1800, 1800]
+            "VideoLog" : [300, 15, 0] ,
+            "ProblemLog" : [300, 15, 0],
+            "StackLog": [300, 15, 0], 
+            "UserBadge": [600, 30, 0],
+            "UserData": [600, 15, 1], 
+            "UserVideo" : [1200, 100, 1],
+            "Feedback": [1800, 1800, 1], 
+            "Exercise": [1800, 1800, 1], 
+            "ExerciseVideo": [1800, 1800, 1], 
+            "Topic": [1800, 1800, 1],
+            "TopicVersion": [1800, 1800, 1], 
+            "Video" : [1800, 1800, 1]
            }, 
   "default_db": "kadb",
   # these tables have their own db because they are big
