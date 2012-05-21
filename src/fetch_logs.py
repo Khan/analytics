@@ -97,6 +97,15 @@ def _split_into_headers_and_body(loglines_string):
             loglines_string[pos_after_header_blankline + 2:])
 
 
+def _num_requests_in_logs(body):
+    """Given a collection of log-lines, return the number of user requests."""
+    # We look for text that's likely only in actual loglines, not in
+    # logging messages, python stacktraces, or the like.  We look for
+    # ' ms='.  ' instance=' or ' cpm_usd=' would also work.  If we're
+    # unlucky in a log message, this count may be off by a bit.
+    return body.count(' ms=')
+
+
 def get_cmd_line_args():
     today_start = datetime.datetime.combine(datetime.date.today(),
                                             datetime.time())
@@ -218,6 +227,9 @@ def main():
                 # fetch-log.  The rest goes into the actual logs.
                 (headers, body) = _split_into_headers_and_body(response)
                 sys.stderr.write(headers)
+                # It's nice to give a brief summary of what the logs are like.
+                print >>sys.stderr, ('%s request lines found'
+                                     % _num_requests_in_logs(body))
                 if not body:
                     print >>sys.stderr, 'WARNING: No logs found'
                 print body,

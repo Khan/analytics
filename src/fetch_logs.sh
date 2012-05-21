@@ -14,12 +14,12 @@
 if [ -n "$1" ]; then
     hour="$1"
 else
-    hour=$(date --date='-1 hour' '+%Y-%m-%dT%H:00:00Z')
+    hour=$(date --date='last hour' '+%Y-%m-%dT%H:00:00Z')
 fi
 # If we turn the T and Z into spaces, 'date' can parse this.
 hour_for_date=`echo "$hour" | tr TZ '  '`
-hour_next=$(date --date="$hour_for_date 1 hour" +'%Y-%m-%dT%H:00:00Z')
-hour_prev=$(date --date="$hour_for_date -1 hour" +'%Y-%m-%dT%H:00:00Z')
+hour_next=$(date --date="$hour_for_date next hour" +'%Y-%m-%dT%H:00:00Z')
+hour_prev=$(date --date="$hour_for_date last hour" +'%Y-%m-%dT%H:00:00Z')
 
 if [ -n "$2" ]; then
     log_dir="$2"
@@ -37,7 +37,7 @@ ROOT="$(dirname $0)"
 
 export PYTHONPATH="${ROOT}:${PYTHONPATH}"   # for oauth_util/ directory
 
-# We look in the error-log from the previous hour to figure out what
+# We look in the status-log from the previous hour to figure out what
 # app-version (such as 0515-ae96fc55243b) was current then.  We tell
 # fetch_logs.py to pass through that app-version if we can't find logs
 # associated with the now-current app-version.  This deals with the
@@ -48,9 +48,9 @@ export PYTHONPATH="${ROOT}:${PYTHONPATH}"   # for oauth_util/ directory
 # associated with the currently active app-version.  Looking at the
 # previous fetches will tell us what version was current when the
 # previous logs were generated, and we can tell that to appengine.
-prev_errorfile="$log_dir/`echo $hour_prev | tr T- //`-error.log"
+prev_statusfile="$log_dir/`echo $hour_prev | tr T- //`-status.log"
 
 exec "$ROOT/fetch_logs.py" -s "$hour" -e "$hour_next" \
-    --file_for_alternate_appengine_versions="$prev_errorfile" \
-    2> "${outfile_prefix}-error.log" \
+    --file_for_alternate_appengine_versions="$prev_statusfile" \
+    2> "${outfile_prefix}-status.log" \
     | gzip -c > "${outfile_prefix}.log.gz"
