@@ -1,34 +1,38 @@
 {
-  "max_threads": 8, # max number of parrellel threads  
-  "max_tries": 4, # max number of tries to fetch entities 
-  "sub_process_time_out": 1800, #sub process timeout in seconds
+  "max_threads": 8, # max number of parrallel threads
+  "max_tries": 4, # max number of tries to fetch entities
+  "sub_process_time_out": 1800, # sub process timeout in seconds
   "max_logs": 1000, # max number of entities from gae for each pbuf call
-  "dbhost": "localhost", 
+  "dbhost": "localhost",
   "dbport": 12345,
-  "emails": ["jace@khanacademy.org", "yunfang@khanacademy.org"], 
+  "emails": ["jace@khanacademy.org", "yunfang@khanacademy.org"],
   # entity to (save interval, fetch interval, mutable record) mapping.
   "kinds": {
             "VideoLog" : [300, 15, 0] ,
             "ProblemLog" : [300, 15, 0],
-            "StackLog": [300, 15, 0], 
+            "StackLog": [300, 15, 0],
             "UserBadge": [600, 30, 0],
-            "UserData": [600, 15, 1], 
+            "UserData": [600, 15, 1],
             "UserVideo" : [1200, 100, 1],
-            "Feedback": [1800, 1800, 1], 
-            "Exercise": [1800, 1800, 1], 
-            "ExerciseVideo": [1800, 1800, 1], 
+            "Feedback": [1800, 1800, 1],
+            "Exercise": [1800, 1800, 1],
+            "ExerciseVideo": [1800, 1800, 1],
             "Topic": [1800, 1800, 1],
-            "TopicVersion": [1800, 1800, 1], 
+            "TopicVersion": [1800, 1800, 1],
             "Video" : [1800, 1800, 1]
-           }, 
+           },
   "default_db": "kadb",
   # these tables have their own db because they are big
-  "kinds_to_db": { "VideoLog":  "kadb_vl", "ProblemLog": "kadb_pl" },
-  "test_archive_dir": "/Users/yunfangjuan/kadata/archive", 
-  #save the fetched data to this dir
-  "archive_dir": "/home/ec2-user/kabackup/daily_new", 
-  #coordinator config
-  "coordinator_cfg": {"control_db": "ka_download_cntrl", 
-                      "default_start_time": 86400,
-                      "monitor_lag": 1800}
+  "kinds_to_db": {
+    "VideoLog":  "kadb_vl",
+    "ProblemLog": "kadb_pl"
+  },
+  # save the fetched data to this dir
+  "archive_dir": "/home/ec2-user/kabackup/daily_new",
+  # coordinator config
+  "coordinator_cfg": {
+    "control_db": "ka_download_cntrl",
+    "default_start_time": 86400,
+    "monitor_lag": 1800
+  }
 }

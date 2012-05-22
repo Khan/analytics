@@ -1,13 +1,13 @@
 #!/usr/bin/env python
-"""Script to download data from the Google App Engine Data Store.  It takes a 
-json config file to specify what entity types to download and the detailed 
+"""Script to download data from the Google App Engine Data Store.  It takes a
+json config file to specify what entity types to download and the detailed
 download configurations.  The program also takes the start_date and end_date
  to specify the data duration we would like to download.  All the entity types
- have to have the field "backup_timestamp" to be downloaded properly. 
-The entity keys becomes the _id in the mongo db. 
+ have to have the field "backup_timestamp" to be downloaded properly.
+The entity keys becomes the _id in the mongo db.
 See the config under ../../cfg for more details
 
-TODO(yunfang): adding a controldb in mongo to coordinate the fetch and 
+TODO(yunfang): adding a controldb in mongo to coordinate the fetch and
                db load of gae data
 """
 
@@ -19,8 +19,8 @@ import time
 from optparse import OptionParser
 from multiprocessing import active_children
 from multiprocessing import Process
-  
-import pymongo 
+
+import pymongo
 from pymongo.errors import DuplicateKeyError
 from pymongo.errors import InvalidDocument
 from pymongo.errors import InvalidStringData
@@ -34,13 +34,13 @@ from google.appengine.api import users
 from google.appengine.datastore import entity_pb
 
 import date_util
-import fetch_entities 
+import fetch_entities
 from util import (mkdir_p, load_unstripped_json,
                   get_logger, db_decorator)
 import ka_download_coordinator as kdc
 
 
-DEFAULT_DOWNLOAD_SETTINGS = {  
+DEFAULT_DOWNLOAD_SETTINGS = {
     "max_threads": 4, # max number of parrellel threads
     "max_tries": 8, # max number of tries to download entities
     "interval": 120, # data accumulated before writing into mongodb
@@ -55,9 +55,9 @@ DEFAULT_DOWNLOAD_SETTINGS = {
 COLLECTION_INDICES = {
     'UserData' : ['user', 'current_user', 'user_email'],
     'UserExercise' : [[('user',1), ('exercise',1)]],
-    'UserVideo' : ['user'], 
-    'VideoLog' : ['user', 'video', 
-                  [('backup_timestamp', -1), ('user', 1), ('video', 1)]], 
+    'UserVideo' : ['user'],
+    'VideoLog' : ['user', 'video',
+                  [('backup_timestamp', -1), ('user', 1), ('video', 1)]],
     'ProblemLog' : ['user', 'exercise',
                     [('backup_timestamp', -1), ('user', 1), ('exercise', 1)]]
 }
@@ -67,50 +67,51 @@ g_logger = get_logger()
 def get_cmd_line_args():
     parser = OptionParser(usage="%prog [options]",
         description="Download data from the Google App Engine Datastore")
-    parser.add_option("-c", "--config", 
-        help="json config file for all the download details")
+    parser.add_option("-c", "--config",
+        help="JSON config file for all the download details")
     parser.add_option("-s", "--start_date",
-        help="Earliest inclusive date of logs to fetch, in ISO 8601 format. \
-              Defaults to yesterday at 00:00.")
+        help="Earliest inclusive date of logs to fetch, in ISO 8601 format. "
+              "Defaults to yesterday at 00:00.")
     parser.add_option("-e", "--end_date",
-        help="Latest exclusive date of logs to fetch, in ISO 8601 format. \
-              Defaults to today at 00:00.")
-    parser.add_option("-r", "--redo", default = 0,
+        help="Latest exclusive date of logs to fetch, in ISO 8601 format. "
+              "Defaults to today at 00:00.")
+    parser.add_option("-r", "--redo", default=0,
         help="Re-fetch and overwrite db entries. default to 0. ")
-    parser.add_option("-t", "--test", default = 0,
-        help="test mode. write data to test_archive_dir instead")
+    parser.add_option("-d", "--archive_dir",
+        help="The directory to archive the downloaded protobufs. Will "
+             "override the value in the JSON config if specified.")
     parser.add_option("-p", "--proc_interval", default = 3600,
         help="process interval if no start_date end_date specified")
-    
+
     options, _ = parser.parse_args()
     if not options.config:
         g_logger.fatal('Please specify the json config file')
         exit(1)
     return options
 
-def get_archive_file_name(config, kind, start_dt, end_dt): 
-    """get the archive file name. has the format of 
-       {ARCHIVE_DIR}/YY-mm-dd/{kind}/kind-start_dt-end_dt.pickle   
+def get_archive_file_name(config, kind, start_dt, end_dt):
+    """get the archive file name. has the format of
+       {ARCHIVE_DIR}/YY-mm-dd/{kind}/kind-start_dt-end_dt.pickle
     """
     datestr = str(start_dt.date())
     dirname = "%s/%s/%s" % (config['archive_dir'], datestr, kind)
     mkdir_p(dirname)
-    filename = "%s/%s-%s-%s-%s-%s.pickle" % (dirname, kind, 
+    filename = "%s/%s-%s-%s-%s-%s.pickle" % (dirname, kind,
         str(start_dt.date()), str(start_dt.time()),
         str(end_dt.date()), str(end_dt.time()))
-    return filename 
+    return filename
 
-def load_pbufs_to_db(config, mongo, entity_list, start_dt, end_dt, kind = None): 
+def load_pbufs_to_db(config, mongo, entity_list, start_dt, end_dt, kind = None):
     """load protocol buffers to mongo"""
     if not kind:
-        if len(entity_list) > 0: 
+        if len(entity_list) > 0:
             pb = entity_list[0]
             entity = datastore.Entity._FromPb(entity_pb.EntityProto(pb))
             kind = entity.key().kind()
         else:
-            kind = 'unknown'      
+            kind = 'unknown'
     num = 0
-    for pb in entity_list: 
+    for pb in entity_list:
         entity = datastore.Entity._FromPb(entity_pb.EntityProto(pb))
         put_document(entity, config, mongo)
         num += 1
@@ -123,11 +124,11 @@ def load_pbufs_to_db(config, mongo, entity_list, start_dt, end_dt, kind = None):
         kind, start_dt, end_dt, len(entity_list)))
     kdc.record_progress(mongo, config['coordinator_cfg'],
         kind, start_dt, end_dt, kdc.DownloadStatus.LOADED)
-    
 
-def fetch_and_process_data(kind, start_dt_arg, end_dt_arg, 
-    fetch_interval, config): 
-    """Main function: fetching data and load it to mongodb.""" 
+
+def fetch_and_process_data(kind, start_dt_arg, end_dt_arg,
+    fetch_interval, config):
+    """Main function: fetching data and load it to mongodb."""
     mongo = open_db_conn(config)
     kdc.record_progress(mongo, config['coordinator_cfg'],
         kind, start_dt_arg, end_dt_arg, kdc.DownloadStatus.STARTED)
@@ -137,9 +138,9 @@ def fetch_and_process_data(kind, start_dt_arg, end_dt_arg,
     g_logger.info("Downloading data for %s from %s to %s starts"  % (
         kind, start_dt_arg, end_dt_arg))
     entity_list = []
-    while start_dt < end_dt: 
+    while start_dt < end_dt:
         next_dt = min(start_dt + dt.timedelta(seconds=fetch_interval), end_dt)
-        response = fetch_entities.attempt_fetch_entities(kind, start_dt, 
+        response = fetch_entities.attempt_fetch_entities(kind, start_dt,
             next_dt, config['max_logs'], config['max_tries'], False)
         entity_list += pickle.loads(response)
         start_dt = next_dt
@@ -149,99 +150,99 @@ def fetch_and_process_data(kind, start_dt_arg, end_dt_arg,
     kdc.record_progress(mongo, config['coordinator_cfg'],
         kind, start_dt_arg, end_dt_arg, kdc.DownloadStatus.FETCHED)
     # save to a file
-    archived_file = get_archive_file_name(config, kind, 
-        start_dt_arg, end_dt_arg) 
+    archived_file = get_archive_file_name(config, kind,
+        start_dt_arg, end_dt_arg)
     with open(archived_file, 'wb') as f:
         pickle.dump(entity_list, f)
     ret = subprocess.call(["gzip", "-f", archived_file])
-    if ret == 0: 
-        g_logger.info("%s rows saved to %s.gz" % (len(entity_list), 
+    if ret == 0:
+        g_logger.info("%s rows saved to %s.gz" % (len(entity_list),
             archived_file))
-    else: 
+    else:
         g_logger.error("Cannot gzip %s" % (archived_file))
     kdc.record_progress(mongo, config['coordinator_cfg'],
         kind, start_dt_arg, end_dt_arg, kdc.DownloadStatus.SAVED)
     # load to db
-    load_pbufs_to_db(config, mongo, entity_list, 
+    load_pbufs_to_db(config, mongo, entity_list,
         start_dt_arg, end_dt_arg, kind)
-    
+
 
 def apply_transform(doc):
     """transform the document to a format that can be accepted by mongodb """
-    if isinstance(doc, dict): 
+    if isinstance(doc, dict):
         for key, value in doc.iteritems():
             doc[key] = apply_transform(value)
         return doc
-    elif isinstance(doc, list):  
-        doc = [apply_transform(item) for item in doc] 
+    elif isinstance(doc, list):
+        doc = [apply_transform(item) for item in doc]
         return doc
-    elif (isinstance(doc, datastore_types.Key) or 
+    elif (isinstance(doc, datastore_types.Key) or
           isinstance(doc, users.User)):
         return str(doc)
     return doc
 
 
-def open_db_conn(config): 
+def open_db_conn(config):
     """Get a mongodb connection (and reuse it)"""
     def _open_db_conn(config):
         return pymongo.Connection(config['dbhost'], config['dbport'])
-    func = db_decorator(config['max_tries'], _open_db_conn) 
+    func = db_decorator(config['max_tries'], _open_db_conn)
     return func(config)
 
 
-def get_db_name(config, kind): 
-    """Return a db connection with kind and config""" 
+def get_db_name(config, kind):
+    """Return a db connection with kind and config"""
     if kind not in config['kinds_to_db']:
         return config['default_db']
-    return config['kinds_to_db'][kind]    
+    return config['kinds_to_db'][kind]
 
 
-def ensure_db_indices(config): 
-    """Ensure all the indices built""" 
+def ensure_db_indices(config):
+    """Ensure all the indices built"""
     mongo = open_db_conn(config)
     for kind, indices in COLLECTION_INDICES.iteritems():
         for index in indices:
             ensure_db_index(config, mongo, kind, index)
 
-    
+
 def ensure_db_index(config, mongo, kind, index):
     """ensure index for kind"""
-    def _ensure_db_index(config, mongo, kind, index): 
+    def _ensure_db_index(config, mongo, kind, index):
         mongo_db = mongo[get_db_name(config, kind)]
         mongo_db[kind].ensure_index(index)
-        
-    func = db_decorator(config['max_tries'], _ensure_db_index) 
+
+    func = db_decorator(config['max_tries'], _ensure_db_index)
     func(config, mongo, kind, index)
 
 
-def put_document(entity, config, mongo): 
-    """Put the GAE entity into mongodb"""        
+def put_document(entity, config, mongo):
+    """Put the GAE entity into mongodb"""
     def _put_document(entity, config, mongo):
         kind = entity.key().kind()
         document = {}
         document.update(entity)
         mutable = int(config['kinds'][kind][2])
-        #make sure all records using the key field as the 
+        #make sure all records using the key field as the
         #index key
         if 'key' not in document:
             document['_id'] = str(entity.key())
-        else: 
+        else:
             document['_id'] = document['key']
         document = apply_transform(document)
         try:
             mongo_db = mongo[get_db_name(config, kind)]
             mongo_collection = mongo_db[kind]
-            if mutable == 0: 
-                mongo_collection.insert(document) 
-            else: 
-                mongo_collection.save(document) 
+            if mutable == 0:
+                mongo_collection.insert(document)
+            else:
+                mongo_collection.save(document)
         except DuplicateKeyError:
             # ignore
             pass
         except InvalidDocument:
             g_logger.error("InvalidDocument %s" % (document))
         except InvalidStringData as e:
-            g_logger.error("Problem inserting doc: %s \n error: %s" % 
+            g_logger.error("Problem inserting doc: %s \n error: %s" %
                (document, e))
     func = db_decorator(config['max_tries'], _put_document)
     func(entity, config, mongo)
@@ -249,32 +250,32 @@ def put_document(entity, config, mongo):
 
 def monitor(config, processes):
     """Monitor the concurrent processes"""
-    remaining = [] 
+    remaining = []
     now = time.time()
     for (process, params) in processes:
-        if process.is_alive(): 
+        if process.is_alive():
             if (now - params['start']) > int(config["sub_process_time_out"]):
-                #timeout 
+                #timeout
                 process.terminate()
                 #NOTE: Although it get terminated. The duration should be
-                # re-scheduled with the upcoming control-db implementation. 
+                # re-scheduled with the upcoming control-db implementation.
                 g_logger.error(
                     "Process hung with kind: %s start_dt: %s end_dt: %s" % (
-                    params["kind"], params["start_dt"], params["end_dt"]))      
+                    params["kind"], params["start_dt"], params["end_dt"]))
             else:
                 remaining.append((process, params))
-    processes = remaining    
+    processes = remaining
 
 
-def start_data_process(config, start_dt_arg, end_dt_arg) : 
+def start_data_process(config, start_dt_arg, end_dt_arg) :
     """Loop through the entity types and perform the main function """
     g_logger.info("Start processing data from %s to %s" %
                   (str(start_dt_arg), str(end_dt_arg)))
     #ensure the db index exist
     ensure_db_indices(config)
-    processes = [] 
+    processes = []
     for kind, fetch_intervals in config['kinds'].iteritems():
-        interval = dt.timedelta(seconds=int(fetch_intervals[0])) 
+        interval = dt.timedelta(seconds=int(fetch_intervals[0]))
         fetch_interval = fetch_intervals[1]
         start_dt = start_dt_arg
         end_dt = end_dt_arg
@@ -284,11 +285,11 @@ def start_data_process(config, start_dt_arg, end_dt_arg) :
                 p = Process(target = fetch_and_process_data,
                     args = (kind, start_dt, next_dt, fetch_interval, config))
                 p.start()
-                download_params = {"kind": kind, "start_dt": start_dt, 
+                download_params = {"kind": kind, "start_dt": start_dt,
                                    "end_dt": end_dt, "start": time.time()}
                 processes.append((p, download_params))
                 start_dt = next_dt
-            else: 
+            else:
                 monitor(config, processes)
             #wait for 2 secs to space out the queries
             time.sleep(2)
@@ -300,20 +301,21 @@ def start_data_process(config, start_dt_arg, end_dt_arg) :
 def main():
     options = get_cmd_line_args()
     config = load_unstripped_json(options.config)
-    for key in DEFAULT_DOWNLOAD_SETTINGS.keys(): 
-        if key not in config: 
+    for key in DEFAULT_DOWNLOAD_SETTINGS.keys():
+        if key not in config:
             config[key] = DEFAULT_DOWNLOAD_SETTINGS[key]
-    if options.start_date and options.end_date: 
+    if options.start_date and options.end_date:
         start_dt = date_util.from_date_iso(options.start_date)
         end_dt = date_util.from_date_iso(options.end_date)
     else:
         ts = time.time()
-        end_ts = ts - (ts % int(options.proc_interval)) 
+        end_ts = ts - (ts % int(options.proc_interval))
         start_ts = end_ts - int(options.proc_interval)
         start_dt = dt.datetime.fromtimestamp(start_ts)
         end_dt = dt.datetime.fromtimestamp(end_ts)
-    if options.test:
-        config['archive_dir'] = config['test_archive_dir']
+    if options.archive_dir:
+        # Override the archive directory, if specified.
+        config['archive_dir'] = options.archive_dir
     start_data_process(config, start_dt, end_dt)
 
 
