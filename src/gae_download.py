@@ -33,10 +33,12 @@ from google.appengine.api import datastore_types
 from google.appengine.api import users
 from google.appengine.datastore import entity_pb
 
+import date_util
 import fetch_entities 
 from util import (mkdir_p, load_unstripped_json,
                   get_logger, db_decorator)
 import ka_download_coordinator as kdc
+
 
 DEFAULT_DOWNLOAD_SETTINGS = {  
     "max_threads": 4, # max number of parrellel threads
@@ -302,8 +304,8 @@ def main():
         if key not in config: 
             config[key] = DEFAULT_DOWNLOAD_SETTINGS[key]
     if options.start_date and options.end_date: 
-        start_dt = fetch_entities.from_date_iso(options.start_date)
-        end_dt = fetch_entities.from_date_iso(options.end_date)
+        start_dt = date_util.from_date_iso(options.start_date)
+        end_dt = date_util.from_date_iso(options.end_date)
     else:
         ts = time.time()
         end_ts = ts - (ts % int(options.proc_interval)) 

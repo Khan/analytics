@@ -23,23 +23,11 @@ import sys
 import time
 import zlib
 
+import date_util
 import oauth_util.fetch_url
 
 
 LOGS_URL = '/api/v1/fetch_logs/%(start_time_t)s/%(end_time_t)s'
-
-
-def from_date_iso(s_date):
-    """Parse date in our approved ISO 8601 format."""
-    return datetime.datetime.strptime(s_date, "%Y-%m-%dT%H:%M:%SZ")
-
-
-def to_date_iso(date):
-    datestring = date.isoformat()
-    idx = datestring.rfind('.')
-    if idx != -1:
-        datestring = datestring[:idx]
-    return "%sZ" % datestring
 
 
 def _read_versions(filename):
@@ -117,12 +105,12 @@ def get_cmd_line_args():
                      "Outputs to stdout."))
 
     parser.add_option("-s", "--start_date",
-                      default=to_date_iso(yesterday_start),
+                      default=date_util.to_date_iso(yesterday_start),
                       help=("Earliest inclusive date of logs to fetch, "
                             "in ISO 8601 format. "
                             "Defaults to yesterday at 00:00."))
     parser.add_option("-e", "--end_date",
-                      default=to_date_iso(today_start),
+                      default=date_util.to_date_iso(today_start),
                       help=("Latest exclusive date of logs to fetch, "
                             "in ISO 8601 format. "
                             "Defaults to today at 00:00."))
@@ -200,8 +188,8 @@ def main():
     """Returns the number of fetches that resulted in an error."""
     options = get_cmd_line_args()
 
-    start_dt = from_date_iso(options.start_date)
-    end_dt = from_date_iso(options.end_date)
+    start_dt = date_util.from_date_iso(options.start_date)
+    end_dt = date_util.from_date_iso(options.end_date)
     interval = int(options.interval)
     max_retries = int(options.max_retries)
     appengine_versions = [options.appengine_version]

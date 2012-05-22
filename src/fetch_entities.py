@@ -7,29 +7,13 @@
 import datetime as dt
 import optparse
 import pickle
-import string
 import sys
 import time
 import urllib
 import urllib2
 
+import date_util
 import oauth_util.fetch_url
-
-
-# TODO(benkomalo): move this out to a generic utility if we're going to
-# standardize on this timestamp format.
-def from_date_iso(s_date):
-    """Parse a string assumed to be in our ISO8601 format (no microseconds)."""
-    return dt.datetime.strptime(s_date, "%Y-%m-%dT%H:%M:%SZ")
-
-
-def to_date_iso(date):
-    """Converts a datetime object to our ISO 8601 format (no microseconds)."""
-    datestring = date.isoformat()
-    idx = string.rfind(datestring, '.')
-    if idx != -1:
-        datestring = datestring[:idx]
-    return "%sZ" % datestring
 
 
 # TODO(benkomalo): rename "max_logs" to max_results or something.
@@ -53,8 +37,8 @@ def fetch_entities(entity_type, start_date=None, end_date=None, max_logs=None):
     # errors or deserializing of sorts.
 
     qs_map = filter(lambda x: x[1], [
-        ('dt_start', to_date_iso(start_date)),
-        ('dt_end', to_date_iso(end_date)),
+        ('dt_start', date_util.to_date_iso(start_date)),
+        ('dt_end', date_util.to_date_iso(end_date)),
         ('max', max_logs),
     ])
     query_string = urllib.urlencode(qs_map)
@@ -106,10 +90,10 @@ def get_cmd_line_args():
     parser = optparse.OptionParser(usage="%prog [options]",
         description="Fetches problem logs from khanacademy.org using its v1 API. Outputs in pickled entities.")
     parser.add_option("-s", "--start_date",
-        default=to_date_iso(yesterday_dt),
+        default=date_util.to_date_iso(yesterday_dt),
         help="Earliest inclusive date of logs to fetch, in ISO 8601 format. Defaults to yesterday at 00:00.")
     parser.add_option("-e", "--end_date",
-        default=to_date_iso(today_dt),
+        default=date_util.to_date_iso(today_dt),
         help="Latest exclusive date of logs to fetch, in ISO 8601 format. Defaults to today at 00:00.")
     parser.add_option("-i", "--interval", default=10, help="Time interval to fetch at a time, in seconds. Defaults to 10.")
     parser.add_option("-l", "--max_logs", default=1000, help="Maximum # of log entries to fetch per interval. Defaults to 1000.")
@@ -117,7 +101,7 @@ def get_cmd_line_args():
     parser.add_option("-o", "--output_file", help="Name of the file to output.")
     parser.add_option("-t", "--type", help="Entity type to back up")
 
-    options, extra_args = parser.parse_args()
+    options, _ = parser.parse_args()
 
     if not options.type:
         print >> sys.stderr, 'Please specify an entity type to back up'
@@ -130,8 +114,8 @@ def get_cmd_line_args():
 
 def main():
     options = get_cmd_line_args()
-    end_dt = from_date_iso(options.end_date)
-    start_dt = from_date_iso(options.start_date)
+    end_dt = date_util.from_date_iso(options.end_date)
+    start_dt = date_util.from_date_iso(options.start_date)
     interval = int(options.interval)
     entity_list = []
 
