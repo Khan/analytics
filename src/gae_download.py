@@ -132,23 +132,24 @@ def fetch_and_process_data(kind, start_dt_arg, end_dt_arg,
     mongo = open_db_conn(config)
     kdc.record_progress(mongo, config['coordinator_cfg'],
         kind, start_dt_arg, end_dt_arg, kdc.DownloadStatus.STARTED)
+
     # fetch
     start_dt = start_dt_arg
     end_dt = end_dt_arg
     g_logger.info("Downloading data for %s from %s to %s starts"  % (
         kind, start_dt_arg, end_dt_arg))
-    entity_list = []
-    while start_dt < end_dt:
-        next_dt = min(start_dt + dt.timedelta(seconds=fetch_interval), end_dt)
-        response = fetch_entities.attempt_fetch_entities(kind, start_dt,
-            next_dt, config['max_logs'], config['max_tries'], False)
-        entity_list += pickle.loads(response)
-        start_dt = next_dt
+    entity_list = fetch_entities.download_entities(
+                      kind, 
+                      start_dt_arg, end_dt_arg,
+                      fetch_interval,
+                      config['max_logs'], config['max_tries'],
+                      verbose=False)
     g_logger.info(
         "Data downloaded for %s from %s to %s.# rows: %d finishes" % (
             kind, start_dt_arg, end_dt_arg, len(entity_list)))
     kdc.record_progress(mongo, config['coordinator_cfg'],
         kind, start_dt_arg, end_dt_arg, kdc.DownloadStatus.FETCHED)
+
     # save to a file
     archived_file = get_archive_file_name(config, kind,
         start_dt_arg, end_dt_arg)
@@ -162,6 +163,7 @@ def fetch_and_process_data(kind, start_dt_arg, end_dt_arg,
         g_logger.error("Cannot gzip %s" % (archived_file))
     kdc.record_progress(mongo, config['coordinator_cfg'],
         kind, start_dt_arg, end_dt_arg, kdc.DownloadStatus.SAVED)
+
     # load to db
     load_pbufs_to_db(config, mongo, entity_list,
         start_dt_arg, end_dt_arg, kind)
