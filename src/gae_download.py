@@ -34,8 +34,8 @@ from google.appengine.datastore import entity_pb
 from google.appengine.api import datastore, datastore_types, users
 
 import fetch_entities 
-from ka_util import (mkdir_p, load_unstripped_json,
-                     get_logger, db_decorator)
+from util import (mkdir_p, load_unstripped_json,
+                  get_logger, db_decorator)
 import ka_download_coordinator as kdc
 
 DEFAULT_DOWNLOAD_SETTINGS = {  

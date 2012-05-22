@@ -1,13 +1,10 @@
 import copy
 import datetime
-import gc
 from optparse import OptionParser
 
-import bson
 import pymongo
 
-import ka_util
-import mongo_util
+import util
 
 # TODO(jace): make all this configurable
 userdata_db = pymongo.Connection()['ka']  
@@ -34,7 +31,7 @@ def load_for_day(day):
     query = {"time_done": {"$gte": day, "$lt": day + datetime.timedelta(days=1)}}
     
     user_plogs = {}
-    progress = ka_util.LoopProgressLogger()
+    progress = util.LoopProgressLogger()
     for plog in plog_db['ProblemLog'].find(query):
         user = plog['user']
         if user not in user_plogs:

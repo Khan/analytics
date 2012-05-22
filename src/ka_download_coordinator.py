@@ -12,9 +12,7 @@ We will the collections under the control_db
 import datetime as dt
 import re
 
-import pymongo
-from ka_util import (mkdir_p, load_unstripped_json,
-                              get_logger, db_decorator)
+from util import db_decorator
 
 class DownloadStatus: 
     NONE = 0

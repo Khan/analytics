@@ -1,21 +1,22 @@
 #!/usr/bin/env python
+""" 
+Utility functions and classes for Khan Academy analytics sorted alphabetically
+"""
 
-import os, sys
+
+import csv
 import datetime
 import errno
 import hashlib
 import json
 import logging
+import os
 import re
-import pymongo
-from pymongo.errors import (InvalidDocument, DuplicateKeyError, AutoReconnect)
+import sys
 import time
 
-import csv_util
+from pymongo.errors import AutoReconnect
 
-""" 
-Utility functions and classes for Khan Academy analytics sorted alphabetically
-"""
 
 class LoopProgressLogger():
     iteration_counts = {}
@@ -30,13 +31,14 @@ class LoopProgressLogger():
             else:
                 print msg_prefix + msg
 
-class Params:
+class Params(object):
     """ 
     Utility class to group a bunch a named params
     E.g., params = Params(datum=y, squared=y*y, coord=x)
     """
     def __init__(self, **kwds):
         self.__dict__.update(kwds)
+
 
 def add_dict(from_dict, to_dict):
     """ 
@@ -49,6 +51,8 @@ def add_dict(from_dict, to_dict):
         else:
             for stat_name, stat in stats.iteritems():
                 to_dict[key][stat_name] += stat
+
+
 def clean_datetime_str(origstr) :
     """ 
     this function takes a string, and makes sure there 
@@ -64,8 +68,9 @@ def clean_datetime_str(origstr) :
          
     return origstr[:10] + ' ' + origstr[11:] + trailer
 
+
 def db_decorator(max_tries, func):
-    """Decorator fod db functions. try to handle the errors"""
+    """Decorator for db functions. Attempts to handle errors by retrying."""
     def new_func(*args, **kwargs):
         tries = 0
         while True:
@@ -83,6 +88,7 @@ def db_decorator(max_tries, func):
             return ret
     return new_func
 
+
 def dict_to_csv(dict, out_filename=None):
     
     original_stdout = sys.stdout
@@ -99,12 +105,17 @@ def dict_to_csv(dict, out_filename=None):
     
     sys.stdout = original_stdout
 
+
 def filter_file_by_cohort_mode(in_filename, out_filename, cohort_mode='IN') :
     """
     this function takes an input filename and and output filename.  it reads 
     each line of an input file, looks for a 'user' field, and conditionally outputs
     the line if depending on cohort mode and whether that user is in a cohort
     """
+    
+    # TODO(benkomalo): investigate the validity of this method - UserDataUtil
+    # is an unresolved variable. This may have gotten borked in the src code
+    # migration
     user_data = UserDataUtil()
     user_data.loadCSV()
     user_data.resetCohortFlags(minimum_students=10)
@@ -119,9 +130,11 @@ def filter_file_by_cohort_mode(in_filename, out_filename, cohort_mode='IN') :
         if user_data.matchesCohortMode(cohort_mode, row[idx_user]) :
             writer.writerow(row)
     
+
 def get_data_dir():
     """return the value of environment variable containing path to working data set"""
     return os.getenv( 'KA_DATA_DIR', "." )
+
 
 def get_data_filename(kind):
     """ 
@@ -130,6 +143,7 @@ def get_data_filename(kind):
     """
     # TODO assert that the file exisits
     return get_data_dir() + '/' + kind + '.csv'
+
 
 def get_logger():
     """Return an intialized logger"""
@@ -141,6 +155,7 @@ def get_logger():
     ch.setFormatter(formatter)
     logger.addHandler(ch)
     return logger
+
 
 def global_file_replace(filename, substitutions):
     """ 
@@ -154,17 +169,19 @@ def global_file_replace(filename, substitutions):
             line.replace( s['from'], s['to'] )
         print line
 
+
 def load_unstripped_json(config_file):
     """load json config file with comments"""
     with open(config_file) as f:
         content = f.read()
     return json.loads(re.sub(r"#.*\n", "", content))
 
+
 def mkdir_p(path):
     """mkdir -p {path}"""
     try:
         os.makedirs(path)
-    except OSError as exc: # Python >2.5
+    except OSError as exc:
         if exc.errno == errno.EEXIST:
             pass
         else:
@@ -179,6 +196,7 @@ def passes_random_hash_filter(key_string, percentage_kept=.50):
     sig = hashlib.md5(key_string).hexdigest()
     sig_num = int(sig, base=16)
     return (sig_num % 100 <= percentage_kept*100)
+
 
 def split2(origstr) :
     """ 
@@ -200,13 +218,14 @@ def stdout_redirect_to_file_start(filename):
         sys.stdout = outfile
     return outfile
 
+
 def stdout_redirect_to_file_stop(outfile):
     if outfile is not None:
         outfile.close()
         sys.stdout = sys.__stdout__
 
 
-def str_2_datetime (origstr) :
+def str_2_datetime (origstr):
     """ 
     this function takes a string representing a datetime in the 
     format commonly used by the CSV connector conversion 

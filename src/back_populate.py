@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 """One time script to back populate ProblemLog and VideoLog pickle files"""
 
-import os, sys
 import datetime as dt
 import time
 import gzip
@@ -12,10 +11,10 @@ from optparse import OptionParser
 from multiprocessing import Process, active_children
 
 import gae_download
-import ka_util
+import util
 
 
-g_logger = ka_util.get_logger()
+g_logger = util.get_logger()
 
 def get_cmd_line_args():
     parser = OptionParser(usage="%prog [options]",
@@ -60,7 +59,7 @@ def monitor(config, processes):
     processes = remaining
 def main():
     options = get_cmd_line_args()
-    config = ka_util.load_unstripped_json(options.config)
+    config = util.load_unstripped_json(options.config)
     #hard code some args
     config['max_threads'] = 2
     config['coordinator_cfg']['control_db'] = "ka_backpopulate_cntrl"
