@@ -86,7 +86,7 @@ def _split_into_headers_and_body(loglines_string):
     # if there's no blank line in the first X characters (where X is
     # larger than our headers are ever likely to be).  If both are
     # true, we assume there are no headers.
-    if loglines_string[0].isdigit():
+    if loglines_string and loglines_string[0].isdigit():
         pos_after_header_blankline = loglines_string.find('\n\n', 0, 4096)
     else:
         pos_after_header_blankline = loglines_string.find('\n\n')
@@ -178,15 +178,20 @@ def fetch_appengine_logs(start_time, end_time, appengine_versions):
     if not appengine_versions:
         return oauth_util.fetch_url.fetch_url(url_base)
 
-    for appengine_version in appengine_versions:
+    for (i, appengine_version) in enumerate(appengine_versions):
         if appengine_version is None:    # None means 'use the default'
             url = url_base
         else:
             url = url_base + '?appengine_version=%s' % appengine_version
-        retval = oauth_util.fetch_url.fetch_url(url)
+        compressed_retval = oauth_util.fetch_url.fetch_url(url)
+        retval = zlib.decompress(compressed_retval)
         (_, loglines_as_string) = _split_into_headers_and_body(retval)
         if loglines_as_string:
             return retval
+
+        print >>sys.stderr, ('No logs for version %s, trying version %s'
+                             % (appengine_version or '[default]',
+                                (appengine_versions + ['<giving up>'])[i + 1]))
 
     return ''      # We never found a non-empty body, so just bail.
 
@@ -203,6 +208,8 @@ def main():
     if options.file_for_alternate_appengine_versions:
         appengine_versions.extend(
             _read_versions(options.file_for_alternate_appengine_versions))
+    print >>sys.stderr, ('Looking at these appengine versions: %s'
+                         % [v or '(default)' for v in appengine_versions])
 
     num_errors = 0
     while start_dt < end_dt:
@@ -213,9 +220,8 @@ def main():
 
         for tries in xrange(max_retries):
             try:
-                compressed_response = fetch_appengine_logs(start_dt, next_dt,
-                                                           appengine_versions)
-                response = zlib.decompress(compressed_response)
+                response = fetch_appengine_logs(start_dt, next_dt,
+                                                appengine_versions)
             except Exception, why:
                 sleep_secs = 2 ** tries
                 print >>sys.stderr, ('ERROR: %s.\n'
