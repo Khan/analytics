@@ -12,26 +12,26 @@ TODO(yunfang): adding a controldb in mongo to coordinate the fetch and
 """
 
 import datetime as dt
-import errno
-import json
-import logging
-import os
 import pickle
-import re
 import subprocess
-import sys 
 import time
 
 from optparse import OptionParser
-from multiprocessing import Process, active_children
+from multiprocessing import active_children
+from multiprocessing import Process
   
 import pymongo 
-from pymongo.errors import (InvalidDocument, DuplicateKeyError, 
-                            InvalidStringData, AutoReconnect)
+from pymongo.errors import DuplicateKeyError
+from pymongo.errors import InvalidDocument
+from pymongo.errors import InvalidStringData
 
-from google.appengine.ext import db
+import gae_util
+gae_util.fix_sys_path()
+
+from google.appengine.api import datastore
+from google.appengine.api import datastore_types
+from google.appengine.api import users
 from google.appengine.datastore import entity_pb
-from google.appengine.api import datastore, datastore_types, users
 
 import fetch_entities 
 from util import (mkdir_p, load_unstripped_json,
@@ -63,9 +63,6 @@ COLLECTION_INDICES = {
 g_logger = get_logger()
 
 def get_cmd_line_args():
-    today_dt = dt.datetime.combine(dt.date.today(), dt.time())
-    yesterday_dt = today_dt - dt.timedelta(days=1)
-
     parser = OptionParser(usage="%prog [options]",
         description="Download data from the Google App Engine Datastore")
     parser.add_option("-c", "--config", 
@@ -83,7 +80,7 @@ def get_cmd_line_args():
     parser.add_option("-p", "--proc_interval", default = 3600,
         help="process interval if no start_date end_date specified")
     
-    options, extra_args = parser.parse_args()
+    options, _ = parser.parse_args()
     if not options.config:
         g_logger.fatal('Please specify the json config file')
         exit(1)
@@ -124,6 +121,7 @@ def load_pbufs_to_db(config, mongo, entity_list, start_dt, end_dt, kind = None):
         kind, start_dt, end_dt, len(entity_list)))
     kdc.record_progress(mongo, config['coordinator_cfg'],
         kind, start_dt, end_dt, kdc.DownloadStatus.LOADED)
+    
 
 def fetch_and_process_data(kind, start_dt_arg, end_dt_arg, 
     fetch_interval, config): 
@@ -164,6 +162,7 @@ def fetch_and_process_data(kind, start_dt_arg, end_dt_arg,
     # load to db
     load_pbufs_to_db(config, mongo, entity_list, 
         start_dt_arg, end_dt_arg, kind)
+    
 
 def apply_transform(doc):
     """transform the document to a format that can be accepted by mongodb """
@@ -179,6 +178,7 @@ def apply_transform(doc):
         return str(doc)
     return doc
 
+
 def open_db_conn(config): 
     """Get a mongodb connection (and reuse it)"""
     def _open_db_conn(config):
@@ -186,18 +186,21 @@ def open_db_conn(config):
     func = db_decorator(config['max_tries'], _open_db_conn) 
     return func(config)
 
+
 def get_db_name(config, kind): 
     """Return a db connection with kind and config""" 
     if kind not in config['kinds_to_db']:
         return config['default_db']
     return config['kinds_to_db'][kind]    
 
+
 def ensure_db_indices(config): 
     """Ensure all the indices built""" 
     mongo = open_db_conn(config)
     for kind, indices in COLLECTION_INDICES.iteritems():
-         for index in indices:
+        for index in indices:
             ensure_db_index(config, mongo, kind, index)
+
     
 def ensure_db_index(config, mongo, kind, index):
     """ensure index for kind"""
@@ -224,8 +227,8 @@ def put_document(entity, config, mongo):
             document['_id'] = document['key']
         document = apply_transform(document)
         try:
-	    mongo_db = mongo[get_db_name(config, kind)]
-	    mongo_collection = mongo_db[kind]
+            mongo_db = mongo[get_db_name(config, kind)]
+            mongo_collection = mongo_db[kind]
             if mutable == 0: 
                 mongo_collection.insert(document) 
             else: 
@@ -240,7 +243,8 @@ def put_document(entity, config, mongo):
                (document, e))
     func = db_decorator(config['max_tries'], _put_document)
     func(entity, config, mongo)
-        
+
+
 def monitor(config, processes):
     """Monitor the concurrent processes"""
     remaining = [] 
@@ -258,6 +262,7 @@ def monitor(config, processes):
             else:
                 remaining.append((process, params))
     processes = remaining    
+
 
 def start_data_process(config, start_dt_arg, end_dt_arg) : 
     """Loop through the entity types and perform the main function """
@@ -289,6 +294,7 @@ def start_data_process(config, start_dt_arg, end_dt_arg) :
         monitor(config, processes)
         time.sleep(10)
 
+
 def main():
     options = get_cmd_line_args()
     config = load_unstripped_json(options.config)
@@ -307,6 +313,7 @@ def main():
     if options.test:
         config['archive_dir'] = config['test_archive_dir']
     start_data_process(config, start_dt, end_dt)
+
 
 if __name__ == '__main__':
     main()
