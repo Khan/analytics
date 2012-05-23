@@ -12,11 +12,9 @@ import re
 
 import pymongo
 
-import gae_util
-gae_util.fix_sys_path()
+import date_util
 
 import util
-import date_util
 
 vid2title = {}
 g_logger = util.get_logger()
@@ -35,6 +33,8 @@ def get_cmd_line_args():
 def get_data(day_str): 
     """Get data from mongo"""
     # TODO(yunfang): parameterize this thing
+    allusers = {}
+    global vid2title
     vlog_collection = pymongo.Connection(port=12345)['kadb_vl']['VideoLog']
     iso_str = "%sT00:00:00Z" % day_str
     day = date_util.from_date_iso(iso_str)
@@ -42,9 +42,21 @@ def get_data(day_str):
                 {"$gte": day,
                  "$lt": day + datetime.timedelta(days=1)}
             }
-    sort_spec = [('user', 1)]
     g_logger.info("Processing VideoLog for %s" % day_str)
-    return vlog_collection.find(query, sort = sort_spec)
+    num_recs = 0;
+    for rec in vlog_collection.find(query):
+        simp_rec = (rec['user'], rec['youtube_id'], rec['seconds_watched'],
+                    rec['is_video_completed'])
+        user = rec['user']
+        vid2title[rec['youtube_id']] = rec['video_title']
+        if user not in allusers:
+            allusers[user] = []
+        allusers[user].append(simp_rec)
+        num_recs += 1
+        if num_recs % 10000 == 0:
+            g_logger.info("Processing %s db records" % num_recs)  
+    g_logger.info("DB data downloaded %s # records: %s" % (day_str, num_recs))
+    return allusers
 
 def update(data, category_list, key, val, incr = True): 
     """Update the basic bi-level dictionary of data[vid][property]"""
@@ -79,13 +91,10 @@ def analyze_log_for_user(video_log):
     """Get the video watching summary for a user """
     user_summary = {}
     global vid2title
-    if len(video_log) == 0:
-        return
     for rec in video_log: 
-        secs_watched = rec["seconds_watched"]
-        complete = bool(rec["is_video_completed"]) 
-        vid_key = rec['youtube_id']
-        vid2title[vid_key] = rec['video_title']
+        secs_watched = rec[2]
+        complete = bool(rec[3]) 
+        vid_key = rec[1]
         update(user_summary, [vid_key, 'total'], 
                "seconds_watched", secs_watched) 
         update(user_summary, [vid_key], "watched", 1, False) 
@@ -124,27 +133,15 @@ def analyze_all(data):
     user = None
     rec_list = []
     num_users = 0 
-    num_recs = 0
-    for rec in data:
-        num_recs += 1
-        if rec['user'] == user:
-            rec_list.append(rec)
-        else:
-            if len(rec_list) > 0: 
-                user_summary = analyze_log_for_user(rec_list) 
-                user_categories = get_user_categories(user)
-                update_summary(global_summary, user_summary, user_categories)  
-                num_users += 1
-                if num_users % 1000 == 0:
-                    g_logger.info("%s users processed with %s records" % 
-                                  (num_users, num_recs))
-            rec_list = [rec]
-            user = rec['user']
+    g_logger.info("Analyzing the data")
+    for user, rec_list in data.iteritems():
+        user_summary = analyze_log_for_user(rec_list) 
+        user_categories = get_user_categories(user)
+        update_summary(global_summary, user_summary, user_categories)  
+        num_users += 1
+        if num_users % 1000 == 0:
+            g_logger.info("%s users processed" % num_users)
     # bounday condition      
-    if len(rec_list) > 0: 
-	user_summary = analyze_log_for_user(rec_list) 
-	user_categories = get_user_categories(user)
-	update_summary(global_summary, user_summary, user_categories)  
     return global_summary 
 
 def populate(summary, day_str):
@@ -153,6 +150,7 @@ def populate(summary, day_str):
     report_db = pymongo.Connection('10.212.150.79')['report']
     #report_db = pymongo.Connection(port=12345)['report']
     report_collection = report_db['daily_video_stats']
+    g_logger.info("Populating data")
     iso_str = "%sT00:00:00Z" % day_str
     day = date_util.from_date_iso(iso_str)
     for ucat, vid2stats in summary.iteritems():
