@@ -82,6 +82,44 @@ def attempt_fetch_entities(kind,
         break
     return response
 
+def download_entities(kind, 
+                      start_dt, end_dt, 
+                      fetch_interval_seconds, 
+                      max_entities_per_fetch, max_attempts_per_fetch, 
+                      verbose = True):
+    """Downloads all entities between start_dt and end_dt  by
+    repeatedly calling attempt_fetch_entities if necessary.  Multiple calls 
+    are only necessary if there are more entities in the time interval
+    than max_entities_per_fecth.  
+    
+    WARNING: because the API call returns entities in [start_dt, end_dt), 
+    this, function may return some duplicates in its result.  The caller should 
+    de-dupe by .key() of the entities if needed.
+    
+    Returns a list of Entities.
+    """
+
+    entity_list = []
+    interval_start = start_dt
+    time_delta = dt.timedelta(seconds=fetch_interval_seconds)
+    while interval_start < end_dt: 
+        interval_end = min(interval_start + time_delta, end_dt)
+        response = attempt_fetch_entities(kind, interval_start, interval_end, 
+            max_entities_per_fetch, max_attempts_per_fetch, verbose)
+        response_list = pickle.loads(response)
+        entity_list += response_list
+        if len(response_list)==max_entities_per_fetch:
+            # if we maxed out the number of entities for the fetch, there
+            # might still be more so query again from the last timestamp
+            # WARNING: this depends on the implementation of the API call
+            # returning the protobuffs in sorted order
+            pb =response_list[-1]
+            entity = datastore.Entity._FromPb(entity_pb.EntityProto(pb))
+            if 'backup_timestamp' in entity:
+                interval_end = entity['backup_timestamp']
+        interval_start = interval_end
+    return entity_list
+    
 
 def get_cmd_line_args():
     today_dt = dt.datetime.combine(dt.date.today(), dt.time())
