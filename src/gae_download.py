@@ -56,10 +56,8 @@ COLLECTION_INDICES = {
     'UserData' : ['user', 'current_user', 'user_email'],
     'UserExercise' : [[('user',1), ('exercise',1)]],
     'UserVideo' : ['user'],
-    'VideoLog' : ['user', 'video',
-                  [('backup_timestamp', -1), ('user', 1), ('video', 1)]],
-    'ProblemLog' : ['user', 'exercise',
-                    [('backup_timestamp', -1), ('user', 1), ('exercise', 1)]]
+    'VideoLog' : ['user', [('backup_timestamp', -1)]],
+    'ProblemLog' : ['user', [('backup_timestamp', -1)]]
 }
 
 g_logger = get_logger()
