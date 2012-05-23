@@ -30,9 +30,9 @@ def get_cmd_line_args():
         exit(1)
     return options
 
-def get_data(day_str): 
+def get_video_logs_by_user(day_str): 
     """Get data from mongo"""
-    # TODO(yunfang): parameterize this thing
+    # TODO(yunfang): parameterize the db parameters
     allusers = {}
     global vid2title
     vlog_collection = pymongo.Connection(port=12345)['kadb_vl']['VideoLog']
@@ -45,7 +45,8 @@ def get_data(day_str):
     g_logger.info("Processing VideoLog for %s" % day_str)
     num_recs = 0;
     for rec in vlog_collection.find(query):
-        simp_rec = (rec['user'], rec['youtube_id'], rec['seconds_watched'],
+        # Compress the rec to a 3-tuple to save some space
+        simp_rec = (rec['youtube_id'], rec['seconds_watched'],
                     rec['is_video_completed'])
         user = rec['user']
         vid2title[rec['youtube_id']] = rec['video_title']
@@ -69,7 +70,8 @@ def update(data, category_list, key, val, incr = True):
             data[cat][key] += val
 
 def update_dict(to_dict, from_dict): 
-    """Add the from_dict data to to_dict"""
+    """Add the from_dict data to to_dict. It's like dict.update() but 
+       instead of overwrite it adds up"""
     for cat, kv_pair in from_dict.iteritems():
         if cat not in to_dict:
             to_dict[cat] = {}
@@ -92,9 +94,9 @@ def analyze_log_for_user(video_log):
     user_summary = {}
     global vid2title
     for rec in video_log: 
-        secs_watched = rec[2]
-        complete = bool(rec[3]) 
-        vid_key = rec[1]
+        vid_key = rec[0]
+        secs_watched = rec[1]
+        complete = bool(rec[2]) 
         update(user_summary, [vid_key, 'total'], 
                "seconds_watched", secs_watched) 
         update(user_summary, [vid_key], "watched", 1, False) 
@@ -148,7 +150,6 @@ def populate(summary, day_str):
     """Populate the data to the report db"""
     # TODO(yunfang): parameterize this thing
     report_db = pymongo.Connection('10.212.150.79')['report']
-    #report_db = pymongo.Connection(port=12345)['report']
     report_collection = report_db['daily_video_stats']
     g_logger.info("Populating data")
     iso_str = "%sT00:00:00Z" % day_str
@@ -164,12 +165,12 @@ def populate(summary, day_str):
             doc.update(stats)
             doc["_id"] = "%s-%s-%s" % (ucat, vid, day_str)
             report_collection.save(doc)
+    g_logger.info("Done...")
 def main():
     options = get_cmd_line_args()
-    global_summary = analyze_all(get_data(options.day)) 
+    global_summary = analyze_all(get_video_logs_by_user(options.day)) 
     populate(global_summary, options.day)  
 if __name__ == '__main__':
     main()
-
     
 
