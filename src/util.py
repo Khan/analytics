@@ -106,31 +106,6 @@ def dict_to_csv(dict, out_filename=None):
     sys.stdout = original_stdout
 
 
-def filter_file_by_cohort_mode(in_filename, out_filename, cohort_mode='IN') :
-    """
-    this function takes an input filename and and output filename.  it reads 
-    each line of an input file, looks for a 'user' field, and conditionally outputs
-    the line if depending on cohort mode and whether that user is in a cohort
-    """
-    
-    # TODO(benkomalo): investigate the validity of this method - UserDataUtil
-    # is an unresolved variable. This may have gotten borked in the src code
-    # migration
-    user_data = UserDataUtil()
-    user_data.loadCSV()
-    user_data.resetCohortFlags(minimum_students=10)
-    
-    reader = csv.reader(open(in_filename, "rt"), quotechar='"', quoting=csv.QUOTE_MINIMAL)
-    writer = csv.writer(open( out_filename, "wb"), quotechar='"', 
-                 quoting=csv.QUOTE_MINIMAL)
-    header = reader.next()
-    writer.writerow( header )
-    idx_user = header.index( 'user' )
-    for row in reader:
-        if user_data.matchesCohortMode(cohort_mode, row[idx_user]) :
-            writer.writerow(row)
-    
-
 def get_data_dir():
     """return the value of environment variable containing path to working data set"""
     return os.getenv( 'KA_DATA_DIR', "." )

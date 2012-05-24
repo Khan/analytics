@@ -32,8 +32,9 @@ _BLACKLIST_FILE = os.path.join(os.path.dirname(__file__),
 
 # W291 trailing whitespace
 # W293 blank line contains whitespace
+# W391 blank line at end of file
 _DEFAULT_PEP8_ARGS = ['--repeat',
-                      '--ignore=W291,W293']
+                      '--ignore=W291,W293,W391']
 
 
 def _parse_blacklist(blacklist_filename):
