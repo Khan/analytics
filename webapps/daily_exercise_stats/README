@@ -1,5 +1,4 @@
-This is a dashboard of daily problem log statistics.
+This is a collection of simple dashboards. It only contains two crude dashboards right now: a time series of problems done over time, and daily snapshots of aggregate video log data.
 
-It can be sliced and diced on multiple dimensions, and depends on the daily problem logs downloaded using logic from the fetch-entities/ sub-directory.
+TODO(benkomalo): rename this directory!
 
-You can access this at http://toby.khanacademy.org/daily_ex_stats.html
