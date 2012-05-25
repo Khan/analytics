@@ -6,7 +6,7 @@ A simple dashboard showing aggregate video data for a particular day.
 
 <head>
 <link rel="shortcut icon" href="http://www.khanacademy.org/favicon.ico?leaf">
-<link rel="stylesheet" type="text/css" href="css/third_party/bootstrap.css">
+<link rel="stylesheet" type="text/css" href="static/css/third_party/bootstrap.css">
 </head>
 
 <body>
@@ -23,10 +23,11 @@ User Category: <select id="user_category">
 </div>
 
 <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.6.1/jquery.min.js"></script>
-<script src="js/third_party/underscore-min.js"></script>
-<script src="js/third_party/handlebars.js"></script>
-<script src="js/daily-video-stats.js"></script>
+<script src="static/js/third_party/underscore-min.js"></script>
+<script src="static/js/third_party/handlebars.js"></script>
+<script src="static/js/daily-video-stats.js"></script>
 
+{% raw %}
 <script type="text/x-handlebars-template" id="video-table">
 <table class="table table-bordered table-striped">
     <thead>
@@ -45,6 +46,7 @@ User Category: <select id="user_category">
     <td>{{hours_watched}}</td>
 </tr>
 </script>
+{% endraw %}
 
 </body>
 </html>

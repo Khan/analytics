@@ -14,14 +14,13 @@ VideoStats.init = function() {
     // daily-ex-stats.js (maybe abstract to a data fetcher)
     var BASE_STAT_SERVER_URL = "http://184.73.72.110:27080/";
 
-    var url = BASE_STAT_SERVER_URL +
-         "report/daily_video_stats/_find?callback=?";
-    var datestamp = $("#datestamp").val(); 
-    var user_category = $("#user_category").val(); 
-    var criteria = '{"date_str":"' + datestamp + '","ucat":"' 
+    var url = BASE_STAT_SERVER_URL + "report/daily_video_stats/_find?callback=?";
+    var datestamp = $("#datestamp").val();
+    var user_category = $("#user_category").val();
+    var criteria = '{"date_str":"' + datestamp + '","ucat":"'
         + user_category+ '"}';
     var params = {
-        //json query 
+        //json query
         "criteria": criteria,
         "batch_size": 15000
     };
