@@ -1,7 +1,9 @@
-import sys
-import pymongo
-import re
 import random
+import re
+import sys
+
+import pymongo
+
 
 # reuse this JS code for a reducer that just sums
 reduce_sum_js = '''
