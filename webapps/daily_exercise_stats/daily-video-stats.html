@@ -10,7 +10,15 @@ A simple dashboard showing aggregate video data for a particular day.
 </head>
 
 <body>
-<input title="Datestamp" id="datestamp" value="2012-05-22" size="20" />
+<div id="input_variables">
+Date Stamp(YYYY-mm-dd): <input title="Datestamp" id="datestamp" value="2012-05-22" size="20" /> <br/>
+User Category: <select id="user_category"> 
+               <option value="all" selected>All</option>
+               <option value="registered">Registered</option>
+               <option value="phantom">Phantom</option>
+               </select>
+<br/>
+</div>
 <div id="video-stats-container" style="width: 800px; margin: 40px auto;">
 </div>
 

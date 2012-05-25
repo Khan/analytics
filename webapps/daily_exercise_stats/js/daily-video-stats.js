@@ -14,20 +14,24 @@ VideoStats.init = function() {
     // daily-ex-stats.js (maybe abstract to a data fetcher)
     var BASE_STAT_SERVER_URL = "http://184.73.72.110:27080/";
 
-    var url = BASE_STAT_SERVER_URL + "report/daily_video_stats/_find?";
+    var url = BASE_STAT_SERVER_URL +
+         "report/daily_video_stats/_find?callback=?";
     var datestamp = $("#datestamp").val(); 
+    var user_category = $("#user_category").val(); 
+    var criteria = '{"date_str":"' + datestamp + '","ucat":"' 
+        + user_category+ '"}';
     var params = {
         //json query 
-        "criteria": '{"date_str":"' + datestamp + '","ucat":"all"}',
-        "batch_size": 500
+        "criteria": criteria,
+        "batch_size": 15000
     };
     $.getJSON(url, params, VideoStats.handleDataLoad);
 };
 VideoStats.addCommas = function(nStr) {
 	nStr += '';
-	x = nStr.split('.');
-	x1 = x[0];
-	x2 = x.length > 1 ? '.' + x[1] : '';
+	var x = nStr.split('.');
+	var x1 = x[0];
+	var x2 = x.length > 1 ? '.' + x[1] : '';
 	var rgx = /(\d+)(\d{3})/;
 	while (rgx.test(x1)) {
 		x1 = x1.replace(rgx, '$1' + ',' + '$2');
@@ -82,11 +86,13 @@ VideoStats.renderVideosTable = function(jsonRows) {
         .each(function(row) { $(rowTemplate(row)).appendTo(table) });
 
     var container = $("#video-stats-container");
+    container.html("");
     container.append(table);
 };
 
 $(document).ready(function() {
     $("#datestamp").change(function(event) { VideoStats.init();});
+    $("#user_category").change(function(event) { VideoStats.init();});
     VideoStats.init();
 });
 
