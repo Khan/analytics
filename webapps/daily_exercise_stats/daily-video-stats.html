@@ -10,6 +10,7 @@ A simple dashboard showing aggregate video data for a particular day.
 </head>
 
 <body>
+<input title="Datestamp" id="datestamp" value="2012-05-22" size="20" />
 <div id="video-stats-container" style="width: 800px; margin: 40px auto;">
 </div>
 
@@ -21,25 +22,22 @@ A simple dashboard showing aggregate video data for a particular day.
 <script type="text/x-handlebars-template" id="video-table">
 <table class="table table-bordered table-striped">
     <thead>
-        <th>Video Title (YoutubeID)</th>
+        <th>Video</th>
         <th>Users watched</th>
         <th>Users completed</th>
-        <th>Seconds Watched</th>
+        <th>Hours Watched</th>
     </thead>
 </table>
 </script>
 <script type="text/x-handlebars-template" id="video-row-template">
 <tr>
-    <td>{{vtitle}} ({{vid}})</td>
+    <td>{{{link}}}</td>
     <td>{{watched}}</td>
     <td>{{completed}}</td>
-    <td>{{seconds_watched}}</td>
+    <td>{{hours_watched}}</td>
 </tr>
 </script>
 
-<script>
-$(VideoStats.init);
-</script>
 </body>
 </html>
 
