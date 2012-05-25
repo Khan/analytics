@@ -28,7 +28,7 @@
     "ProblemLog": "kadb_pl"
   },
   # save the fetched data to this dir
-  "archive_dir": "/home/ec2-user/kabackup/daily_new",
+  "archive_dir": "/home/analytics/kabackup/daily_new",
   # coordinator config
   "coordinator_cfg": {
     "control_db": "ka_download_cntrl",
