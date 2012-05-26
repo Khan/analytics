@@ -1,0 +1,18 @@
+[
+ { 
+    "Name": "Loading Protocol Buffers to user/json blob format into EMR", 
+    "ActionOnFailure": "CONTINUE", 
+    "HadoopJarStep": { 
+      "Jar": "/home/hadoop/contrib/streaming/hadoop-streaming.jar", 
+      "Args": [ 
+         "-input",    "s3n://ka-mapreduce/rawdata/daily_new/<dt>/<kind>/", 
+         "-output",   "s3n://ka-mapreduce/entity_store/<kind>/dt=<dt>/", 
+         "-mapper",   "load_pbufs_to_hive.py", 
+         "-reducer",  "/bin/cat",
+         "-cacheArchive",  "s3n://ka-mapreduce/code/third_party/google_appengine.jar#google_appengine", 
+         "-cacheFile", "s3://ka-mapreduce/code/py/load_pbufs_to_hive.py#load_pbufs_to_hive.py", 
+         "-numReduceTasks", "16"
+      ] 
+    } 
+  }           
+] 

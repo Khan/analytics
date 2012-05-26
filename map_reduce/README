@@ -1,0 +1,10 @@
+Map/Reduce scripts and job control files.
+It's recommended that all the mapper and reducer functions to be in one script
+ and run as "script.py map", "script.py reduce" and etc. The reason for this is
+ because all the scripts need to be shipped to individual nodes through 
+--cacheFile arguments. If you have your scripts all over places, it can 
+easily make your job flow files unmanageable. 
+TODO(yunfang): For highly reusable modules, create a ka_lib directory. It will
+be jarred and sync'ed to s3 to be used along with the map/reduce scripts. 
+The json files are JobFlow files that can be run with the elastic-mapreduce 
+cli like "elastic-mapreduce --create --json <jsonfile>"
