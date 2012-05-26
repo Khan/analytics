@@ -45,20 +45,6 @@ VideoStats.refresh = function() {
 };
 
 
-// TODO(benkomalo): convert to a handlebars helper.
-VideoStats.addCommas = function(nStr) {
-	nStr += '';
-	var x = nStr.split('.');
-	var x1 = x[0];
-	var x2 = x.length > 1 ? '.' + x[1] : '';
-	var rgx = /(\d+)(\d{3})/;
-	while (rgx.test(x1)) {
-		x1 = x1.replace(rgx, '$1' + ',' + '$2');
-	}
-	return x1 + x2;
-};
-
-
 /**
  * Handles the raw JSON data returned from the server.
  * @param {Object} data The raw data with fields including:
@@ -69,18 +55,15 @@ VideoStats.addCommas = function(nStr) {
 VideoStats.handleDataLoad = function(data) {
     var results = data["results"];
     for (var i = 0; i < results.length; i+=1) {
-        if (results[i]['vid'] === 'total') {
-            results[i]["link"] = "<b>Total</b>"
+        var row = results[i];
+        if (row["vid"] === "total") {
+            row["link"] = "<b>Total</b>"
         } else {
-            results[i]["link"] = '<a href="http://youtube.com/watch?v=' +
-                results[i]["vid"] + '">' + results[i]["vtitle"] + '</a>';
+            row["link"] = '<a href="http://youtube.com/watch?v=' +
+                row["vid"] + '">' + row["vtitle"] + '</a>';
         }
-        results[i]["hours_watched"] = VideoStats.addCommas(
-           Math.floor(results[i]["seconds_watched"]/3600));
-        results[i]["watched"] =
-            VideoStats.addCommas(results[i]["watched"]);
-        results[i]["completed"] =
-            VideoStats.addCommas(results[i]["completed"]);
+        row["hours_watched"] = Math.floor(row["seconds_watched"] / 3600);
+        row["percent_completed"] = (row["completed"] / row["watched"]) || 0;
     }
 
     VideoStats.renderVideosTable(results);

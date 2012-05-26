@@ -26,6 +26,7 @@ User Category: <select id="user_category">
 <script src="static/js/third_party/jquery-ui-1.8.20.custom.min.js"></script>
 <script src="static/js/third_party/underscore-min.js"></script>
 <script src="static/js/third_party/handlebars.js"></script>
+<script src="static/js/handlebars-helpers.js"></script>
 <script src="static/js/daily-video-stats.js"></script>
 
 {% raw %}
@@ -35,6 +36,7 @@ User Category: <select id="user_category">
         <th>Video</th>
         <th>Users watched</th>
         <th>Users completed</th>
+        <th>% completed</th>
         <th>Hours Watched</th>
     </thead>
 </table>
@@ -42,8 +44,9 @@ User Category: <select id="user_category">
 <script type="text/x-handlebars-template" id="video-row-template">
 <tr>
     <td>{{{link}}}</td>
-    <td>{{watched}}</td>
-    <td>{{completed}}</td>
+    <td>{{commafy watched}}</td>
+    <td>{{commafy completed}}</td>
+    <td>{{percentify percent_completed}}</td>
     <td>{{hours_watched}}</td>
 </tr>
 </script>
