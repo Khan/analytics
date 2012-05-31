@@ -12,12 +12,6 @@ import time
 import urllib
 import urllib2
 
-import gae_util
-gae_util.fix_sys_path()
-
-from google.appengine.api import datastore
-from google.appengine.datastore import entity_pb
-
 import date_util
 import oauth_util.fetch_url
 
