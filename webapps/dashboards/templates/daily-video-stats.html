@@ -6,33 +6,37 @@ A simple dashboard showing aggregate video data for a particular day.
 
 <head>
 <link rel="shortcut icon" href="http://www.khanacademy.org/favicon.ico?leaf">
-<link rel="stylesheet" type="text/css" href="css/third_party/bootstrap.css">
+<link rel="stylesheet" type="text/css" href="static/css/third_party/bootstrap.css">
+<link rel="stylesheet" type="text/css" href="static/css/third_party/jquery/flick/jquery-ui-1.8.20.custom.css">
 </head>
 
 <body>
-<div id="input_variables">
-Date Stamp(YYYY-mm-dd): <input title="Datestamp" id="datestamp" value="2012-05-22" size="20" /> <br/>
-User Category: <select id="user_category"> 
+<div id="input_variables" style="width:800px; margin: 40px auto 0">
+Date: <input title="Datestamp" id="datestamp" size="20">
+User Category: <select id="user_category">
                <option value="all" selected>All</option>
                <option value="registered">Registered</option>
                <option value="phantom">Phantom</option>
                </select>
-<br/>
 </div>
-<div id="video-stats-container" style="width: 800px; margin: 40px auto;">
+<div id="video-stats-container" style="width: 800px; margin: 0 auto 40px;">
 </div>
 
 <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.6.1/jquery.min.js"></script>
-<script src="js/third_party/underscore-min.js"></script>
-<script src="js/third_party/handlebars.js"></script>
-<script src="js/daily-video-stats.js"></script>
+<script src="static/js/third_party/jquery-ui-1.8.20.custom.min.js"></script>
+<script src="static/js/third_party/underscore-min.js"></script>
+<script src="static/js/third_party/handlebars.js"></script>
+<script src="static/js/handlebars-helpers.js"></script>
+<script src="static/js/daily-video-stats.js"></script>
 
+{% raw %}
 <script type="text/x-handlebars-template" id="video-table">
 <table class="table table-bordered table-striped">
     <thead>
         <th>Video</th>
         <th>Users watched</th>
         <th>Users completed</th>
+        <th>% completed</th>
         <th>Hours Watched</th>
     </thead>
 </table>
@@ -40,11 +44,13 @@ User Category: <select id="user_category">
 <script type="text/x-handlebars-template" id="video-row-template">
 <tr>
     <td>{{{link}}}</td>
-    <td>{{watched}}</td>
-    <td>{{completed}}</td>
+    <td>{{commafy watched}}</td>
+    <td>{{commafy completed}}</td>
+    <td>{{percentify percent_completed}}</td>
     <td>{{hours_watched}}</td>
 </tr>
 </script>
+{% endraw %}
 
 </body>
 </html>

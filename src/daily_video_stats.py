@@ -5,7 +5,6 @@
     * total seconds watched for a video
   as well as totals. The output will be written to the report db
 """
-import copy
 import datetime
 from optparse import OptionParser
 import re
@@ -13,7 +12,6 @@ import re
 import pymongo
 
 import date_util
-
 import util
 
 vid2title = {}
