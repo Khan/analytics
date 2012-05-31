@@ -147,7 +147,7 @@ def analyze_all(data):
 def populate(summary, day_str):
     """Populate the data to the report db"""
     # TODO(yunfang): parameterize this thing
-    report_db = pymongo.Connection('10.212.150.79')['report']
+    report_db = pymongo.Connection('184.73.72.110')['report']
     report_collection = report_db['daily_video_stats']
     g_logger.info("Populating data")
     iso_str = "%sT00:00:00Z" % day_str
