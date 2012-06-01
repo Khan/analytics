@@ -50,7 +50,10 @@ export PYTHONPATH="${ROOT}:${PYTHONPATH}"   # for oauth_util/ directory
 # previous logs were generated, and we can tell that to appengine.
 prev_statusfile="$log_dir/`echo $hour_prev | tr T- //`-status.log"
 
-exec "$ROOT/fetch_logs.py" -s "$hour" -e "$hour_next" \
+"$ROOT/fetch_logs.py" -s "$hour" -e "$hour_next" \
     --file_for_alternate_appengine_versions="$prev_statusfile" \
     2> "${outfile_prefix}-status.log" \
     | gzip -c > "${outfile_prefix}.log.gz"
+
+# Use a bash-ism to return the exit-code of fetch_logs (not gzip).
+exit ${PIPESTATUS[0]}
