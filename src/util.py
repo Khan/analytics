@@ -4,7 +4,6 @@ Utility functions and classes for Khan Academy analytics sorted alphabetically
 """
 
 
-import csv
 import datetime
 import errno
 import hashlib

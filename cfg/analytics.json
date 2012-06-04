@@ -1,0 +1,42 @@
+{
+    # This file should contain all configuration that is not application
+    # specific.  E.g. paths, names, constants, and servers that are shared
+    # across multiple analytics uses should live here. 
+
+    # this section contains all connection information necessary to connect 
+    # to a logically named server.  The entries are organized first by a 
+    # named type (e.g., 'mongo'), then by a server name (e.g., 'datastore').  
+    # The format of the entry values will depend on the server type, but 
+    # will typically include at least host and port info.
+    "servers": {
+        "mongo": {
+            "datastore": {
+                "host": "localhost",   # currently not remotely accessed 
+                "port": 12345
+            },
+            "reporting": {
+                "host": "184.73.72.110",  # currently on ka-backup
+                "port": 27017
+            } 
+        }
+    },
+
+    "databases" : {
+        # For each mongo database, the server name should be listed above
+        "mongo": {
+            "entities_main": {
+                "server": "datastore",
+                "database": "kadb"
+            },
+            "reporting": {
+                "server": "reporting",
+                "database": "report"
+            }
+        }
+    },   
+
+    "instances" : {},   # TODO: for ec2 instances
+
+    "datasources" : {}  # TODO: for s3 paths, etc
+    
+}

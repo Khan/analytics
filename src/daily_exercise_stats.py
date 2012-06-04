@@ -3,14 +3,14 @@ import copy
 import datetime
 from optparse import OptionParser
 
-import pymongo
-
+import mongo_util
 import util
 
-# TODO(jace): make db info configurable
-userdata_db = pymongo.Connection()['ka']  
-plog_db = pymongo.Connection(port=12345)['kadb_pl']
-report_db = pymongo.Connection('184.73.72.110')['report']
+userdata_db = None  
+plog_db = None
+report_db = None
+
+g_logger = util.get_logger()
 
 ex_collection_name = 'daily_ex_stats'
 ex_mode_collection_name = 'daily_ex_mode_stats'
@@ -220,13 +220,29 @@ def daily_exercise_statistics(start_day, end_day):
         run_for_day(day)
         day -= datetime.timedelta(days=1)
         
+
+def init_databases(config_file):
+    global userdata_db, plog_db, report_db
+    userdata_db = mongo_util.get_db('entities_main', config_file)  
+    plog_db = mongo_util.get_connection('datastore', config_file)['kadb_pl']
+    report_db = mongo_util.get_db('reporting', config_file)
+    
+    
 def main():
     desc = "Generates daily time series of statistics on exercise usage."
     parser = OptionParser(usage="%prog [options]", description=desc)
     parser.add_option("-b", "--begindate", help="In format YYYY-MM-DD.")
     parser.add_option("-e", "--enddate", help="In format YYYY-MM-DD.")
+    parser.add_option("-c", "--config", 
+                      help="Full path to analytics.json or equivalent.")
     (options, dummy) = parser.parse_args()
 
+    if not options.config:
+        g_logger.fatal("Please specify JSON config file to use.")
+        exit(1)
+
+    init_databases(options.config)
+    
     if options.begindate and options.enddate:
         start_date = datetime.datetime.strptime(options.begindate, "%Y-%m-%d")
         end_date =  datetime.datetime.strptime(options.enddate, "%Y-%m-%d")
