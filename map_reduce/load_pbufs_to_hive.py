@@ -52,11 +52,14 @@ def apply_transform(doc):
         return str(doc)
     elif isinstance(doc, datetime.datetime):
         return time.mktime(doc.timetuple())
+    elif isinstance(doc, str):
+        # Escape the new line character.
+        return doc.replace("\n", "\\n")
     return doc
 
 
 def pb_to_dict(pb):
-    """Convert a protocol buffer to a dictionary"""
+    """Convert a protocol buffer to a json-serializable dictionary"""
     entity = datastore.Entity._FromPb(entity_pb.EntityProto(pb))
     # create a json serializable dictionary from entity
     document = dict(entity)
@@ -72,7 +75,7 @@ def main():
     for pb in entity_list:
         document = pb_to_dict(pb)
         json_str = json.dumps(document)
-        print "%s\t%s\n" % (document[options.key], json_str)
+        print "%s\t%s" % (document[options.key], json_str)
 
 
 if __name__ == '__main__':

@@ -34,15 +34,21 @@ def get_key(kind, start_dt, end_dt):
 
 
 def record_progress(mongo, config, kind, start_dt, end_dt, status):
-    """Mark the downloading status of entity kind with backup timestamp
-       between start_dt and end_dt. NOTE: We download the data incrementally.
-       That's why the status is marked with (kind, start_dt, end_dt) tuples.
-       Arguments:
-         mongo: mongo connection
-         config: the donwload control db config
-         kind: datastore entity type
-         start_dt, end_dt: backup_timestamp range of the entity type
-         status: one of the enum values in DownloadStatus
+    """Mark the downloading status of a given (entity, time-range) block
+
+    Another part of this pipeline gae_download.py downloads data,
+    and communicates via this method as it does so. It downloads data a
+    chunk at a time, each chunk being a time-range of a single entity. As the
+    download is started/completed/etc, gae_download.py calls record_progress
+    with the chunk-index and its current status. This method then marks the
+    status in the donwload control db.
+
+    Arguments:
+        mongo: mongo connection
+        config: the donwload control db config
+        kind: datastore entity type
+        start_dt, end_dt: backup_timestamp range of the entity type
+        status: one of the enum values in DownloadStatus
     """
     def _record_progress(mongo, config, kind, start_dt, end_dt, status):
         key = get_key(kind, start_dt, end_dt)
