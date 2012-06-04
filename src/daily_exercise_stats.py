@@ -1,5 +1,5 @@
 import copy
-import datetime as dt
+import datetime
 from optparse import OptionParser
 
 import pymongo
@@ -9,7 +9,7 @@ import util
 # TODO(jace): make db info configurable
 userdata_db = pymongo.Connection()['ka']  
 plog_db = pymongo.Connection(port=12345)['kadb_pl']
-report_db = pymongo.Connection('10.212.150.79')['report']
+report_db = pymongo.Connection('184.73.72.110')['report']
 
 ex_collection_name = 'daily_ex_stats'
 ex_mode_collection_name = 'daily_ex_mode_stats'
@@ -32,7 +32,7 @@ def plog_shorten(plog):
 
 def load_for_day(day):
 
-    range = {"$gte": day, "$lt": day + dt.timedelta(days=1)}
+    range = {"$gte": day, "$lt": day + datetime.timedelta(days=1)}
     query = {"backup_timestamp": range}
     
     # load problem logs
@@ -56,8 +56,8 @@ def load_for_day(day):
 
 def compute_for_day(day, super_mode, filter_mode, user_plogs, user_data_map):
 
-    print "computing for day = %s, super_mode = %s, filter_mode = %s" %
-            (str(day), super_mode, filter_mode)
+    print ("computing for day = %s, super_mode = %s, filter_mode = %s" % 
+            (str(day), super_mode, filter_mode))
     
     stat_names = ['users', 'user_exercises', 'problems', 'correct', 'profs', 
                   'prof_prob_count', 'first_attempts', 'hint_probs', 
@@ -108,7 +108,7 @@ def compute_for_day(day, super_mode, filter_mode, user_plogs, user_data_map):
                         len(user_data['proficient_exercises']) > 10)
             elif mode=='light':
                 return ('proficient_exercises' not in user_data or
-                        len(user_data['proficient_exercises']) <= 10
+                        len(user_data['proficient_exercises']) <= 10)
             elif mode=='registered':
                 return ('user_id' in user_data and
                         'nouserid' not in user_data['user_id'])
@@ -217,7 +217,7 @@ def daily_exercise_statistics(start_day, end_day):
     day = end_day  
     while day >= start_day:
         run_for_day(day)
-        day -= dt.timedelta(days=1)
+        day -= datetime.timedelta(days=1)
         
 def main():
     desc = "Generates daily time series of statistics on exercise usage."
@@ -227,12 +227,13 @@ def main():
     (options, dummy) = parser.parse_args()
 
     if options.begindate and options.enddate:
-        start_date = dt.datetime.strptime(options.begindate, "%Y-%m-%d")
-        end_date =  dt.datetime.strptime(options.enddate, "%Y-%m-%d")
+        start_date = datetime.datetime.strptime(options.begindate, "%Y-%m-%d")
+        end_date =  datetime.datetime.strptime(options.enddate, "%Y-%m-%d")
     else:
         #pymongo uses datetime only (not date)
-        today = dt.datetime.combine(dt.date.today(), dt.time())
-        yesterday = today - dt.timedelta(days=1) 
+        today = datetime.datetime.combine(datetime.date.today(), 
+                                          datetime.time())
+        yesterday = today - datetime.timedelta(days=1) 
         start_date = end_date = yesterday
         
     daily_exercise_statistics(start_date, end_date)
