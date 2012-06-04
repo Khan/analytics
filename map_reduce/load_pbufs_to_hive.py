@@ -33,6 +33,7 @@ def get_cmd_line_args():
         "Map script for converting protobufs to (user, json) format")
     parser.add_option("-k", "--key", default="user",
                      help="field corresponding to the user id")
+    # TODO(yunfang): Output a warning with unknown args
     options, _ = parser.parse_args()
     return options
 
@@ -54,17 +55,22 @@ def apply_transform(doc):
     return doc
 
 
+def pb_to_dict(pb):
+    """Convert a protocol buffer to a dictionary"""
+    entity = datastore.Entity._FromPb(entity_pb.EntityProto(pb))
+    # create a json serializable dictionary from entity
+    document = dict(entity)
+    document['key'] = str(entity.key())
+    document = apply_transform(document)
+    return document
+
+
 def main():
     """Map step for the protobuf loading. Input is read from stdin."""
     options = get_cmd_line_args()
-
     entity_list = pickle.load(sys.stdin)
     for pb in entity_list:
-        entity = datastore.Entity._FromPb(entity_pb.EntityProto(pb))
-        # create a json serializable dictionary from entity
-        document = dict(entity)
-        document['key'] = str(entity.key())
-        document = apply_transform(document)
+        document = pb_to_dict(pb)
         json_str = json.dumps(document)
         print "%s\t%s\n" % (document[options.key], json_str)
 

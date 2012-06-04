@@ -34,8 +34,15 @@ def get_key(kind, start_dt, end_dt):
 
 
 def record_progress(mongo, config, kind, start_dt, end_dt, status):
-    """Record the downloading progress of entity kind with backup timestamp
-       between start_dt and end_dt with the status = DownloadStatus code.
+    """Mark the downloading status of entity kind with backup timestamp
+       between start_dt and end_dt. NOTE: We download the data incrementally.
+       That's why the status is marked with (kind, start_dt, end_dt) tuples.
+       Arguments:
+         mongo: mongo connection
+         config: the donwload control db config
+         kind: datastore entity type
+         start_dt, end_dt: backup_timestamp range of the entity type
+         status: one of the enum values in DownloadStatus
     """
     def _record_progress(mongo, config, kind, start_dt, end_dt, status):
         key = get_key(kind, start_dt, end_dt)
