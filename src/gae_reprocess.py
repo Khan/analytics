@@ -24,11 +24,11 @@ def get_cmd_line_args():
     # Only process tasks started after this date
     parser.add_option("-s", "--start_date",
         default="1970-01-01T00:00:00Z",
-        help="Only tasks started after this date or later")
+        help="Only tasks started on this date or later")
     options, _ = parser.parse_args()
 
     if not options.config:
-        g_logger.fatal("Please specify the conf file")
+        g_logger.fatal("Please specify the conf file via -c")
         exit(1)
     return options
 

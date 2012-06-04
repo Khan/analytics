@@ -1,7 +1,6 @@
-"""Library to monitor and coordinate the fetch and loading of data
- store entities from GAE.
-The record_progress() function records the GAE download progress
-The get_failed_jobs() function gets the failed download tasks for reprocessing
+"""Library to monitor and coordinate the loading of datastore entities from GAE.
+The record_progress() function records the GAE download progress.
+The get_failed_jobs() function gets the failed download tasks for reprocessing.
 """
 import datetime as dt
 import re
@@ -35,7 +34,9 @@ def get_key(kind, start_dt, end_dt):
 
 
 def record_progress(mongo, config, kind, start_dt, end_dt, status):
-    """Record the downloading progress with the status"""
+    """Record the downloading progress of entity kind with backup timestamp
+       between start_dt and end_dt with the status = DownloadStatus code.
+    """
     def _record_progress(mongo, config, kind, start_dt, end_dt, status):
         key = get_key(kind, start_dt, end_dt)
         mongo_db = mongo[config['control_db']]
