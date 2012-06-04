@@ -1,29 +1,30 @@
 #!/usr/bin/env python
-"""Script to scan the monitor database and reprocess the failed GAE
-   download tasks
-"""
+"""Scan the monitor database and reprocess any failed GAE tasks"""
+
 import datetime
-from optparse import OptionParser
-import pymongo
+import optparse
 import re
 
-import util
+import pymongo
+
 import date_util
 import gae_download
 import ka_download_coordinator
+import util
 
 
 g_logger = util.get_logger()
 
 
 def get_cmd_line_args():
-    parser = OptionParser(usage="%prog [options]",
+    parser = optparse.OptionParser(usage="%prog [options]",
         description="reprocess failed logs")
     # Same conf as gae_download
-    parser.add_option("-c", "--config", help="config file")
+    parser.add_option("-c", "--config", help="same conf as GAE download")
     # Only process tasks started after this date
-    parser.add_option("-s", "--start_date", help="start_date",
-                      default="1970-01-01T00:00:00Z")
+    parser.add_option("-s", "--start_date",
+        default="1970-01-01T00:00:00Z",
+        help="Only tasks started after this date or later")
     options, _ = parser.parse_args()
 
     if not options.config:
@@ -44,7 +45,7 @@ def main():
     two_hours_ago = datetime.datetime.now() - datetime.timedelta(hours=2)
     results = ka_download_coordinator.get_failed_jobs(mongo, coordinator_cfg)
     if not results:
-        g_logger.info("Empty result set. Nothing ro reprocess.")
+        g_logger.info("Empty result set. Nothing to reprocess.")
         exit(0)
     for rec in results:
         if rec["history"]["1"] < start_dt:
@@ -56,7 +57,7 @@ def main():
         fetch_interval = config['kinds'][rec['kind']][1]
         gae_download.fetch_and_process_data(rec["kind"], rec["start_dt"],
             rec["end_dt"], fetch_interval, config)
-    g_logger.info("Done reprocessing...")
+    g_logger.info("Done reprocessing!!")
 
 
 if __name__ == '__main__':

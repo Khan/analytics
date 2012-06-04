@@ -1,13 +1,7 @@
 """Library to monitor and coordinate the fetch and loading of data
- store entities from GAE.  Here is roughly how things work here.
-We will the collections under the control_db
-    1. current_report: record the next start_date for each kind. If no kind
-        is found, start with (now - config['default_start_time']) in seconds
-    2. gaps: records failures and gaps need to be refilled
-    3. ProgressLogs: the actual downloading and loading status
-    4. monitor_report: record the monitored progress for each kind. Timestamps
-         record here minus the gaps are the data available
-    5. archived_logs: store the old, successfull records
+ store entities from GAE.
+The record_progress() function records the GAE download progress
+The get_failed_jobs() function gets the failed download tasks for reprocessing
 """
 import datetime as dt
 import re
@@ -25,7 +19,7 @@ class DownloadStatus:
 
 
 def get_failed_jobs(mongo, config):
-    """ Get failed gae download jobs """
+    """Get gae download tasks with status != SUCCESS."""
     def _get_failed_jobs(mongo, config):
         mongo_db = mongo[config['control_db']]
         mongo_collection = mongo_db['ProgressLogs']
@@ -41,7 +35,7 @@ def get_key(kind, start_dt, end_dt):
 
 
 def record_progress(mongo, config, kind, start_dt, end_dt, status):
-    """Record the downloading progress"""
+    """Record the downloading progress with the status"""
     def _record_progress(mongo, config, kind, start_dt, end_dt, status):
         key = get_key(kind, start_dt, end_dt)
         mongo_db = mongo[config['control_db']]
@@ -54,5 +48,5 @@ def record_progress(mongo, config, kind, start_dt, end_dt, status):
         doc = {'_id': key, 'kind': kind, 'start_dt': start_dt,
                'end_dt': end_dt, 'status': status, 'history': history}
         mongo_collection.save(doc)
-    func = db_decorator(5, _record_progress)
+    func = db_decorator(max_tries=5, func=_record_progress)
     func(mongo, config, kind, start_dt, end_dt, status)
