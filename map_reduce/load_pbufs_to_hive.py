@@ -52,8 +52,8 @@ def apply_transform(doc):
         return str(doc)
     elif isinstance(doc, datetime.datetime):
         return time.mktime(doc.timetuple())
-    elif isinstance(doc, str):
-        # Escape the new line character.
+    elif isinstance(doc, basestring):
+        # Escape the newline character.
         return doc.replace("\n", "\\n")
     return doc
 

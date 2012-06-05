@@ -36,12 +36,12 @@ def get_key(kind, start_dt, end_dt):
 def record_progress(mongo, config, kind, start_dt, end_dt, status):
     """Mark the downloading status of a given (entity, time-range) block
 
-    Another part of this pipeline gae_download.py downloads data,
-    and communicates via this method as it does so. It downloads data a
-    chunk at a time, each chunk being a time-range of a single entity. As the
-    download is started/completed/etc, gae_download.py calls record_progress
-    with the chunk-index and its current status. This method then marks the
-    status in the donwload control db.
+    gae_download.py downloads data, and communicates via this method as
+    it does so. It downloads data a chunk at a time, each chunk being a
+    time-range of a single entity. As the download is started/completed/etc,
+    gae_download.py calls record_progress with the chunk-index and its
+    current status. This method then marks the status in the download
+    control db.
 
     Arguments:
         mongo: mongo connection
