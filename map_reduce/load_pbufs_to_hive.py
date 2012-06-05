@@ -55,9 +55,9 @@ def apply_transform(doc):
             return 0
         return time.mktime(doc.timetuple())
     elif isinstance(doc, basestring):
-        # Escape the newline character.
         if isinstance(doc, str):
             doc = unicode(doc, errors='replace')
+        # Escape the newline character.
         return doc.replace("\n", "\\n")
     return doc
 
