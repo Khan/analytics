@@ -31,8 +31,8 @@ from google.appengine.datastore import entity_pb
 def get_cmd_line_args():
     parser = optparse.OptionParser(usage="%prog [options]", description=
         "Map script for converting protobufs to (user, json) format")
-    parser.add_option("-k", "--key", default="user",
-                     help="field corresponding to the user id")
+    parser.add_option("-k", "--key", default="key",
+                     help="field corresponding to the reducer key")
     # TODO(yunfang): Output a warning with unknown args
     options, _ = parser.parse_args()
     return options
@@ -51,9 +51,13 @@ def apply_transform(doc):
           isinstance(doc, users.User)):
         return str(doc)
     elif isinstance(doc, datetime.datetime):
+        if doc.year < 1970:
+            return 0
         return time.mktime(doc.timetuple())
     elif isinstance(doc, basestring):
         # Escape the newline character.
+        if isinstance(doc, str):
+            doc = unicode(doc, errors='replace')
         return doc.replace("\n", "\\n")
     return doc
 
