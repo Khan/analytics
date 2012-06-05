@@ -23,6 +23,7 @@ function (key, values) {
 }
 '''
 
+
 def get_connection(mongo_server_name, config_location):
     """Return a pymongo.Connection to the named server.
     
@@ -46,12 +47,12 @@ def get_db(db_name, config_location):
     db_config = config['databases']['mongo'][db_name]
 
     server_name = db_config['server']
-    db_name = db_config['database']
+    mongo_db_name = db_config['database']
     
-    return get_connection(server_name, config_location)[db_name]
+    return get_connection(server_name, config_location)[mongo_db_name]
 
 
-class MongoUtil() :
+class MongoUtil():
     """ Utility class that aids common uses of MongoDB data. """
     def __init__(self, dbname='testdb', host='localhost', port=27017):
         """Constructs a connection to specified mongo server.
@@ -74,7 +75,8 @@ class MongoUtil() :
     def load_collection_as_list(self, collection_name):
         return [doc for doc in self.db[collection_name].find()]
     
-    def copy_collection_into(self, from_collection, to_collection, add_flags=None, rename_id=None):
+    def copy_collection_into(self, from_collection, to_collection, 
+                             add_flags=None, rename_id=None):
         for doc in self.db[from_collection].find():
             if add_flags is not None:
                 doc.update(add_flags)
@@ -83,7 +85,8 @@ class MongoUtil() :
                 del doc['_id']
             self.db[to_collection].insert(doc)
 
-    def write_csv(self, collection_name, out_filename=None, property_names=None):
+    def write_csv(self, collection_name, 
+                  out_filename=None, property_names=None):
         
         original_stdout = sys.stdout
         if out_filename is not None:
@@ -104,10 +107,12 @@ class MongoUtil() :
 
     def get_registered_users(self, sample_pct=1.0):
         user_list = []
-        for user_data in self.db['UserData'].find({'current_user':{'$not':re.compile('/.*nouserid.*/')}}):
+        query = {'current_user': {'$not': re.compile('/.*nouserid.*/')}}
+        for user_data in self.db['UserData'].find(query):
             user = user_data['user']
             if user in ['None', '']:
                 continue
-            if sample_pct > 0.0 and sample_pct < 1.0 and random.random() < sample_pct:
+            if (sample_pct > 0.0 and sample_pct < 1.0 and 
+                    random.random() < sample_pct):
                 user_list.append(user)
         return user_list

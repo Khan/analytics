@@ -17,11 +17,12 @@ ex_mode_collection_name = 'daily_ex_mode_stats'
 
 topic_modes = ['true', 'false']
 topic_user_modes = ['none', 'some', 'majority', 'all'] 
-user_modes =  ['unknown', 'old', 'new', 'coached', 'uncoached', 
-               'heavy', 'light', 'registered', 'phantom']
+user_modes = ['unknown', 'old', 'new', 'coached', 'uncoached',
+              'heavy', 'light', 'registered', 'phantom']
 everything_mode = ['everything']
 all_modes = everything_mode + topic_modes + topic_user_modes + user_modes
 super_modes = everything_mode + user_modes
+
 
 def plog_shorten(plog):
     # done to conserve memory
@@ -29,7 +30,8 @@ def plog_shorten(plog):
                   'time_taken', 'hint_used', 'correct', 
                   'exercise', 'topic_mode']
 
-    return dict([(f,plog[f]) for f in white_list if f in plog])
+    return dict([(f, plog[f]) for f in white_list if f in plog])
+
 
 def load_for_day(day):
 
@@ -49,11 +51,12 @@ def load_for_day(day):
     # load user data corresponding to the day's ProblemLogs
     user_data_map = {}
     for user in user_plogs:
-        user_data_map[user] =  userdata_db['UserData'].find_one({'user':user})
+        user_data_map[user] = userdata_db['UserData'].find_one({'user': user})
         if len(user_data_map) % 1000 == 0:
             print "Loaded %d user_data docs." % len(user_data_map)
 
     return user_plogs, user_data_map
+
 
 def compute_for_day(day, super_mode, filter_mode, user_plogs, user_data_map):
 
@@ -64,10 +67,10 @@ def compute_for_day(day, super_mode, filter_mode, user_plogs, user_data_map):
                   'prof_prob_count', 'first_attempts', 'hint_probs', 
                   'time_taken']
     
-    stats_init = dict([(s,0) for s in stat_names])
+    stats_init = dict([(s, 0) for s in stat_names])
     unique_users = {}
     
-    ex_stats = {'ALL':copy.deepcopy(stats_init)}
+    ex_stats = {'ALL': copy.deepcopy(stats_init)}
         
     def user_day_matches_mode(plogs, user_data, mode):
 
@@ -76,44 +79,46 @@ def compute_for_day(day, super_mode, filter_mode, user_plogs, user_data_map):
                 return False
             topic_modes = [p['topic_mode'] for p in plogs if 'topic_mode' in p]
             num_topic_plogs = sum(topic_modes)
-            if mode=='none':
+            if mode == 'none':
                 return num_topic_plogs == 0
-            elif mode=='some':
+            elif mode == 'some':
                 return num_topic_plogs > 0
-            elif mode=='majority':
+            elif mode == 'majority':
                 return num_topic_plogs / float(len(plogs)) > .5
-            elif mode=='all':
+            elif mode == 'all':
                 return num_topic_plogs == len(plogs)
         
         elif mode in user_modes:
 
             if user_data is None:
-                return mode=='unknown'
+                return mode == 'unknown'
 
-            if mode=='unknown':
-                return user_data is None # False
-            elif mode=='old':
+            if mode == 'unknown':
+                return user_data is None  # always False
+            elif mode == 'old':
                 return ('joined' in user_data and
-                        user_data['joined'] < day-datetime.timedelta(days=14))
-            elif mode=='new':
+                        user_data['joined'] < 
+                        day - datetime.timedelta(days=14))
+            elif mode == 'new':
                 return ('joined' in user_data and
-                        user_data['joined'] >= day-datetime.timedelta(days=14))
-            elif mode=='coached':
+                        user_data['joined'] >= 
+                        day - datetime.timedelta(days=14))
+            elif mode == 'coached':
                 return ('coaches' in user_data and
                         len(user_data['coaches']) > 0)
-            elif mode=='uncoached':
+            elif mode == 'uncoached':
                 return ('coaches' not in user_data or
                         len(user_data['coaches']) <= 0)
-            elif mode=='heavy':
+            elif mode == 'heavy':
                 return ('proficient_exercises' in user_data and 
                         len(user_data['proficient_exercises']) > 10)
-            elif mode=='light':
+            elif mode == 'light':
                 return ('proficient_exercises' not in user_data or
                         len(user_data['proficient_exercises']) <= 10)
-            elif mode=='registered':
+            elif mode == 'registered':
                 return ('user_id' in user_data and
                         'nouserid' not in user_data['user_id'])
-            elif mode=='phantom':
+            elif mode == 'phantom':
                 return ('user_id' in user_data and
                         'nouserid' in user_data['user_id'])
 
@@ -135,12 +140,12 @@ def compute_for_day(day, super_mode, filter_mode, user_plogs, user_data_map):
             ex = plog['exercise']
 
             if filter_mode in ['true', 'false']:
-                if plog.get('topic_mode') != (filter_mode=='true'):
+                if plog.get('topic_mode') != (filter_mode == 'true'):
                     continue
             
             unique_users[user] = True
             if ex not in ex_stats:
-                ex_stats[ex] = copy.deepcopy(stats_init) # blank stats
+                ex_stats[ex] = copy.deepcopy(stats_init)  # blank stats
 
             stats = ex_stats[ex]
             if ex not in user_exs:
@@ -152,7 +157,7 @@ def compute_for_day(day, super_mode, filter_mode, user_plogs, user_data_map):
             stats['profs'] += plog['earned_proficiency']  
             if plog['earned_proficiency']:
                 stats['prof_prob_count'] += int(plog['problem_number'])  
-            stats['first_attempts'] += (plog['problem_number']==1)
+            stats['first_attempts'] += (plog['problem_number'] == 1)
             stats['hint_probs'] += plog['hint_used']
             stats['time_taken'] += max(0, min(600, int(plog['time_taken'])))
 
@@ -168,18 +173,18 @@ def compute_for_day(day, super_mode, filter_mode, user_plogs, user_data_map):
     ex_stats['ALL']['users'] = len(unique_users)
     
     # first remove any pre-existing data for _this_ date
-    query = {'date':day, 'super_mode':super_mode, 'filter_mode':filter_mode}
+    query = {'date': day, 'super_mode': super_mode, 'filter_mode': filter_mode}
     report_db[ex_collection_name].remove(query)  
     # now update the reporting db
     for ex in ex_stats:
         s = ex_stats[ex]
         if s['problems'] <= 0: 
             continue
-        s['date'] = day # for queries
-        s['exercise'] = ex # for queries
+        s['date'] = day  # for queries
+        s['exercise'] = ex  # for queries
         s['super_mode'] = super_mode
         s['filter_mode'] = filter_mode
-        s['avg_probs_til_prof'] = s['prof_prob_count']/(s['profs']+1.0)
+        s['avg_probs_til_prof'] = s['prof_prob_count'] / (s['profs'] + 1.0)
 
         report_db[ex_collection_name].insert(s)
         
@@ -191,16 +196,17 @@ def compute_for_day(day, super_mode, filter_mode, user_plogs, user_data_map):
             composition[mode] += user_day_matches_mode(user_plogs[user], 
                                                        user_data_map[user], 
                                                        mode) 
-    composition.update({'super_mode':super_mode, 
-                        'filter_mode':filter_mode, 
-                        'date':day, 
-                        'count':len(unique_users)})
+    composition.update({'super_mode': super_mode, 
+                        'filter_mode': filter_mode, 
+                        'date': day, 
+                        'count': len(unique_users)})
 
     # and stick in the reporting db, too
-    query = {'date':day, 'super_mode':super_mode, 'filter_mode':filter_mode}
+    query = {'date': day, 'super_mode': super_mode, 'filter_mode': filter_mode}
     report_db[ex_mode_collection_name].remove(query)  
     report_db[ex_mode_collection_name].insert(composition)
     
+
 def run_for_day(day):
     user_plogs, user_data_map = load_for_day(day)
 
@@ -214,7 +220,7 @@ def run_for_day(day):
             compute_for_day(day, super_mode, mode, user_plogs, user_data_map)
                 
 
-def daily_exercise_statistics(start_day, end_day):
+def compute_daily_exercise_statistics(start_day, end_day):
     day = end_day  
     while day >= start_day:
         run_for_day(day)
@@ -238,14 +244,14 @@ def main():
     (options, dummy) = parser.parse_args()
 
     if not options.config:
-        g_logger.fatal("Please specify JSON config file to use.")
+        g_logger.fatal("Please specify JSON config file to use (via -c).")
         exit(1)
 
     init_databases(options.config)
     
     if options.begindate and options.enddate:
         start_date = datetime.datetime.strptime(options.begindate, "%Y-%m-%d")
-        end_date =  datetime.datetime.strptime(options.enddate, "%Y-%m-%d")
+        end_date = datetime.datetime.strptime(options.enddate, "%Y-%m-%d")
     else:
         #pymongo uses datetime only (not date)
         today = datetime.datetime.combine(datetime.date.today(), 
@@ -253,7 +259,8 @@ def main():
         yesterday = today - datetime.timedelta(days=1) 
         start_date = end_date = yesterday
         
-    daily_exercise_statistics(start_date, end_date)
+    compute_daily_exercise_statistics(start_date, end_date)
     
+
 if __name__ == '__main__':
     main()
