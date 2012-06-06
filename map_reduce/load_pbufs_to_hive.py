@@ -33,6 +33,8 @@ def get_cmd_line_args():
         "Map script for converting protobufs to (user, json) format")
     parser.add_option("-k", "--key", default="key",
                      help="field corresponding to the reducer key")
+    parser.add_option("-p", "--parent", default=None,
+                     help="including parent key in the json dump")
     # TODO(yunfang): Output a warning with unknown args
     options, _ = parser.parse_args()
     return options
@@ -62,12 +64,14 @@ def apply_transform(doc):
     return doc
 
 
-def pb_to_dict(pb):
+def pb_to_dict(pb, parent=None):
     """Convert a protocol buffer to a json-serializable dictionary"""
     entity = datastore.Entity._FromPb(entity_pb.EntityProto(pb))
     # create a json serializable dictionary from entity
     document = dict(entity)
     document['key'] = str(entity.key())
+    if parent and entity.parent():
+        document['parent'] = str(entity.parent())
     document = apply_transform(document)
     return document
 
@@ -77,7 +81,7 @@ def main():
     options = get_cmd_line_args()
     entity_list = pickle.load(sys.stdin)
     for pb in entity_list:
-        document = pb_to_dict(pb)
+        document = pb_to_dict(pb, options.parent)
         json_str = json.dumps(document)
         print "%s\t%s" % (document[options.key], json_str)
 
