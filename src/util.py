@@ -4,7 +4,6 @@ Utility functions and classes for Khan Academy analytics sorted alphabetically
 """
 
 
-import csv
 import datetime
 import errno
 import hashlib
@@ -20,16 +19,19 @@ from pymongo.errors import AutoReconnect
 
 class LoopProgressLogger():
     iteration_counts = {}
+
     def log(self, msg='', mod=100, tag='', to_stderr=True):
         if tag not in self.iteration_counts:
             self.iteration_counts[tag] = 0
         self.iteration_counts[tag] += 1
         if self.iteration_counts[tag] % mod == 0:
-            msg_prefix = "loop %s progress:  %d " % (tag, self.iteration_counts[tag])
+            msg_prefix = "loop %s progress:  %d " % (
+                tag, self.iteration_counts[tag])
             if to_stderr:
                 print >> sys.stderr, msg_prefix + msg
             else:
                 print msg_prefix + msg
+
 
 class Params(object):
     """ 
@@ -53,17 +55,18 @@ def add_dict(from_dict, to_dict):
                 to_dict[key][stat_name] += stat
 
 
-def clean_datetime_str(origstr) :
+def clean_datetime_str(origstr):
     """ 
     this function takes a string, and makes sure there 
     is a space (and not a 'T') between the date and time
     """
-    assert len(origstr)==19 or (len(origstr)==20 and origstr[-1]=='Z'), (
-         "Expected datetime string of format YYYY-MM-DD HH:MM:SS, with either a space or \
-          a 'T' between the date and time and a 'Z' at the end. Instead, received: '%s'"
-           % origstr)
+    assert len(origstr) == 19 or (
+           len(origstr) == 20 and origstr[-1] == 'Z'), (
+        "Expected datetime string of format YYYY-MM-DD HH:MM:SS, with " 
+        "either a space or  a 'T' between the date and time and a 'Z' at "
+        "the end. Instead, received: '%s'" % origstr)
     trailer = ''
-    if len(origstr)==19:
+    if len(origstr) == 19:
         trailer = 'Z' 
          
     return origstr[:10] + ' ' + origstr[11:] + trailer
@@ -107,8 +110,9 @@ def dict_to_csv(dict, out_filename=None):
 
 
 def get_data_dir():
-    """return the value of environment variable containing path to working data set"""
-    return os.getenv( 'KA_DATA_DIR', "." )
+    """Obsolete, do not use."""
+    # TODO(jace): get rid of this and other unused util code
+    return os.getenv('KA_DATA_DIR', ".")
 
 
 def get_data_filename(kind):
@@ -133,15 +137,15 @@ def get_logger():
 
 
 def global_file_replace(filename, substitutions):
-    """ 
-    this function reads the file, make the word subsitutions and writes back out to stdout
+    """Make word substitutions in a file and write to stdout.
+    
     E.g., global_file_replace( "myfile.csv", [ {'from':'[', 'to':'"['}, 
               {'from':']', 'to':']"'} ] )  
     """
-    f = open( filename, 'rt' )
+    f = open(filename, 'rt')
     for line in f:
         for s in substitutions:
-            line.replace( s['from'], s['to'] )
+            line.replace(s['from'], s['to'])
         print line
 
 
@@ -162,6 +166,7 @@ def mkdir_p(path):
         else:
             raise
 
+
 def passes_random_hash_filter(key_string, percentage_kept=.50):
     """
     allows you to pass in a string (like user_name, or exercise_name) 
@@ -170,14 +175,15 @@ def passes_random_hash_filter(key_string, percentage_kept=.50):
     """
     sig = hashlib.md5(key_string).hexdigest()
     sig_num = int(sig, base=16)
-    return (sig_num % 100 <= percentage_kept*100)
+    return (sig_num % 100 <= percentage_kept * 100)
 
 
-def split2(origstr) :
+def split2(origstr):
     """ 
     this function takes a comma delimited string with extra quoting and splits 
     out only the actual values within the quotes.  E.g., 
-    split2("[u'Computer Science', u'Physcis']") -> ['Computer Science', 'Physics']
+    split2("[u'Computer Science', u'Physcis']") -> 
+        ['Computer Science', 'Physics']
     """
     vals = origstr.split("'")
     arr = []
@@ -188,7 +194,7 @@ def split2(origstr) :
 
 def stdout_redirect_to_file_start(filename):
     outfile = None
-    if filename!='':
+    if filename != '':
         outfile = open(filename, "w")
         sys.stdout = outfile
     return outfile
@@ -200,10 +206,11 @@ def stdout_redirect_to_file_stop(outfile):
         sys.stdout = sys.__stdout__
 
 
-def str_2_datetime (origstr):
+def str_2_datetime(origstr):
     """ 
     this function takes a string representing a datetime in the 
     format commonly used by the CSV connector conversion 
     and returns a python datetime 
     """
-    return datetime.datetime.strptime( clean_datetime_str(origstr), '%Y-%m-%d %H:%M:%SZ' ) 
+    return datetime.datetime.strptime(clean_datetime_str(origstr), 
+                                      '%Y-%m-%d %H:%M:%SZ') 
