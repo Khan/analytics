@@ -14,13 +14,15 @@ fi
 mkdir -p ~/kalogs/load_emr
 
 # Upload to s3. 
+echo "Upload to S3"
 /usr/local/bin/s3cmd sync ~/kabackup/daily_new/${day}/ \
-  s3://ka-mapreduce/rawdata/${day}/ >~/kalogs/load_emr/${day}.log  2>&1
+  s3://ka-mapreduce/rawdata/${day}/
 
 
 # Convert pbuf to json
+echo "Convert pbuf to json and load into the datastore"
 /home/analytics/emr/elastic-mapreduce --create --name "${day} GAE Upload" \
   --num-instances 3 --master-instance-type m1.small \
   --slave-instance-type c1.medium \
   --json ~/analytics/map_reduce/load_pbufs_to_hive.json \
-  --param "<dt>=${day}" >>~/kalogs/load_emr/${day}.log  2>&1
+  --param "<dt>=${day}"
