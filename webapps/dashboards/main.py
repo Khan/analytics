@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 """A dashboard webapp.
 
 This hosts two simple dashboards: daily exercise statistics over time
