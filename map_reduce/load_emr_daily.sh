@@ -4,14 +4,14 @@
 # It uploaded the downloaded GAE data to s3 and kicks off the map/reduce job
 # to load the data to our entity_store
 
-# Get day. 
+# Get day.
 if [ -n "$1" ]; then
     day="$1"
 else
     day=$(date --date='yesterday' '+%Y-%m-%d')
-fi 
+fi
 
-# Upload to s3. 
+# Upload to s3.
 echo "Upload to S3"
 /usr/local/bin/s3cmd sync ~/kabackup/daily_new/${day}/ \
   s3://ka-mapreduce/rawdata/${day}/ 2>&1
