@@ -1,6 +1,11 @@
 -- Initialization script for hive to recover tables mirroring GAE entities. Run
 -- "hive -d INPATH=s3://ka-mapreduce/entity_store -i s3://ka-mapreduce/code/hive/ka_hive_init.q"
 -- for your interactive hive shells.
+
+
+--Datastore Entity Tables
+
+
 CREATE EXTERNAL TABLE IF NOT EXISTS Exercise (
     key string, json string
   )
@@ -81,3 +86,14 @@ CREATE EXTERNAL TABLE IF NOT EXISTS VideoLog (
   ROW FORMAT DELIMITED FIELDS TERMINATED BY '\t'
   LOCATION '${INPATH}/VideoLog';
 ALTER TABLE VideoLog RECOVER PARTITIONS;
+
+
+-- Summary Tables
+
+
+CREATE EXTERNAL TABLE IF NOT EXISTS user_video_summary(
+user STRING, video_key STRING, video_title STRING, 
+num_seconds INT, completed INT) 
+PARTITIONED BY (dt STRING) 
+LOCATION 's3://ka-mapreduce/summary_tables/user_video_summary';
+ALTER TABLE user_video_summary RECOVER PARTITIONS;
