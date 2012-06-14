@@ -1,8 +1,14 @@
 -- Hive script for generating video usage metrics.
 -- When the script is run, 3 parameters need to be supplied
--- pfx: postfix for the generated table names
+-- pfx: table postfix for the output summary tables
 -- start_dt: start date stamp YYYY-mm-dd
 -- end_dt: end date stamp YYYY-mm-dd
+--
+-- Example for running the metrics for April: 
+-- hive -d INPATH=s3://ka-mapreduce/entity_store \
+-- -i s3://ka-mapreduce/code/hive/ka_hive_init.q \
+-- -d pfx=apr -d start_dt=2012-04-01 -d end_dt=2012-04-30 \
+-- -f s3://ka-mapreduce/code/hive/video_metrics.q
 
 
 -- Summary usage by topic

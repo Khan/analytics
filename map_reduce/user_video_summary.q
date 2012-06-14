@@ -12,7 +12,7 @@ INSERT OVERWRITE TABLE user_video_summary PARTITION (dt='${dt}')
 SELECT get_json_object(videolog.json, '$.user'), 
   get_json_object(videolog.json, '$.video'),
   get_json_object(videolog.json, '$.video_title'), 
-  SUM(get_json_object(videolog.json, '$.seconds_watched')),
+  SUM(MAX(0, MIN(600, get_json_object(videolog.json, '$.seconds_watched')))),
   MAX(IF(get_json_object(videolog.json, '$.is_video_completed') = "true", 
     1, 0)) FROM videolog 
 WHERE videolog.dt = '${dt}'
