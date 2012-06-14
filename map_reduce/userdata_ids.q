@@ -7,10 +7,7 @@ CREATE EXTERNAL TABLE IF NOT EXISTS userdata_ids(
 LOCATION 's3://ka-mapreduce/summary_tables/userdata_ids';
 
 INSERT OVERWRITE TABLE userdata_ids                             
-SELECT get_json_object(UserData.json, '$.user'),
-  get_json_object(UserData.json, '$.user_id'),
-  get_json_object(UserData.json, '$.user_email'),
-  get_json_object(UserData.json, '$.current_user'),
-  get_json_object(UserData.json, '$.user_nickname'),
-  get_json_object(UserData.json, '$.joined') 
-FROM UserData;
+SELECT parsed.* FROM UserData LATERAL VIEW JSON_TUPLE(UserData.json, 
+  'user', 'user_id', 'user_email', 'current_user', 'user_nickname', 'joined') 
+parsed AS user, user_id, user_email, current_user, user_nickname, joined; 
+
