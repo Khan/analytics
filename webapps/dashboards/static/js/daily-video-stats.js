@@ -32,8 +32,8 @@ VideoStats.refresh = function() {
     var url = BASE_STAT_SERVER_URL + "report/daily_video_stats/_find?callback=?";
     var datestamp = $("#datestamp").val();
     var user_category = $("#user_category").val();
-    var criteria = '{"date_str":"' + datestamp + '","ucat":"'
-        + user_category+ '"}';
+    var criteria = '{"date_str":"' + datestamp + '","ucat":"' +
+        user_category + '"}';
     var params = {
         //json query
         "criteria": criteria,
@@ -54,13 +54,13 @@ VideoStats.refresh = function() {
  */
 VideoStats.handleDataLoad = function(data) {
     var results = data["results"];
-    for (var i = 0; i < results.length; i+=1) {
+    for (var i = 0; i < results.length; i += 1) {
         var row = results[i];
         if (row["vid"] === "total") {
-            row["link"] = "<b>Total</b>"
+            row["link"] = "<b>Total</b>";
         } else {
             row["link"] = '<a href="http://youtube.com/watch?v=' +
-                row["vid"] + '">' + row["vtitle"] + '</a>';
+                row["vid"] + '">' + row["vtitle"] + "</a>";
         }
         row["hours_watched"] = Math.floor(row["seconds_watched"] / 3600);
         row["percent_completed"] = (row["completed"] / row["watched"]) || 0;
