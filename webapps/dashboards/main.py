@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 """A dashboard webapp.
 
 This hosts two simple dashboards: daily exercise statistics over time
@@ -14,8 +16,7 @@ app = flask.Flask(__name__)
 
 @app.route('/')
 def list_dashboards():
-    # TODO(benkomalo): replace this with a real list!
-    return 'Welcome to the dashboards page!'
+    return flask.render_template('index.html')
 
 
 @app.route('/videos')
