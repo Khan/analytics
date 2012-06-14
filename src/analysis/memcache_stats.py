@@ -179,7 +179,7 @@ def _incr(m, k, delta=1):
 def _sort_by_value(m):
     """Returns an list of (key, value) of m, sorted by decreasing value."""
     r = list(m.items())
-    r.sort(lambda x, y: cmp(y[1], x[1]))
+    r.sort(key=lambda kv: kv[1], reverse=True)
     return r
 
 
@@ -190,7 +190,7 @@ def print_value_sorted_map(m, max_to_print=None):
         return
 
     keyvals = _sort_by_value(m)
-    largest_value = max(kv[1] for kv in keyvals)
+    largest_value = keyvals[0][1]
     max_digits = len(str(largest_value))
     num_printed = 0
     for (k, v) in keyvals:
@@ -376,10 +376,8 @@ def print_set_but_never_get(requests):
         _incr(set_and_get_count, key_prefix(k))
 
     retval = []
-    for k in list(set_but_not_get_keys) + list(set_and_get_keys):
-        if k in set_no_get_count:
-            retval.append((k, set_no_get_count.get(k, 0),
-                           set_and_get_count.get(k, 0)))
+    for k in set_no_get_count:
+        retval.append((k, set_no_get_count[k], set_and_get_count.get(k, 0)))
     retval.sort(key=lambda x: -x[1])
 
     print_header('SET BUT NEVER GET',
@@ -394,6 +392,28 @@ def print_set_but_never_get(requests):
                  'Format is <#set-but-not-get> <#set-and-get>: <key prefix>\n')
     for (k, v1, v2) in retval:
         print '%s %s: %s' % (v1, v2, k)
+
+
+@run
+def print_get_but_never_set(requests):
+    """Print keys we successfully get but never set."""
+    set_keys = set()
+    get_but_not_set_count = {}
+
+    for memcache_line in memcache_lines(requests):
+        if memcache_line[1].startswith('set'):
+            set_keys.add(memcache_line[2])
+        elif (memcache_line[1].startswith('get') and
+              memcache_line[3] and                # successful get
+              memcache_line[2] not in set_keys):  # ...but no previous set
+            _incr(get_but_not_set_count, key_prefix(memcache_line[2]))
+
+    print_header('GET WITHOUT PREVIOUS SET',
+                 'Keys that had a successful get, but we never saw a set.\n'
+                 'These are values that have lived in the memcache for\n'
+                 'so long, and accessed so often, that they never need\n'
+                 'to be set for the entire length of the log run.')
+    print_value_sorted_map(get_but_not_set_count)
 
 
 @run
