@@ -92,8 +92,8 @@ ALTER TABLE VideoLog RECOVER PARTITIONS;
 
 
 CREATE EXTERNAL TABLE IF NOT EXISTS user_video_summary(
-user STRING, video_key STRING, video_title STRING, 
-num_seconds INT, completed INT) 
+  user STRING, video_key STRING, video_title STRING, 
+  num_seconds INT, completed INT) 
 PARTITIONED BY (dt STRING) 
 LOCATION 's3://ka-mapreduce/summary_tables/user_video_summary';
 ALTER TABLE user_video_summary RECOVER PARTITIONS;
