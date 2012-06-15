@@ -228,11 +228,14 @@ def print_value_sorted_map(m, max_to_print=None):
     largest_value = keyvals[0][1]
     max_digits = len(str(largest_value))
     num_printed = 0
+    total = 0
     for (k, v) in keyvals:
-        print '%*d: %s' % (max_digits, v, k)
-        num_printed += 1
-        if (max_to_print is not None) and num_printed >= max_to_print:
-            break
+        if (max_to_print is None) or num_printed < max_to_print:
+            print '%*d: %s' % (max_digits, v, k)
+            num_printed += 1
+        total += v
+    print '-' * max_digits
+    print '%*d: %s' % (max_digits, total, 'TOTAL')
 
 
 def key_prefix(key):
