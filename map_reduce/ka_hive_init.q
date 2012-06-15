@@ -92,20 +92,28 @@ ALTER TABLE VideoLog RECOVER PARTITIONS;
 
 
 CREATE EXTERNAL TABLE IF NOT EXISTS user_video_summary(
-  user STRING, video_key STRING, video_title STRING, 
-  num_seconds INT, completed INT) 
-PARTITIONED BY (dt STRING) 
+  user STRING, video_key STRING, video_title STRING,
+  num_seconds INT, completed INT)
+PARTITIONED BY (dt STRING)
 LOCATION 's3://ka-mapreduce/summary_tables/user_video_summary';
 ALTER TABLE user_video_summary RECOVER PARTITIONS;
 
 
 CREATE EXTERNAL TABLE IF NOT EXISTS userdata_ids(
-  user STRING, user_id STRING, user_email STRING, 
-  current_user STRING, user_nickname STRING, joined DOUBLE) 
+  user STRING, user_id STRING, user_email STRING,
+  current_user STRING, user_nickname STRING, joined DOUBLE)
 LOCATION 's3://ka-mapreduce/summary_tables/userdata_ids';
 
 
 CREATE EXTERNAL TABLE IF NOT EXISTS video_topic(
-  vid_key STRING, vid_title STRING, topic_key STRING, 
-  topic_title STRING, topic_desc STRING) 
+  vid_key STRING, vid_title STRING, topic_key STRING,
+  topic_title STRING, topic_desc STRING)
 LOCATION 's3://ka-mapreduce/summary_tables/video_topic';
+
+ADD FILE s3://ka-mapreduce/code/hive/create_topic_attempts_summary_table.q;
+SOURCE create_topic_attempts_summary_table.q;
+ALTER TABLE topic_attempts_summary RECOVER PARTITIONS;
+
+ADD FILE s3://ka-mapreduce/code/hive/create_topic_attempts.q;
+SOURCE create_topic_attempts.q;
+ALTER TABLE topic_attempts RECOVER PARTITIONS;
