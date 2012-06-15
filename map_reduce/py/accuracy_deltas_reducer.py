@@ -77,7 +77,7 @@ def parse_user_topic_input():
     attempts = []
 
     for line in sys.stdin:
-        (user, topic, time_done, time_taken, problem_number, correct,
+        (user, topic, exercise, time_done, time_taken, problem_number, correct,
                 scheduler_info, user_segment, dt) = line.strip().split('\t')
 
         user_topic = (user, topic)

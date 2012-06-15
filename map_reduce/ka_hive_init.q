@@ -115,10 +115,6 @@ CREATE EXTERNAL TABLE IF NOT EXISTS video_topic(
   topic_title STRING, topic_desc STRING)
 LOCATION 's3://ka-mapreduce/summary_tables/video_topic';
 
-ADD FILE s3://ka-mapreduce/code/hive/create_topic_attempts_summary_table.q;
-SOURCE create_topic_attempts_summary_table.q;
-ALTER TABLE topic_attempts_summary RECOVER PARTITIONS;
-
 ADD FILE s3://ka-mapreduce/code/hive/create_topic_attempts.q;
 SOURCE create_topic_attempts.q;
 ALTER TABLE topic_attempts RECOVER PARTITIONS;

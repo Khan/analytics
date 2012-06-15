@@ -17,13 +17,15 @@ SOURCE create_topic_attempts.q;
 -- ago) in topic mode.
 INSERT OVERWRITE TABLE topic_attempts PARTITION (dt='${dt}')
   SELECT DISTINCT
-    stacktable.user, stacktable.topic, problemtable.time_done,
-    problemtable.time_taken, problemtable.problem_number, problemtable.correct,
+    stacktable.user, stacktable.topic, problemtable.exercise, 
+    problemtable.time_done, problemtable.time_taken,
+    problemtable.problem_number, problemtable.correct,
     stacktable.scheduler_info, stacktable.user_segment
   FROM (
     FROM problemlog
       SELECT
         get_json_object(problemlog.json, '$.key') AS key,
+        get_json_object(problemlog.json, '$.exercise') AS exercise,
         cast(get_json_object(problemlog.json, '$.time_done') as double)
           AS time_done,
         cast(get_json_object(problemlog.json, '$.time_taken') as int)
