@@ -1,7 +1,11 @@
--- Video Recommendation 
+-- Hiave script that does video recommendations 
+-- 4 parameters should be supplied
+-- suffix: table postfix for the output summary tables 
+-- start_dt: start date stamp YYYY-mm-dd
+-- end_dt: exclusive end date stamp YYYY-mm-dd
+-- branch: code branch to run the recommend reducer: 'dev' or 'prod'
 
 -- Getting (user, video, time_completed) tuples
- 
 DROP TABLE user_vid_completion_${suffix};
 CREATE EXTERNAL TABLE user_vid_completion_${suffix}(
   user STRING, vid_key STRING, vid_title STRING, completion_time DOUBLE)
@@ -14,7 +18,7 @@ SELECT get_json_object(VideoLog.json, '$.user'),
        MIN(get_json_object(VideoLog.json, '$.time_watched'))
 FROM VideoLog 
 WHERE get_json_object(VideoLog.json, '$.is_video_completed') = 'true' AND
-  dt >= '${start_dt}' AND dt <= '${end_dt}'
+  dt >= '${start_dt}' AND dt < '${end_dt}'
 GROUP BY get_json_object(VideoLog.json, '$.user'),
          get_json_object(VideoLog.json, '$.video'),
          get_json_object(VideoLog.json, '$.video_title');
@@ -37,8 +41,8 @@ CREATE EXTERNAL TABLE video_coocurrence_${suffix}(
 LOCATION 's3://ka-mapreduce/tmp/video_cooccurrence_${suffix}';
 
 ADD FILE s3://ka-mapreduce/code/${branch}/py/video_recommendation_reducer.py;
-FROM(
-  FROM( 
+FROM (
+  FROM ( 
     FROM user_vid_completion_${suffix} 
     SELECT user, vid_title, completion_time 
     CLUSTER BY USER) map_out 
@@ -65,10 +69,10 @@ SELECT b.vid1_title, b.vid2_title, b.preceed_cnt, b.succeed_cnt,
        a.cnt, c.cnt 
 FROM video_completion_cnt_${suffix} a JOIN 
   video_coocurrence_${suffix} b ON (a.vid_title = b.vid1_title) JOIN
-  video_completion_cnt_${suffix} c on (c.vid_title = b.vid2_title);
+  video_completion_cnt_${suffix} c ON (c.vid_title = b.vid2_title);
 
--- Example queries to see the top 
+-- Example queries to see the top 10 video rec for a specific video
 -- SELECT *, (preceed_cnt + succeed_cnt)/sqrt(vid1_cnt)/sqrt(vid2_cnt) AS
 --  similarity FROM video_cooccurrence_cnt_${suffix} 
--- WHERE vid1_title = "American Call Options"
+-- WHERE vid1_title = "${video}"
 -- ORDER BY similarity DESC LIMIT 10;
