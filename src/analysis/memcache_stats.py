@@ -13,6 +13,7 @@ analysis on them.
 """
 
 import gzip
+import optparse
 import re
 import sys
 import time
@@ -94,24 +95,38 @@ def _extract_digits(s):
     return re.sub('[^0-9]', '', s)
 
 
-def read_logs(*filenames):
+def read_logs(filenames, ignore_before=None):
     """Read and return the memcache lines from each passed-in filename.
 
     Arguments:
-       *filenames: a list of filenames to read logs from.  If the
+       filenames: a list of filenames to read logs from.  If the
           filename ends with '.gz' we will uncompress and read.
           If the filename is '-', read from stdin.
+       ignore_before: if not None, we ignore all records that are seen
+          before (in time) a record that has ignore_before as a substring
+          in one of its memcache: or request lines.  This allow us to,
+          say, send a special request to appengine just at the point we
+          want to start analyzing the logs.  As another example,
+          '__layer_cache_setting_model._get_settings_dict__" (fail)'
+          is a way to avoid records before a memcache flush, since
+          _get_settings_dict__ should always be in the memcache under
+          normal circumstances.
 
     Returns:
        A tuple (list of WebRequest objects, number-of-non-memcache-requests).
        The list of Request objects holds those web requests that caused
        at least one memcache access.  For all other requests, we don't
        store the request, but we do count it, and return that total count
-       as the second argument of the return value.
+       as the second argument of the return value.  NOTE: number-of-non-
+       memcache-requests doesn't interact with ignore_before, so that
+       number may be high if ignore_before is set.
     """
     requests = []
     num_non_memcache_requests = [0]   # list to work inside the closure below
     num_records = [0]                 # for logging
+    # None means 'haven't figured out when to ignore until.'
+    # 0 means 'Ignore until 1969' which means 'don't ignore anything at all'.
+    ignore_before_this_time = None if ignore_before else 0
 
     def _save_request(request):
         if not request:
@@ -155,11 +170,31 @@ def read_logs(*filenames):
                         int(_extract_digits(m.group('num_bytes'))),
                         int(_extract_digits(m.group('expires')))
                         )
+            if (ignore_before_this_time is None and
+                ignore_before in line and
+                current_request):
+                ignore_before_this_time = current_request.time_t
+
         # Save the last request in the file as well
         _save_request(current_request)
 
     # Sort the requests by time.
     requests.sort(key=lambda r: r.time_t)
+    # If ignore_before_this_time is set, ditch all requests whose
+    # time_t is < ignore_before_this_time.
+    if ignore_before_this_time is None:
+        print ('WARNING: Never saw the ignore-before text "%s".  Not ignoring.'
+               % ignore_before)
+    else:
+        old_num_requests = len(requests)
+        requests = [r for r in requests if r.time_t >= ignore_before_this_time]
+        new_num_requests = len(requests)
+        if old_num_requests > new_num_requests:
+            print ('NOTE: Ignoring %s requests due to ignore-before text "%s"'
+                   ' (seen at time-t %s)'
+                   % (old_num_requests - new_num_requests, ignore_before,
+                      ignore_before_this_time))
+
     return (requests, num_non_memcache_requests[0])
 
 
@@ -443,15 +478,16 @@ def print_space_usage(requests):
     print 'TOTAL: %s items' % len(key_sizes)
 
 
-def main(args):
-    (requests, num_non_memcache_requests) = read_logs(*args)
+def main(logfiles, ignore_before=None):
+    (requests, num_non_memcache_requests) = read_logs(logfiles, ignore_before)
 
     print_header('ANALYSIS OF HTTP REQUEST LOGS',
                  'Analysis of these files: %s.\n' % ', '.join(args) +
                  'Note that the time-range may be off due to timezone issues.')
     print '# of HTTP requests: %s' % len(requests)
-    print 'Time range: %s - %s' % (time.ctime(requests[0].time_t),
-                                   time.ctime(requests[-1].time_t))
+    if requests:
+        print 'Time range: %s - %s' % (time.ctime(requests[0].time_t),
+                                       time.ctime(requests[-1].time_t))
 
     print_header('NUMBER OF REQUESTS WITH NO MEMCACHE ACCESS',
                  'Many of these are for static content (.gif, etc).')
@@ -462,4 +498,18 @@ def main(args):
 
 
 if __name__ == '__main__':
-    main(sys.argv[1:])
+    parser = optparse.OptionParser('%prog [options] <log-file> ...\n'
+                                   'If log-file is "-", read from stdin.')
+    parser.add_option('--ignore-before', default=None,
+                      help=('Ignore all requests before a request whose '
+                            'logline or memcache-logging lines contains '
+                            'IGNORE_BEFORE as a substring.  For instance: '
+                            '--ignore-before=\'__layer_cache_setting_model.'
+                            '_get_settings_dict__" (fail)\' '
+                            'is a way to avoid records before a memcache '
+                            'flush, since _get_settings_dict__ is normally '
+                            'always in the memcache.'))
+    options, args = parser.parse_args()
+    if not args:
+        sys.exit('ERROR: You must specify at least one log-file to analyze.')
+    main(args, options.ignore_before)

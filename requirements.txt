@@ -1,2 +1,5 @@
 Flask==0.8
 pymongo==2.2
+
+# For interacting with AWS via Python
+boto==2.4.1
