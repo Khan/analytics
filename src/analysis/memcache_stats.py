@@ -81,6 +81,7 @@ class WebRequest(object):
         # 3 <for set/setlike requests>: sizeof(value),
         # 4 <for set/setlike requests>: when a set expires,
         # )
+        # TODO(csilvers): instead of using a tuple, use a class + __slots__.
         self.memcache_line_tuples = []
 
     # incr/decr/offset_multi are here because of what is logged for them,
@@ -250,6 +251,7 @@ def read_logs(filenames, ignore_before=None):
                 ignore_before in line and
                 current_request):
                 ignore_before_this_time = current_request.time_t
+                print >> sys.stderr, 'Found ignore-before line:', line.strip()
 
         # Save the last request in the file as well
         _save_request(current_request)
@@ -274,11 +276,23 @@ def read_logs(filenames, ignore_before=None):
     return (requests, num_non_memcache_requests[0])
 
 
+# To make subsequent calls to memcache-lines faster.
+_g_memcache_line_tuples_cache = {}   # key is the tuple of requests
+
+
 def memcache_lines(requests):
     """Give the memcache lines in order, when you don't care about requests."""
-    for request in requests:
-        for m in request.memcache_lines():
-            yield m
+    if requests in _g_memcache_line_tuples_cache:
+        all_memcache_tuples = _g_memcache_line_tuples_cache[requests]
+    else:
+        all_memcache_tuples = []
+        for request in requests:
+            all_memcache_tuples.extend(request.memcache_line_tuples)
+        all_memcache_tuples.sort(key=lambda tup: tup[0])  # sort by time-t
+        _g_memcache_line_tuples_cache[requests] = tuple(all_memcache_tuples)
+
+    for tup in all_memcache_tuples:
+        yield ParsedMemcacheLine(tup)
 
 
 def _incr(m, k, delta=1):
@@ -592,6 +606,7 @@ def main(logfiles, ignore_before=None):
     print num_non_memcache_requests
 
     if requests:
+        requests = tuple(requests)      # needed so they can be a hash key
         for fn in g_analyses_to_run:    # set via the @run decorator
             fn(requests)
 
