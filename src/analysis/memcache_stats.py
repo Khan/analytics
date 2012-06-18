@@ -60,6 +60,12 @@ _KEY_PREFIXES = ('_ag5',
 _KEY_PREFIX_RE = re.compile(r'(%s).*' % '|'.join(_KEY_PREFIXES))
 
 
+def _key_prefix(key):
+    """Give a prefix of the key that tries to capture its 'type'."""
+    # For instance, foo_agl2344321 and foo_agl5252133 will share a prefix.
+    return _KEY_PREFIX_RE.sub(lambda m: m.group(1) + '...', key)
+
+
 class WebRequest(object):
     """Holds information about a single webserver request."""
     def __init__(self):
@@ -71,21 +77,91 @@ class WebRequest(object):
         # 0: time_t of request,
         # 1: command: get, set, get_multi, etc,
         # 2: memcache key,
-        # 3 <for get requests>: did the get request succeed or fail,
-        # 3 <for set requests>: sizeof(value),
-        # 4 <for set requests>: when a set expires,
+        # 3 <for get/getlike requests>: did the get request succeed or fail,
+        # 3 <for set/setlike requests>: sizeof(value),
+        # 4 <for set/setlike requests>: when a set expires,
         # )
-        self.memcache_lines = []
+        self.memcache_line_tuples = []
+
+    # incr/decr/offset_multi are here because of what is logged for them,
+    # even though they add more like 'replace' and other 'set' commands.
+    GETLIKE_COMMANDS = ('get', 'get_multi', 'incr', 'decr', 'offset_multi')
+
+    SETLIKE_COMMANDS = ('set', 'set_multi', 'add', 'add_multi',
+                        'replace', 'replace_multi')
 
     def add_memcache_line(self,
                           time_t, command, key, success, num_bytes, expires):
-        if command.startswith('get'):
+        if command in self.GETLIKE_COMMANDS:
             tup = (time_t, command, key, success)
-        elif command.startswith('set'):
+        elif command in self.SETLIKE_COMMANDS:
             tup = (time_t, command, key, num_bytes, expires)
         else:
             tup = (time_t, command, key)
-        self.memcache_lines.append(tup)
+        self.memcache_line_tuples.append(tup)
+
+    def memcache_lines(self):
+        """All the request's memcache loglines, as ParsedMemcacheLine's."""
+        # While it's too expensive, memory-wise, to store all memcache
+        # lines in the logs as ParsedMemcacheLine objects (the
+        # overhead for an object vs a tuple is very high, and there
+        # are hundreds of thousands of these), it's not too expensive
+        # to store just the memcache lines for a single request as a
+        # ParsedMemcacheLine: there are only a dozen-ish of them, at
+        # most.  Having the object makes it much easier to reason
+        # about memcache lines in the analysis functions below.
+        return [ParsedMemcacheLine(t) for t in self.memcache_line_tuples]
+
+    def has_memcache_lines(self):
+        return self.memcache_line_tuples
+
+
+class ParsedMemcacheLine(object):
+    def __init__(self, memcache_line_tuple):
+        """memcache_line_tuple is in the format described in WebRequest."""
+        self.time_t = memcache_line_tuple[0]
+        self.command = memcache_line_tuple[1]
+        self.key = memcache_line_tuple[2]
+
+        self.success = None
+        self.value_size = None
+        self.expires = None
+        if self.command in WebRequest.GETLIKE_COMMANDS:
+            self.success = memcache_line_tuple[3]
+        if self.command in WebRequest.SETLIKE_COMMANDS:
+            self.value_size = memcache_line_tuple[3]
+            self.expires = memcache_line_tuple[4]
+        # For incr/decr/offset commands, appengine stores them as ints.
+        if self.command in ('incr', 'decr', 'offset_multi'):
+            self.value_size = 4   # size of an int, more or less
+
+    def does_set(self):
+        """Whether the command can set a value in the cache."""
+        # We count incr/decr/etc here, since they set values, even
+        # though WebRequest has them in GETLIKE_COMMANDS.  That is
+        # because WebRequest cares about the format in which the
+        # memcache line is logged, while we care about the semantics
+        # of the command.
+        return self.command in ('set', 'set_multi', 'add', 'add_multi',
+                                'replace', 'replace_multi',
+                                'incr', 'decr', 'offset_multi')
+
+    def does_get(self):
+        """Whether the command retrieves a value from the cache."""
+        return self.command in ('get', 'get_multi')
+
+    def is_successful_get(self):
+        """True if this was a 'get' request and it succeeded."""
+        return self.success == True     # None for non-get requests
+
+    def is_failed_get(self):
+        """True if this was a 'get' request and it failed."""
+        return self.success == False    # None for non-get requests
+
+    def key_prefix(self):
+        """Give a prefix of the key that tries to capture its 'type'."""
+        # For instance, foo_agl2344321 and foo_agl5252133 will share a prefix.
+        return _key_prefix(self.key)
 
 
 def _extract_digits(s):
@@ -134,7 +210,7 @@ def read_logs(filenames, ignore_before=None):
         num_records[0] += 1
         if num_records[0] % 1000 == 0:
             print >> sys.stderr, 'Processed %s requests' % num_records[0]
-        if request.memcache_lines:
+        if request.has_memcache_lines():
             requests.append(request)
         else:
             num_non_memcache_requests[0] += 1
@@ -201,8 +277,7 @@ def read_logs(filenames, ignore_before=None):
 def memcache_lines(requests):
     """Give the memcache lines in order, when you don't care about requests."""
     for request in requests:
-        for m in request.memcache_lines:
-            # TODO(csilvers): parse m into a struct/class, and return that
+        for m in request.memcache_lines():
             yield m
 
 
@@ -239,12 +314,6 @@ def print_value_sorted_map(m, max_to_print=None):
     print '%*d: %s' % (max_digits, total, 'TOTAL')
 
 
-def key_prefix(key):
-    """Give a prefix of the key that tries to capture its 'type'."""
-    # For instance, foo_agl2344321 and foo_agl5252133 will share a prefix.
-    return _KEY_PREFIX_RE.sub(lambda m: m.group(1) + '...', key)
-
-
 def print_header(title, prologue):
     print
     print '-' * 70
@@ -276,15 +345,13 @@ def print_distribution(requests):
     num_success = 0   # for get requests
     num_fail = 0
     for memcache_line in memcache_lines(requests):
-        key = memcache_line[1]   # command
-        _incr(counts, key)
+        _incr(counts, memcache_line.command)
 
         # Also keep track of how many get's succeeded vs failed
-        if key.startswith('get'):
-            if memcache_line[3]:   # success
-                num_success += 1
-            else:
-                num_fail += 1
+        if memcache_line.is_successful_get():
+            num_success += 1
+        elif memcache_line.is_failed_get():
+            num_fail += 1
 
     print_header('DISTRIBUTION OF MEMCACHE REQUEST TYPES',
                  'The types are "get", "set", etc.')
@@ -298,12 +365,12 @@ def print_distribution(requests):
 
 
 @run
-def print_failed_gets(requests):
+def print_is_failed_gets(requests):
     """For each key-prefix, print how many times a 'get' on it failed."""
     counts = {}
     for memcache_line in memcache_lines(requests):
-        if memcache_line[1].startswith('get') and not memcache_line[3]:
-            _incr(counts, key_prefix(memcache_line[2]))
+        if memcache_line.is_failed_get():
+            _incr(counts, memcache_line.key_prefix())
 
     print_header('FAILED GETS',
                  'The number of times we did a memcache "get" for this\n'
@@ -322,13 +389,12 @@ def print_memcache_access_pattern_per_http_request(requests):
         num_fail = 0
         num_success = 0
         num_set = 0
-        for memcache_line in request.memcache_lines:
-            if memcache_line[1].startswith('get'):
-                if memcache_line[3]:   # success
-                    num_success += 1
-                else:
-                    num_fail += 1
-            elif memcache_line[1].startswith('set'):
+        for memcache_line in request.memcache_lines():
+            if memcache_line.is_successful_get():
+                num_success += 1
+            elif memcache_line.is_failed_get():
+                num_fail += 1
+            elif memcache_line.does_set():
                 num_set += 1
         _incr(count, (num_fail, num_set, num_success))
         if num_set and num_fail:
@@ -360,12 +426,11 @@ def print_evicted_gets(requests):
     evicted_key_prefix_count = {}
 
     for memcache_line in memcache_lines(requests):
-        if memcache_line[1].startswith('set'):
-            set_keys.add(memcache_line[2])
-        elif (memcache_line[1].startswith('get') and  # get request
-              not memcache_line[3] and                # that failed
-              memcache_line[2] in set_keys):          # and is after a set
-            _incr(evicted_key_prefix_count, key_prefix(memcache_line[2]))
+        if memcache_line.does_set():
+            set_keys.add(memcache_line.key)
+        elif (memcache_line.is_failed_get() and     # failed get request
+              memcache_line.key in set_keys):       # and is after a set
+            _incr(evicted_key_prefix_count, memcache_line.key_prefix())
 
     print_header('EVICTED GETS',
                  'The number of times we did a memcache "get" for this\n'
@@ -379,17 +444,16 @@ def print_evicted_gets(requests):
 @run
 def print_most_gets(requests):
     """Print the 10 keys we do the most successful lookups of."""
-    successful_get_count = {}
+    is_successful_get_count = {}
 
     for memcache_line in memcache_lines(requests):
-        if (memcache_line[1].startswith('get') and  # get request
-            memcache_line[3]):                      # that succeeded
-            _incr(successful_get_count, memcache_line[2])
+        if memcache_line.is_successful_get():
+            _incr(is_successful_get_count, memcache_line.key)
 
     print_header('MOST GETS',
                  'The 10 keys with the most successful "gets".\n'
                  'These keys are the ones making best use of the cache.')
-    print_value_sorted_map(successful_get_count, 10)
+    print_value_sorted_map(is_successful_get_count, 10)
 
 
 @run
@@ -399,20 +463,20 @@ def print_set_but_never_get(requests):
     set_and_get_keys = set()
 
     for memcache_line in memcache_lines(requests):
-        if memcache_line[1].startswith('set'):
-            set_but_not_get_keys.add(memcache_line[2])
-        elif memcache_line[1].startswith('get'):
-            if memcache_line[2] in set_but_not_get_keys:
-                set_but_not_get_keys.discard(memcache_line[2])
-                set_and_get_keys.add(memcache_line[2])
+        if memcache_line.does_set():
+            set_but_not_get_keys.add(memcache_line.key)
+        elif memcache_line.does_get():
+            if memcache_line.key in set_but_not_get_keys:
+                set_but_not_get_keys.discard(memcache_line.key)
+                set_and_get_keys.add(memcache_line.key)
 
     set_no_get_count = {}
     for k in set_but_not_get_keys:
-        _incr(set_no_get_count, key_prefix(k))
+        _incr(set_no_get_count, _key_prefix(k))
 
     set_and_get_count = {}
     for k in set_and_get_keys:
-        _incr(set_and_get_count, key_prefix(k))
+        _incr(set_and_get_count, _key_prefix(k))
 
     retval = []
     for k in set_no_get_count:
@@ -440,12 +504,11 @@ def print_get_but_never_set(requests):
     get_but_not_set_count = {}
 
     for memcache_line in memcache_lines(requests):
-        if memcache_line[1].startswith('set'):
-            set_keys.add(memcache_line[2])
-        elif (memcache_line[1].startswith('get') and
-              memcache_line[3] and                # successful get
-              memcache_line[2] not in set_keys):  # ...but no previous set
-            _incr(get_but_not_set_count, key_prefix(memcache_line[2]))
+        if memcache_line.does_set():
+            set_keys.add(memcache_line.key)
+        elif (memcache_line.is_successful_get() and
+              memcache_line.key not in set_keys):   # ...but no previous set
+            _incr(get_but_not_set_count, memcache_line.key_prefix())
 
     print_header('GET WITHOUT PREVIOUS SET',
                  'Keys that had a successful get, but we never saw a set.\n'
@@ -462,14 +525,13 @@ def print_space_usage(requests):
     # We only count the size taken by the last one.
     key_sizes = {}    # value here is (size, True-if-present/False-if-evicted)
     for memcache_line in memcache_lines(requests):
-        if memcache_line[1].startswith('set'):
-            entry_size = len(memcache_line[2]) + memcache_line[3]
-            key_sizes[memcache_line[2]] = [entry_size, True]
-        elif (memcache_line[1].startswith('get') and  # get request
-              not memcache_line[3] and                # that failed
-              memcache_line[2] in key_sizes):         # but we'd seen a set
+        if memcache_line.does_set():
+            entry_size = len(memcache_line.key) + memcache_line.value_size
+            key_sizes[memcache_line.key] = [entry_size, True]
+        elif (memcache_line.is_failed_get() and       # get request tha failed
+              memcache_line.key in key_sizes):        # but we'd seen a set
             # This key looks to have been evicted, so set the value-bool.
-            key_sizes[memcache_line[2]][1] = False
+            key_sizes[memcache_line.key][1] = False
 
     key_prefix_sizes = {}
     total = 0
@@ -479,11 +541,11 @@ def print_space_usage(requests):
     evicted_items = 0
     for k in key_sizes:
         if key_sizes[k][1]:   # not evicted
-            _incr(key_prefix_sizes, key_prefix(k), delta=key_sizes[k][0])
+            _incr(key_prefix_sizes, _key_prefix(k), delta=key_sizes[k][0])
             total += key_sizes[k][0]
             items += 1
         else:
-            _incr(evicted_key_prefix_sizes, key_prefix(k),
+            _incr(evicted_key_prefix_sizes, _key_prefix(k),
                   delta=key_sizes[k][0])
             evicted_total += key_sizes[k][0]
             evicted_items += 1
