@@ -202,6 +202,7 @@ def memcache_lines(requests):
     """Give the memcache lines in order, when you don't care about requests."""
     for request in requests:
         for m in request.memcache_lines:
+            # TODO(csilvers): parse m into a struct/class, and return that
             yield m
 
 
@@ -459,17 +460,33 @@ def print_space_usage(requests):
     """Print info on which keys take up how much space in the cache."""
     # The problem here is keys being inserted multiple times.
     # We only count the size taken by the last one.
-    key_sizes = {}
+    key_sizes = {}    # value here is (size, True-if-present/False-if-evicted)
     for memcache_line in memcache_lines(requests):
         if memcache_line[1].startswith('set'):
-            key_sizes[memcache_line[2]] = (len(memcache_line[2]) +
-                                           memcache_line[3])   # sizeof(value)
+            entry_size = len(memcache_line[2]) + memcache_line[3]
+            key_sizes[memcache_line[2]] = [entry_size, True]
+        elif (memcache_line[1].startswith('get') and  # get request
+              not memcache_line[3] and                # that failed
+              memcache_line[2] in key_sizes):         # but we'd seen a set
+            # This key looks to have been evicted, so set the value-bool.
+            key_sizes[memcache_line[2]][1] = False
 
     key_prefix_sizes = {}
     total = 0
+    items = 0
+    evicted_key_prefix_sizes = {}
+    evicted_total = 0
+    evicted_items = 0
     for k in key_sizes:
-        _incr(key_prefix_sizes, key_prefix(k), delta=key_sizes[k])
-        total += key_sizes[k]
+        if key_sizes[k][1]:   # not evicted
+            _incr(key_prefix_sizes, key_prefix(k), delta=key_sizes[k][0])
+            total += key_sizes[k][0]
+            items += 1
+        else:
+            _incr(evicted_key_prefix_sizes, key_prefix(k),
+                  delta=key_sizes[k][0])
+            evicted_total += key_sizes[k][0]
+            evicted_items += 1
 
     print_header('WHERE THE MEMORY GOES',
                  'For each key-prefix, how many bytes it takes in the cache.\n'
@@ -477,8 +494,22 @@ def print_space_usage(requests):
                  'we don\'t know what keys have been evicted from the cache.')
     print_value_sorted_map(key_prefix_sizes)
     print
-    print 'TOTAL: %s bytes (%.1f M)' % (total, total / 1024.0 / 1024.0)
-    print 'TOTAL: %s items' % len(key_sizes)
+    print 'TOTAL: %.1f M' % (total / 1024.0 / 1024.0)
+    print 'TOTAL: %s items' % items
+
+    print
+    print '----------'
+    print 'In addition, the following keys were present in the memcache'
+    print 'at some point, but were not at the end of the logs analysis:'
+    print 'they had been evicted and never replaced.'
+    print 'NOTE: many other keys (counted in the total above) may also'
+    print 'have been evicted but we never noticed because nobody tried'
+    print 'to look them up after their eviction.'
+    print
+    print_value_sorted_map(evicted_key_prefix_sizes)
+    print
+    print 'TOTAL: %.1f M' % (evicted_total / 1024.0 / 1024.0)
+    print 'TOTAL: %s items' % evicted_items
 
 
 def main(logfiles, ignore_before=None):
@@ -489,15 +520,18 @@ def main(logfiles, ignore_before=None):
                  'Note that the time-range may be off due to timezone issues.')
     print '# of HTTP requests: %s' % len(requests)
     if requests:
-        print 'Time range: %s - %s' % (time.ctime(requests[0].time_t),
-                                       time.ctime(requests[-1].time_t))
+        print ('Time range: %s - %s\n    time_t: %.0f - %.0f\n'
+               % (time.ctime(requests[0].time_t), 
+                  time.ctime(requests[-1].time_t),
+                  requests[0].time_t, requests[-1].time_t))
 
     print_header('NUMBER OF REQUESTS WITH NO MEMCACHE ACCESS',
                  'Many of these are for static content (.gif, etc).')
     print num_non_memcache_requests
 
-    for fn in g_analyses_to_run:    # set via the @run decorator
-        fn(requests)
+    if requests:
+        for fn in g_analyses_to_run:    # set via the @run decorator
+            fn(requests)
 
 
 if __name__ == '__main__':
