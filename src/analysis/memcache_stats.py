@@ -55,6 +55,7 @@ _KEY_PREFIXES = ('_ag5',
                  'blog_posts_id=',
                  'oauth_token_1/',
                  '_gae_alternative:',
+                 '__gae_mini_profiler_request_',
                  )
 
 _KEY_PREFIX_RE = re.compile(r'(%s).*' % '|'.join(_KEY_PREFIXES))
@@ -516,6 +517,7 @@ def print_get_but_never_set(requests):
     """Print keys we successfully get but never set."""
     set_keys = set()
     get_but_not_set_count = {}
+    get_but_not_set_times = set()
 
     for memcache_line in memcache_lines(requests):
         if memcache_line.does_set():
@@ -523,6 +525,7 @@ def print_get_but_never_set(requests):
         elif (memcache_line.is_successful_get() and
               memcache_line.key not in set_keys):   # ...but no previous set
             _incr(get_but_not_set_count, memcache_line.key_prefix())
+            get_but_not_set_times.add(memcache_line.time_t)
 
     print_header('GET WITHOUT PREVIOUS SET',
                  'Keys that had a successful get, but we never saw a set.\n'
@@ -530,6 +533,11 @@ def print_get_but_never_set(requests):
                  'so long, and accessed so often, that they never need\n'
                  'to be set for the entire length of the log run.')
     print_value_sorted_map(get_but_not_set_count)
+    print
+    min_time = min(get_but_not_set_times)
+    max_time = max(get_but_not_set_times)
+    print ('These happened in the time_t range %s - %s (%.2f sec.)'
+           % (min_time, max_time, max_time - min_time))
 
 
 @run
