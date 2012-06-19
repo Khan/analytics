@@ -1,2 +1,10 @@
 Flask==0.8
 pymongo==2.2
+
+# For interacting with AWS via Python
+boto==2.4.1
+
+# Required by lint checking
+pep8==1.0.1
+pyflakes==0.5.0
+python-gflags==2.0

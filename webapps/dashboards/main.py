@@ -2,9 +2,12 @@
 
 """A dashboard webapp.
 
-This hosts two simple dashboards: daily exercise statistics over time
-and a daily report of videos watched. It will house more dashboards for
-fundamental metrics we want to track.
+This hosts the following dashboards:
+- daily exercise statistics over time
+- a daily report of videos watched
+- learning efficiency and retention from exercises
+
+It will house more dashboards for fundamental metrics we want to track.
 """
 
 import optparse
@@ -27,6 +30,11 @@ def videos_dashboard():
 @app.route('/exercises')
 def exercises_dashboard():
     return flask.render_template('daily-ex-stats.html')
+
+
+@app.route('/learning')
+def learning_dashboard():
+    return flask.render_template('learning-stats.html')
 
 
 def main():

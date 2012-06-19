@@ -1,0 +1,22 @@
+# Third party code
+third_party/
+webapps/dashboards/static/js/third_party/
+
+# Config files
+src/oauth_util/access_token.py
+
+# Legacy - needs to be fixed.
+map_reduce/load_pbufs_to_hive.py
+src/back_populate.py
+src/bulk_download.py
+src/csv_util.py
+src/daily_video_stats.py
+src/fetch_entities.py
+src/gae_download.py
+src/gae_reprocess.py
+src/ka_download_coordinator.py
+src/mongo_examples.py
+src/oauth_util/get_access_token.py
+src/oauth_util/oauth.py
+src/oauth_util/test_oauth_client.py
+webapps/dashboards/static/js/daily-video-stats.js

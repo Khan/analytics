@@ -63,7 +63,10 @@ def generate_timestamp():
     """Get seconds since epoch (UTC)."""
     return int(time.time())
 
-def generate_nonce(length=8):
+# NOTE:  the default nonce length has been changed from 8 to 20 
+# because some uses at Khan Academy--like heavy use of API-based
+# data downloding--were throwing errors due to non-unique nonces
+def generate_nonce(length=20):
     """Generate pseudorandom number."""
     return ''.join([str(random.randint(0, 9)) for i in range(length)])
 

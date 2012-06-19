@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <link rel="shortcut icon" href="http://www.khanacademy.org/favicon.ico?leaf">
+    <link rel="stylesheet" type="text/css" href="static/css/third_party/bootstrap.css">
+</head>
+
+<body>
+
+<div class="container">
+
+    <!-- TODO(david): Some sidebar for different charts -->
+
+    <section>
+        <div class="page-header">
+            <h1>Learning in Exercises</h1>
+        </div>
+
+        <div class="row">
+            <div class="span12">
+                <p class="lead">
+                    For students who have completed exactly
+                    <select id="stacks-select" class="span1">
+                        <option>1</option>
+                        <option>2</option>
+                        <option selected="selected">3</option>
+                        <option>4</option>
+                        <option>5</option>
+                        <option>6</option>
+                        <option>7</option>
+                        <option>8</option>
+                        <option>9</option>
+                        <option>10</option>
+                    </select>
+                    stacks in
+                    <!-- TODO(david): Filter by topic -->
+                    <select id="topics-select" class="span2">
+                        <option>any topic</option>
+                    </select>,
+                    show me their gain in accuracy over
+                    <!-- TODO(david): Bucket by time done -->
+                    <select id="bucket-select">
+                        <option>the number of cards done</option>
+                    </select>.
+                </p>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="span12 well">
+                <div id="efficiency-chart-loading" class="progress progress-striped active">
+                    <div class="bar" style="width: 100%"></div>
+                </div>
+                <div id="efficiency-chart"></div>
+            </div>
+        </div>
+    </section>
+
+    <section>
+        <div class="page-header">
+            <h1>FAQ <small>What kind of nonsense is this?</small></h1>
+        </div>
+        <div class="row">
+            <div class="span4">
+                <h2>Explanation 1</h2>
+                <p>TODO(david)</p>
+            </div>
+            <div class="span4">
+                <h2>Explanation 2</h2>
+                <p>TODO(david)</p>
+            </div>
+            <div class="span4">
+                <h2>Explanation 3</h2>
+                <p>TODO(david)</p>
+            </div>
+        </div>
+    </section>
+</div>
+
+<!-- Third-party libraries -->
+<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js" type="text/javascript"></script>
+<script src="static/js/third_party/highcharts.js"></script>
+<script src="static/js/third_party/underscore-min.js"></script>
+
+<!-- Main entry point -->
+<script src="static/js/learning-stats.js"></script>
+
+</body>
+</html>
