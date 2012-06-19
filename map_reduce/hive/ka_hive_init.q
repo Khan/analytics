@@ -90,7 +90,7 @@ ALTER TABLE VideoLog RECOVER PARTITIONS;
 
 -- Summary Tables
 
-
+-- Describes activity on a per-video basis for users on a given day
 CREATE EXTERNAL TABLE IF NOT EXISTS user_video_summary(
   user STRING, video_key STRING, video_title STRING,
   num_seconds INT, completed INT)
