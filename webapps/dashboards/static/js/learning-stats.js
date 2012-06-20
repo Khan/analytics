@@ -9,6 +9,11 @@
 
 // TODO(david): Shared data fetcher.
 var BASE_STAT_SERVER_URL = "http://184.73.72.110:27080/";
+var BASE_COLLLECTION_URL = BASE_STAT_SERVER_URL +
+    "report/weekly_learning_stats/";
+
+
+// TODO(david): Caching. Share code with video stats.
 
 
 /**
@@ -17,12 +22,24 @@ var BASE_STAT_SERVER_URL = "http://184.73.72.110:27080/";
 var init = function init() {
     addEventHandlers();
     refresh();
+    getTopics();
 };
 
 
 // TODO(david): Use backbone?
 var addEventHandlers = function addEventHandlers() {
-    $('#stacks-select').change(refresh);
+    $("#stacks-select").change(refresh);
+    $("#topics-select").change(refresh);
+};
+
+
+var getTopics = function() {
+    $.get("/db/learning_stats_topics", function(data) {
+        var options = _.map(data["topics"], function(topic) {
+            return $("<option>").text(topic)[0];
+        });
+        $("#topics-select").append(options);
+    });
 };
 
 
@@ -37,14 +54,20 @@ var refresh = function refresh() {
     $chart.css("opacity", 0.5);
 
     var numStacks = $("#stacks-select").val();
+    var topic = $("#topics-select option:selected").val();
 
     // TODO(david): More permanent database, and design summary table with date
     //     partitions.
-    var url = BASE_STAT_SERVER_URL + "test/accuracy_deltas/_find?callback=?";
+    var url = BASE_COLLLECTION_URL + "_find?callback=?";
+
     // TODO(david): Batch up requests
     var criteria = {
         num_problems_done: "" + (numStacks * 8)
     };
+    if (topic !== "any") {
+        criteria["topic"] = topic;
+    }
+
     // TODO(david): Specify just those fields we want from the server.
     var params = {
         criteria: JSON.stringify(criteria),
