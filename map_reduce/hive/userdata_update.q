@@ -10,7 +10,7 @@ SET mapred.output.compression.codec=org.apache.hadoop.io.compress.GzipCodec;
 SET io.compression.codecs=org.apache.hadoop.io.compress.GzipCodec;
 
 
-ADD FILE s3://ka-mapreduce/code/dev/py/update_userdata.py; 
+ADD FILE s3://ka-mapreduce/code/py/update_userdata.py; 
 FROM (
   FROM (
     SELECT key, json FROM UserDataP
