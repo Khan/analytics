@@ -124,7 +124,6 @@ def copy_files_to_prod(filenames, subdir=None):
         with open(filename, 'r') as filestream:
             filepath = "%s%s" % (dirname, filename)
             key = bucket.get_key(filepath)
-            key = True
             if not key:
                 key = bucket.new_key(filepath)
             key.set_contents_from_file(filestream)
