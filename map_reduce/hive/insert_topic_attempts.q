@@ -17,7 +17,7 @@ SOURCE /mnt/var/lib/hive_081/downloaded_resources/create_topic_attempts.q;
 -- ago) in topic mode.
 INSERT OVERWRITE TABLE topic_attempts PARTITION (dt='${dt}')
   SELECT DISTINCT
-    stacktable.user, stacktable.topic, problemtable.exercise, 
+    stacktable.user, stacktable.topic, problemtable.exercise,
     problemtable.time_done, problemtable.time_taken,
     problemtable.problem_number, problemtable.correct,
     stacktable.scheduler_info, stacktable.user_segment
