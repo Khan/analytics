@@ -8,7 +8,7 @@
 ADD FILE s3://ka-mapreduce/code/py/stacklog_cards_mapper.py;
 ADD FILE s3://ka-mapreduce/code/hive/create_topic_attempts.q;
 
-SOURCE create_topic_attempts.q;
+SOURCE /mnt/var/lib/hive_081/downloaded_resources/create_topic_attempts.q;
 
 -- Daily job summarizing attempts in topic mode by joining problem logs with
 -- cards in stack logs.

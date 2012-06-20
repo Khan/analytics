@@ -9,8 +9,8 @@
 --   end_dt: exclusive end date stamp YYYY-mm-dd
 --
 -- Example for running the metrics for April:
--- hive -d INPATH=s3://ka-mapreduce/entity_store \
--- -i s3://ka-mapreduce/code/hive/ka_hive_init.q \
+-- hive -i s3://ka-mapreduce/code/hive/ka_hive_init.q \
+-- -d INPATH=s3://ka-mapreduce/entity_store \
 -- -d path_prefix=summary_tables/reports/ \
 -- -d start_dt=2012-04-01 -d end_dt=2012-05-01 \
 -- -f s3://ka-mapreduce/code/hive/video_metrics.q
