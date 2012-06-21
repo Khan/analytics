@@ -11,6 +11,8 @@ else
     day=$(date --date='yesterday' '+%Y-%m-%d')
 fi
 
+day_before=$(date --date=${day}-1day '+%Y-%m-%d')
+
 # Upload to s3.
 echo "Upload to S3"
 /usr/local/bin/s3cmd sync ~/kabackup/daily_new/${day}/ \
@@ -19,8 +21,18 @@ echo "Upload to S3"
 
 # Convert pbuf to json
 echo "Convert pbuf to json and load into the datastore"
-/home/analytics/emr/elastic-mapreduce --create --name "${day} GAE Upload" \
+elastic-mapreduce --create --name "${day} GAE Upload" \
   --num-instances 3 --master-instance-type m1.small \
   --slave-instance-type c1.medium \
-  --json ~/analytics/map_reduce/load_pbufs_to_hive.json \
+  --json `dirname $0`/load_pbufs_to_hive.json \
   --param "<dt>=${day}" 2>&1
+
+
+# UserData update
+echo "Updating the UserData"
+elastic-mapreduce --create --name "${day} UserDataP" \
+  --num-instances 3 --master-instance-type m1.small \
+  --slave-instance-type m1.large \
+  --json `dirname $0`/userdata.json \
+  --param "<start_dt>=${day_before}" \
+  --param "<end_dt>=${day}" 2>&1

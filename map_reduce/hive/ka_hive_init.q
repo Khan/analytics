@@ -77,6 +77,7 @@ CREATE EXTERNAL TABLE IF NOT EXISTS UserDataP (
     key string, json string)
 COMMENT 'UserData snapshots'
 PARTITIONED BY (dt string) 
+CLUSTERED BY (key) INTO 128 BUCKETS
 LOCATION '${INPATH}/UserDataP';
 ALTER TABLE UserDataP RECOVER PARTITIONS;
 
@@ -84,6 +85,7 @@ CREATE EXTERNAL TABLE IF NOT EXISTS UserDataIncr (
     key string, json string)
 COMMENT 'Daily incremental user data updates'
 PARTITIONED BY (dt string) 
+CLUSTERED BY (key) INTO 16 BUCKETS
 ROW FORMAT DELIMITED FIELDS TERMINATED BY '\t'
 LOCATION 's3://ka-mapreduce/entity_store_incr/UserData';
 ALTER TABLE UserDataIncr RECOVER PARTITIONS; 
