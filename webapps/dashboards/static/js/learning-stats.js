@@ -62,11 +62,9 @@ var refresh = function refresh() {
 
     // TODO(david): Batch up requests
     var criteria = {
-        num_problems_done: "" + (numStacks * 8)
+        num_problems_done: "" + (numStacks * 8),
+        topic: topic
     };
-    if (topic !== "any") {
-        criteria["topic"] = topic;
-    }
 
     // TODO(david): Specify just those fields we want from the server.
     var params = {
