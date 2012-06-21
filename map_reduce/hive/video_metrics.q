@@ -16,12 +16,13 @@
 -- -f s3://ka-mapreduce/code/hive/video_metrics.q
 
 
--- TODO(benkomalo): what happens if the entire table schema changes?
-CREATE EXTERNAL TABLE IF NOT EXISTS topic_summary_registered(
-  topic STRING, registered INT,
+DROP TABLE topic_summary_registered;
+CREATE EXTERNAL TABLE topic_summary_registered(
+  topic STRING, registered BOOLEAN,
   users INT, visits INT, completed INT, seconds INT)
 PARTITIONED BY (start_dt STRING, end_dt STRING)
 LOCATION 's3://ka-mapreduce/${path_prefix}topic_summary_registered';
+ALTER TABLE topic_summary_registered RECOVER PARTITIONS;
 
 -- Summary usage by topic
 ALTER TABLE topic_summary_registered
@@ -62,10 +63,12 @@ SELECT * FROM (
 
 
 -- Summarize the video usage by user
-CREATE EXTERNAL TABLE IF NOT EXISTS user_video_range_summary(
+DROP TABLE user_video_range_summary;
+CREATE EXTERNAL TABLE user_video_range_summary(
   user STRING, visits STRING, videos int, completed int, seconds int)
 PARTITIONED BY (start_dt STRING, end_dt STRING)
 LOCATION 's3://ka-mapreduce/${path_prefix}user_video_range_summary';
+ALTER TABLE user_video_range_summary RECOVER PARTITIONS;
 
 ALTER TABLE user_video_range_summary
     DROP PARTITION (start_dt='${start_dt}', end_dt='${end_dt}');
@@ -79,11 +82,13 @@ FROM user_video_summary WHERE
 GROUP BY user;
 
 -- Some high level metrics on usage distribution
-CREATE EXTERNAL TABLE IF NOT EXISTS user_video_distribution(
-  registered INT, visits INT, num_users INT,
+DROP TABLE EXISTS user_video_distribution;
+CREATE EXTERNAL TABLE user_video_distribution(
+  registered BOOLEAN, visits INT, num_users INT,
   videos INT, completed INT, seconds INT)
 PARTITIONED BY (start_dt STRING, end_dt STRING)
-LOCATION 's3://ka-mapreduce/${path_prefix}user_video_distrbution';
+LOCATION 's3://ka-mapreduce/${path_prefix}user_video_distribution';
+ALTER TABLE user_video_distribution RECOVER PARTITIONS;
 
 ALTER TABLE user_video_distribution
     DROP PARTITION (start_dt='${start_dt}', end_dt='${end_dt}');
