@@ -24,3 +24,6 @@ FROM (
 INSERT OVERWRITE TABLE UserDataP PARTITION(dt='${end_dt}')
 SELECT TRANSFORM(json) USING 'update_userdata.py' 
 AS key, json;
+
+ADD FILE s3://ka-mapreduce/code/shell/set_userdata_partition.sh;
+!/mnt/var/lib/hive_081/downloaded_resources/set_userdata_partition.sh;

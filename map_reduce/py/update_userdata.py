@@ -3,6 +3,7 @@
 import codecs
 import json
 import sys
+"""The following is needed for printing out char var > 128"""
 sys.stdout = codecs.getwriter('utf8')(sys.stdout)
 
 
