@@ -23,8 +23,9 @@ pip-log.txt
 # Translations
 *.mo
 
-# Mr Developer
+# Dev configs
 .mr.developer.cfg
+hipchat.cfg
 
 # You may well have an access_token.py file in your oauth_util dir.
 # That file is *not* to be checked in!  It has sekrets in it.

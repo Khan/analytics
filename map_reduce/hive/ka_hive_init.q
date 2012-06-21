@@ -1,6 +1,11 @@
 -- Initialization script for hive to recover tables mirroring GAE entities. Run
--- "hive -d INPATH=s3://ka-mapreduce/entity_store -i s3://ka-mapreduce/code/hive/ka_hive_init.q"
+--
+-- $ hive -i s3://ka-mapreduce/code/hive/ka_hive_init.q \
+--        -d INPATH=s3://ka-mapreduce/entity_store
 -- for your interactive hive shells.
+--
+-- Alternatively, you can source this file, but you need INPATH defined
+-- prior to doing so.
 
 
 --Datastore Entity Tables
@@ -115,6 +120,10 @@ CREATE EXTERNAL TABLE IF NOT EXISTS video_topic(
   topic_title STRING, topic_desc STRING)
 LOCATION 's3://ka-mapreduce/summary_tables/video_topic';
 
+-- TODO(benkomalo): when using ADD FILE with s3 paths, it downloads it to a
+--    local cache, which we have to reference from directly. Figure out
+--    a better solution for this, or specify the Hive version so that this
+--    path is stable.
 ADD FILE s3://ka-mapreduce/code/hive/create_topic_attempts.q;
-SOURCE create_topic_attempts.q;
+SOURCE /mnt/var/lib/hive_081/downloaded_resources/create_topic_attempts.q;
 ALTER TABLE topic_attempts RECOVER PARTITIONS;

@@ -8,7 +8,7 @@
 ADD FILE s3://ka-mapreduce/code/py/stacklog_cards_mapper.py;
 ADD FILE s3://ka-mapreduce/code/hive/create_topic_attempts.q;
 
-SOURCE create_topic_attempts.q;
+SOURCE /mnt/var/lib/hive_081/downloaded_resources/create_topic_attempts.q;
 
 -- Daily job summarizing attempts in topic mode by joining problem logs with
 -- cards in stack logs.
@@ -17,7 +17,7 @@ SOURCE create_topic_attempts.q;
 -- ago) in topic mode.
 INSERT OVERWRITE TABLE topic_attempts PARTITION (dt='${dt}')
   SELECT DISTINCT
-    stacktable.user, stacktable.topic, problemtable.exercise, 
+    stacktable.user, stacktable.topic, problemtable.exercise,
     problemtable.time_done, problemtable.time_taken,
     problemtable.problem_number, problemtable.correct,
     stacktable.scheduler_info, stacktable.user_segment

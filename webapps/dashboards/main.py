@@ -13,8 +13,13 @@ It will house more dashboards for fundamental metrics we want to track.
 import optparse
 
 import flask
+import pymongo
 
 app = flask.Flask(__name__)
+
+# TODO(david): Allow specifying db params via cmd line args, and/or use
+#     cfg/analytics.json for defaults.
+db = pymongo.Connection('184.73.72.110')
 
 
 @app.route('/')
@@ -35,6 +40,17 @@ def exercises_dashboard():
 @app.route('/learning')
 def learning_dashboard():
     return flask.render_template('learning-stats.html')
+
+
+@app.route('/db/learning_stats_topics')
+def learning_stats_topics():
+    # TODO(david): Find a way of using the Khan API to find topics that have
+    #     exercises in them. I tried to get this to work thru Sleepy Mongoose:
+    #     https://github.com/kchodorow/sleepy.mongoose/wiki/database-commands
+    topics = db.report.weekly_learning_stats.distinct('topic')
+    return flask.jsonify({
+        'topics': topics,
+    })
 
 
 def main():

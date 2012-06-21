@@ -9,9 +9,9 @@
 --   end_dt: exclusive end date stamp YYYY-mm-dd
 --
 -- Example for running the metrics for April:
--- hive -d INPATH=s3://ka-mapreduce/entity_store \
--- -i s3://ka-mapreduce/code/hive/ka_hive_init.q \
--- -d path_prefix=summary_tables/reports/ \
+-- hive -i s3://ka-mapreduce/code/hive/ka_hive_init.q \
+-- -d INPATH=s3://ka-mapreduce/entity_store \
+-- -d path_prefix=summary_tables/reports/videos/ \
 -- -d start_dt=2012-04-01 -d end_dt=2012-05-01 \
 -- -f s3://ka-mapreduce/code/hive/video_metrics.q
 
@@ -27,35 +27,38 @@ LOCATION 's3://ka-mapreduce/${path_prefix}topic_summary_registered';
 ALTER TABLE topic_summary_registered
     DROP PARTITION (start_dt='${start_dt}', end_dt='${end_dt}');
 
-INSERT OVERWRITE TABLE topic_summary_registered
-PARTITION (start_dt='${start_dt}', end_dt='${end_dt}')
-SELECT
-  video_topic.topic_title,
-  userdata_info.registered,
-  COUNT(distinct user_video_summary.user),
-  COUNT(distinct concat(user_video_summary.user, user_video_summary.dt)),
-  SUM(user_video_summary.completed), SUM(user_video_summary.num_seconds)
-FROM user_video_summary LEFT OUTER JOIN userdata_info ON
-  (user_video_summary.user = userdata_info.user)
-JOIN video_topic ON (video_topic.vid_key = user_video_summary.video_key)
-WHERE user_video_summary.dt >= '${start_dt}' AND
-  user_video_summary.dt < '${end_dt}'
-GROUP BY video_topic.topic_title, userdata_info.registered;
-
--- Total Usage (single row - fakes out topic title with 'total')
+-- INSERT INTO will overwrite the partition contents.
 INSERT INTO TABLE topic_summary_registered
 PARTITION (start_dt='${start_dt}', end_dt='${end_dt}')
-SELECT
-  'total',
-  userdata_info.registered,
-  COUNT(distinct user_video_summary.user),
-  COUNT(distinct concat(user_video_summary.user, user_video_summary.dt)),
-  SUM(user_video_summary.completed), SUM(user_video_summary.num_seconds)
-FROM user_video_summary LEFT OUTER JOIN userdata_info ON
-  (user_video_summary.user = userdata_info.user)
-WHERE user_video_summary.dt >= '${start_dt}' AND
-  user_video_summary.dt < '${end_dt}'
-GROUP BY 'total', userdata_info.registered;
+SELECT * FROM (
+    SELECT
+      video_topic.topic_title,
+      userdata_info.registered,
+      COUNT(distinct user_video_summary.user),
+      COUNT(distinct concat(user_video_summary.user, user_video_summary.dt)),
+      SUM(user_video_summary.completed), SUM(user_video_summary.num_seconds)
+    FROM user_video_summary
+    LEFT OUTER JOIN userdata_info ON
+      (user_video_summary.user = userdata_info.user)
+    JOIN video_topic ON
+      (video_topic.vid_key = user_video_summary.video_key)
+    WHERE user_video_summary.dt >= '${start_dt}' AND
+      user_video_summary.dt < '${end_dt}'
+    GROUP BY video_topic.topic_title, userdata_info.registered
+  UNION ALL
+    -- Total Usage (single row - fakes out topic title with 'total')
+    SELECT
+      'total' as topic_title,
+      userdata_info.registered,
+      COUNT(distinct user_video_summary.user),
+      COUNT(distinct concat(user_video_summary.user, user_video_summary.dt)),
+      SUM(user_video_summary.completed), SUM(user_video_summary.num_seconds)
+    FROM user_video_summary LEFT OUTER JOIN userdata_info ON
+      (user_video_summary.user = userdata_info.user)
+    WHERE user_video_summary.dt >= '${start_dt}' AND
+      user_video_summary.dt < '${end_dt}'
+    GROUP BY 'total', userdata_info.registered
+) unionresult;
 
 
 -- Summarize the video usage by user
