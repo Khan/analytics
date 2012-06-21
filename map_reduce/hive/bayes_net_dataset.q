@@ -6,11 +6,12 @@
 -- min_ex: the minimum number of exercises that should have data within a topic
 --     before sampling 
 
+-- TODO(jace): standardize the ouput location 
 DROP TABLE bayes_net_dataset_${suffix};
 CREATE EXTERNAL TABLE bayes_net_dataset_${suffix} (
     topic STRING, json STRING)
   COMMENT 'Dataset for Bayes net training'
-  LOCATION 's3://ka-mapreduce/tmp/bayes_net_dataset';
+  LOCATION 's3://ka-mapreduce/tmp/bayes_net_dataset_${suffix}';
 
 -- This defines the topics for which to create a Bayes net 
 -- TODO(jace) Cron something to keep this up to date

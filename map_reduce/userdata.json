@@ -1,0 +1,68 @@
+[
+{ 
+    "Name": "Loading <end_dt> Incr UserData into EMR", 
+    "ActionOnFailure": "CONTINUE", 
+    "HadoopJarStep": { 
+      "Jar": "/home/hadoop/contrib/streaming/hadoop-streaming.jar", 
+      "Args": [ 
+         "-D", "mapred.output.compress=true",
+         "-input",    "s3n://ka-mapreduce/rawdata/<end_dt>/UserData/", 
+         "-output",   "s3n://ka-mapreduce/entity_store_incr/UserData/dt=<end_dt>/", 
+         "-mapper",   "load_pbufs_to_hive.py",
+         "-reducer",  "/bin/cat",
+         "-cacheArchive",  "s3n://ka-mapreduce/code/third_party/google_appengine.jar#google_appengine", 
+         "-cacheFile", "s3://ka-mapreduce/code/py/load_pbufs_to_hive.py#load_pbufs_to_hive.py", 
+         "-numReduceTasks", "16"
+      ] 
+   } 
+}, 
+{
+    "Name": "Setup Hive",
+    "ActionOnFailure": "TERMINATE_JOB_FLOW",
+    "HadoopJarStep": {
+        "Jar": "s3://us-east-1.elasticmapreduce/libs/script-runner/script-runner.jar",
+        "Args": [
+            "s3://us-east-1.elasticmapreduce/libs/hive/hive-script",
+            "--base-path", "s3://us-east-1.elasticmapreduce/libs/hive/",
+            "--install-hive",
+            "--hive-versions", "latest"
+            ]
+    }
+},
+{
+    "Name": "Generating UserDataP Partition <end_dt>",
+    "ActionOnFailure": "CONTINUE",
+    "HadoopJarStep": {
+        "Jar": "s3://us-east-1.elasticmapreduce/libs/script-runner/script-runner.jar",
+        "Args": [
+            "s3://us-east-1.elasticmapreduce/libs/hive/hive-script",
+            "--base-path", "s3://us-east-1.elasticmapreduce/libs/hive/",
+            "--hive-versions", "latest",
+            "--run-hive-script",
+            "--args",
+            "-f", "s3://ka-mapreduce/code/hive/userdata_update.q",
+            "-d", "INPATH=s3://ka-mapreduce/entity_store",
+            "-i", "s3://ka-mapreduce/code/hive/ka_hive_init.q",
+            "-d", "start_dt=<start_dt>",
+            "-d", "end_dt=<end_dt>"
+            ]
+    }
+},
+{
+    "Name": "Generating userdata_info",
+    "ActionOnFailure": "CONTINUE",
+    "HadoopJarStep": {
+        "Jar": "s3://us-east-1.elasticmapreduce/libs/script-runner/script-runner.jar",
+        "Args": [
+            "s3://us-east-1.elasticmapreduce/libs/hive/hive-script",
+            "--base-path", "s3://us-east-1.elasticmapreduce/libs/hive/",
+            "--hive-versions", "latest",
+            "--run-hive-script",
+            "--args",
+            "-f", "s3://ka-mapreduce/code/hive/userdata_info.q",
+            "-d", "INPATH=s3://ka-mapreduce/entity_store",
+            "-i", "s3://ka-mapreduce/code/hive/ka_hive_init.q"
+            ]
+    }
+}
+] 

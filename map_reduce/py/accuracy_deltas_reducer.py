@@ -62,10 +62,13 @@ def emit_accuracy_deltas(attempts, user_topic, user_segment):
         incremental_gain = total_gain / (curr_card[0] - prev_card[0])
         topic = user_topic[1] if user_topic and len(user_topic) >= 2 else None
         for i in range(prev_card[0], curr_card[0]):
-            # TODO(david): Output and group by user segments (eg. experiments
-            #     the user was in).
-            print '%s\t%s\t%s\t%s\t%s' % (topic, user_segment, len(attempts),
-                    i, incremental_gain)
+            # Output a row for the given topic and for the psuedo-topic "any",
+            # which is an aggregation of all topics
+            for pseudo_topic in [topic, 'any']:
+                # TODO(david): Output and group by user segments (eg.
+                #     experiments the user was in).
+                print '%s\t%s\t%s\t%s\t%s' % (pseudo_topic, user_segment,
+                        len(attempts), i, incremental_gain)
 
 
 def parse_user_topic_input():
