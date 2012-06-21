@@ -75,16 +75,16 @@ SOURCE /mnt/var/lib/hive_081/downloaded_resources/userdata_ver.q;
 
 CREATE EXTERNAL TABLE IF NOT EXISTS UserDataP (
     key string, json string)
-PARTITIONED BY (dt string) 
 COMMENT 'UserData snapshots'
+PARTITIONED BY (dt string) 
 LOCATION '${INPATH}/UserDataP';
 ALTER TABLE UserDataP RECOVER PARTITIONS;
 
 CREATE EXTERNAL TABLE IF NOT EXISTS UserDataIncr (
     key string, json string)
+COMMENT 'Daily incremental user data updates'
 PARTITIONED BY (dt string) 
 ROW FORMAT DELIMITED FIELDS TERMINATED BY '\t'
-COMMENT 'Daily incremental user data updates'
 LOCATION 's3://ka-mapreduce/entity_store_incr/UserData';
 ALTER TABLE UserDataIncr RECOVER PARTITIONS; 
 
