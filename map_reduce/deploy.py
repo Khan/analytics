@@ -17,8 +17,11 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'src'))
 import boto_util
 
 
-hipchat.config.init_cfg('hipchat.cfg')
-
+try:
+    hipchat.config.init_cfg('hipchat.cfg')
+except Exception, e:
+    # No hipchat.cfg file found - the token will be empty and handled below.
+    pass
 
 if not hipchat.config.token:
     print >> sys.stderr, (

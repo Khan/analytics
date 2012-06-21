@@ -13,7 +13,7 @@ import json
 import sys
 
 
-def emit_accuracy_deltas(attempts, user_segment):
+def emit_accuracy_deltas(attempts, user_topic, user_segment):
     """Outputs interpolated deltas in accuracy between every consecutive pair
     of test cards.
 
@@ -38,6 +38,7 @@ def emit_accuracy_deltas(attempts, user_segment):
     attempts - a list of exercise card attempts in a topic, ordered by time
         done. Each element is a tuple (bool correct, int problem_number,
         dict scheduler_info).
+    user_topic - tuple of (user, topic ID)
     user_segment - group(s) that the user is a member of for dashboard
         comparison purposes (eg. A/B test experiments, has coach, etc.)
     """
@@ -59,11 +60,12 @@ def emit_accuracy_deltas(attempts, user_segment):
         prev_card, curr_card = test_cards[i - 1], test_cards[i]
         total_gain = float(curr_card[1]) - float(prev_card[1])
         incremental_gain = total_gain / (curr_card[0] - prev_card[0])
+        topic = user_topic[1] if user_topic and len(user_topic) >= 2 else None
         for i in range(prev_card[0], curr_card[0]):
             # TODO(david): Output and group by user segments (eg. experiments
             #     the user was in).
-            print '%s\t%s\t%s\t%s' % (user_segment, len(attempts), i,
-                    incremental_gain)
+            print '%s\t%s\t%s\t%s\t%s' % (topic, user_segment, len(attempts),
+                    i, incremental_gain)
 
 
 def parse_user_topic_input():
@@ -84,7 +86,7 @@ def parse_user_topic_input():
         if user_topic != prev_user_topic:
             # We're getting a new user-topic, so perform the reduce operation
             # on our previous group of user-topics
-            emit_accuracy_deltas(attempts, prev_user_segment)
+            emit_accuracy_deltas(attempts, prev_user_topic, prev_user_segment)
             attempts = []
 
         correct = correct == 'true'
@@ -95,7 +97,7 @@ def parse_user_topic_input():
         prev_user_topic = user_topic
         prev_user_segment = user_segment
 
-    emit_accuracy_deltas(attempts, prev_user_segment)
+    emit_accuracy_deltas(attempts, prev_user_topic, prev_user_segment)
 
 
 if __name__ == '__main__':
