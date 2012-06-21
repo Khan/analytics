@@ -73,10 +73,8 @@ def emit_data(problems, min_exercises):
     to be included in the dataset sample for that topic
     """
 
-    problems = [json.loads(p) for p in problems]
-
     # If we know we don't have full history for this user, skip her.
-    if not complete_exercise_history(problems):
+    if not problems or not complete_exercise_history(problems):
         return
 
     # Topic => (Exercise => AccuracyModel)
@@ -124,23 +122,31 @@ def main():
 
     prev_user = None
     problems = []
-
+    value_errors = 0
+    
     for line in sys.stdin:
-        user, jsons, dt = line.strip().split('\t')
+        user, jsons, dt = line.rstrip('\n').split('\t')
 
+        if not user or not jsons:
+            continue
+        
         if user != prev_user:
             # We're getting a new user-topic, so perform the reduce operation
             # on our previous group of user-topics
             emit_data(problems, options.min_exercises)
             problems = []
 
-        problems.append(jsons)
-
         prev_user = user
+
+        try:
+            problem = json.loads(jsons)
+            problems.append(problem)
+        except ValueError:
+            value_errors += 1
 
     emit_data(problems, options.min_exercises)
 
-    print >>sys.stderr, "Finished main."  # TODO remove
+    print >>sys.stderr, "Finished main with %d ValueErrors." % value_errors
 
 if __name__ == '__main__':
     main()
