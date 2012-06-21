@@ -134,6 +134,12 @@ var renderChart = function renderChart(results) {
     };
 
     var chart = new Highcharts.Chart(chartOptions);
+
+    // TODO(david): Show # of distinct users and error bounds
+    var totalDeltas = _.reduce(results, function(accum, row) {
+        return accum + +row["num_deltas"];
+    }, 0);
+    $("#total-deltas").text(totalDeltas);
 };
 
 
