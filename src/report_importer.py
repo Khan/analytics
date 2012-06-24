@@ -27,11 +27,12 @@ Each row will be saved to the reporting table as a document in the specified
 target_collection.
 """
 
+import datetime
+import optparse
 import sys
 
 import boto
 import pymongo
-import optparse
 
 import boto_util
 import hive_mysql_connector
@@ -68,6 +69,7 @@ def main(table_location,
     mongo_conn = pymongo.Connection(options.report_db_host,
                                     port=options.report_db_port)
     mongodb = mongo_conn[target_db]
+    mongo_collection = mongodb[target_collection]
 
     # Open our input connections.
 
@@ -83,6 +85,11 @@ def main(table_location,
     errors = 0
     NULL_STRING = '\N'
 
+    docs_to_insert = []
+    batch_size = max(1, options.batch_size)
+
+    lines_parsed = 0
+
     # Note: a table's data may be broken down into multiple files on disk.
     for key in s3keys:
         if key.name.endswith('_$.folder$'):
@@ -91,6 +98,7 @@ def main(table_location,
 
         contents = key.get_contents_as_string()
         for line in contents.split('\n'):
+
             if not line:
                 # EOF
                 break
@@ -118,6 +126,8 @@ def main(table_location,
                         value = int(parts[i])
                     elif type == 'boolean':
                         value = parts[i] == 'true'
+                    elif type in ['double', 'float']:
+                        value = float(parts[i])
                     else:
                         value = parts[i]
                 except Exception:
@@ -138,11 +148,36 @@ def main(table_location,
                 doc['_id'] = parts[key_index]
 
             if doc:
+
                 doc.update(partition_values)
-                mongodb[target_collection].save(doc)
-                saved += 1
+
+                # If we have doc IDs, perform a single upsert because bulk
+                # upserts are not currently supported by pymongo according to
+                # this old answer: http://stackoverflow.com/questions/5292370
+                if '_id' in doc:
+                    mongo_collection.save(doc)
+                    saved += 1
+                else:
+                    docs_to_insert.append(doc)
+
             else:
                 errors += 1
+
+            # Bulk insert docs in batches
+            if len(docs_to_insert) >= batch_size:
+                mongo_collection.insert(docs_to_insert)
+                saved += len(docs_to_insert)
+                docs_to_insert = []
+
+            if lines_parsed % 100 == 0:
+                print "\rSaved %s docs with %s errors..." % (saved, errors),
+                sys.stdout.flush()
+
+            lines_parsed += 1
+
+    if docs_to_insert:
+        mongo_collection.insert(docs_to_insert)
+        saved += len(docs_to_insert)
 
     print "\nSummary of results:"
     print "\tSaved [%s] documents" % saved
@@ -167,6 +202,10 @@ def parse_command_line_args():
     parser.add_option('--ssh_keyfile',
         help=('A location of an SSH pem file to use for SSH connections '
               'to the specified Hive machine'))
+    parser.add_option('--batch_size', type="int", default=1000,
+        help=('Number of documents to insert in a single database call. '
+              'Will only do bulk inserts if no key index is specified, '
+              'because pymongo does not currently support bulk upserts.'))
 
     options, args = parser.parse_args()
     if len(args) < 4:
@@ -206,6 +245,8 @@ def print_locations(table_location, column_info, partition_cols,
 
 
 if __name__ == '__main__':
+    start_dt = datetime.datetime.now()
+
     options, args = parse_command_line_args()
 
     # Step 1 - read meta data.
@@ -238,3 +279,6 @@ if __name__ == '__main__':
          column_info,
          partition_cols,
          options)
+
+    time_taken = datetime.datetime.now() - start_dt
+    print "\nTotal wall time taken: %s seconds" % time_taken.total_seconds()
