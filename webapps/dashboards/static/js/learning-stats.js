@@ -20,6 +20,11 @@ var BASE_COLLLECTION_URL = BASE_STAT_SERVER_URL +
  * Script entry-point called on DOM ready.
  */
 var init = function init() {
+    // Pre-load the "number of stacks completed" select box
+    $("#stacks-select").append(_.map(_.range(1, 21), function(num) {
+        return $("<option value=" + num + ">").text("exactly " + num)[0];
+    }));
+
     addEventHandlers();
     refresh();
     getTopics();
@@ -34,6 +39,7 @@ var addEventHandlers = function addEventHandlers() {
 
 
 var getTopics = function() {
+    // TODO(david): Filter out pseudo-topic "any"
     $.get("/db/learning_stats_topics", function(data) {
         var options = _.map(data["topics"], function(topic) {
             return $("<option>").text(topic)[0];
@@ -62,17 +68,21 @@ var refresh = function refresh() {
 
     // TODO(david): Batch up requests
     var criteria = {
-        num_problems_done: "" + (numStacks * 8),
-        topic: topic
+        num_problems_done: numStacks === "any" ? { $lte: 160 } : numStacks * 8,
+        topic: topic,
+        start_dt: '2012-06-13'  // TODO(david): Support date range selection
     };
 
-    // TODO(david): Specify just those fields we want from the server.
     var params = {
         criteria: JSON.stringify(criteria),
-        batch_size: 100
+        batch_size: 20000,
+        fields: JSON.stringify({
+            card_number: true,
+            num_deltas: true,
+            sum_deltas: true
+        })
     };
 
-    // TODO(david): JSON data from mongo should be properly typed.
     $.getJSON(url, params, function(data) {
         renderChart(data["results"]);
         $loadingBar.hide();
@@ -82,18 +92,37 @@ var refresh = function refresh() {
 
 
 /**
+ * Aggregate rows by card number. This is not done through Sleepy Mongoose
+ * because it seems it may be buggy: https://jira.mongodb.org/browse/SERVER-5874
+ * @param {Array.<Object>} results Rows from Mongo collection.
+ * @return {Object} A map of card number to the corresponding aggregated row.
+ */
+var groupByCardNumber = function groupByCardNumber(results) {
+    return _.chain(results)
+        .groupBy(function(row) { return row["card_number"]; })
+        .map(function(group, cardNumber) {
+            return _.reduce(group, function(accum, row) {
+                return {
+                    sum_deltas: +accum["sum_deltas"] + +row["sum_deltas"],
+                    num_deltas: +accum["num_deltas"] + +row["num_deltas"]
+                };
+            });
+        })
+        .value();
+};
+
+
+/**
  * Render highcharts.
  * @param {Array.<Object>} results Rows from the reducer summary table in mongo.
  */
 var renderChart = function renderChart(results) {
-    // TODO(david): Don't need the uniq once I specify an ID row in mongo.
     var incrementalGains = _.chain(results)
-        .sortBy(function(row) { return +row["card_number"]; })
-        .uniq(/* isSorted */ true, function(row) {
-            return row["card_number"];
-        })
+        .groupByCardNumber()
+        // _.toArray() seems to do the same but just in case and to be explicit
+        .sortBy(function(value, key) { return +key; })
         .map(function(row, index) {
-            return +row["avg_deltas"];
+            return row["sum_deltas"] / row["num_deltas"];
         })
         .value();
 
@@ -132,6 +161,7 @@ var renderChart = function renderChart(results) {
     };
 
     var chart = new Highcharts.Chart(chartOptions);
+    chart.series[1].hide();  // Hide "incremental gains" series by default
 
     // TODO(david): Show # of distinct users and error bounds
     var totalDeltas = _.reduce(results, function(accum, row) {
@@ -139,6 +169,12 @@ var renderChart = function renderChart(results) {
     }, 0);
     $("#total-deltas").text(totalDeltas);
 };
+
+
+// Add utility functions to underscore for convenience in chaining
+_.mixin({
+    groupByCardNumber: groupByCardNumber
+});
 
 
 $(init);
