@@ -11,15 +11,38 @@ A simple dashboard showing aggregate video data for a particular day.
 </head>
 
 <body>
-<div id="input_variables" style="width:800px; margin: 40px auto 0">
-Date: <input title="Datestamp" id="daily-video-date" size="20">
-User Category: <select id="user-category">
-               <option value="all" selected>All</option>
-               <option value="registered">Registered</option>
-               <option value="phantom">Phantom</option>
-               </select>
+
+<!-- TODO(benkomalo): stop with this inline CSS silliness and use a real file -->
+<div class="engagement-summary" style="width:800px; margin: 40px auto;">
+    <h2>Video Engagement Summary (registered users)</h2>
+
+    <div class="input-variables" style="margin: 10px 0;">
+        Range type: <select id="engagement-summary-type">
+                    <option value="week" selected>Week</option>
+                    <option value="month">Month</option>
+                    </select>
+        {# TODO(benkomalo): put in a datepicker instead of just the last 4 ranges #}
+        {# Date: <input title="Datestamp" id="engagement-summary-date" size="20"></input> #}
+    </div>
+    <div id="engagement-summary-table-container">
+        {# This shows a chart of the video usage distribution for users
+           across various date buckets. Rendered by JS.
+         #}
+    </div>
 </div>
-<div id="individual-video-summary-container" style="width: 800px; margin: 0 auto 40px;">
+
+<div class="individual-video-summary" style="width:800px; margin: 40px auto;">
+    <h2>Top Daily Video Activity By Individual Videos</h2>
+    <div class="input-variables" style="margin: 10px 0;">
+        Date: <input title="Datestamp" id="daily-video-date" size="20"></input>
+        User Category: <select id="user-category">
+                       <option value="all" selected>All</option>
+                       <option value="registered">Registered</option>
+                       <option value="phantom">Phantom</option>
+                       </select>
+    </div>
+    <div id="individual-video-summary-container">
+    </div>
 </div>
 
 <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.6.1/jquery.min.js"></script>
