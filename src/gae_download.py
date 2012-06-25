@@ -41,26 +41,27 @@ import ka_download_coordinator as kdc
 
 
 DEFAULT_DOWNLOAD_SETTINGS = {
-    "max_threads": 4, # max number of parrellel threads
-    "max_tries": 8, # max number of tries to download entities
-    "interval": 120, # data accumulated before writing into mongodb
-    "sub_process_time_out": 1800, #sub process timeout in seconds
-    "max_logs": 1000, # max number of entities from gae foreach pbuf call
+    "max_threads": 4,  # max number of parrellel threads
+    "max_tries": 8,  # max number of tries to download entities
+    "interval": 120,  # data accumulated before writing into mongodb
+    "sub_process_time_out": 1800,  # sub process timeout in seconds
+    "max_logs": 1000,  # max number of entities from gae foreach pbuf call
     "dbhost": "localhost",
     "dbport": 28017,
-    "default_db": "testdb", #dbname to write to
+    "default_db": "testdb",  # dbname to write to
     "archive_dir": "archive"
 }
 
 COLLECTION_INDICES = {
-    'UserData' : ['user', 'current_user', 'user_email'],
-    'UserExercise' : [[('user',1), ('exercise',1)]],
-    'UserVideo' : ['user'],
-    'VideoLog' : ['user', [('backup_timestamp', -1)]],
-    'ProblemLog' : ['user', [('backup_timestamp', -1)]]
+    'UserData': ['user', 'current_user', 'user_email'],
+    'UserExercise': [[('user', 1), ('exercise', 1)]],
+    'UserVideo': ['user'],
+    'VideoLog': ['user', [('backup_timestamp', -1)]],
+    'ProblemLog': ['user', [('backup_timestamp', -1)]]
 }
 
 g_logger = get_logger()
+
 
 def get_cmd_line_args():
     parser = OptionParser(usage="%prog [options]",
@@ -78,7 +79,7 @@ def get_cmd_line_args():
     parser.add_option("-d", "--archive_dir",
         help="The directory to archive the downloaded protobufs. Will "
              "override the value in the JSON config if specified.")
-    parser.add_option("-p", "--proc_interval", default = 3600,
+    parser.add_option("-p", "--proc_interval", default=3600,
         help="process interval if no start_date end_date specified")
 
     options, _ = parser.parse_args()
@@ -86,6 +87,7 @@ def get_cmd_line_args():
         g_logger.fatal('Please specify the json config file')
         exit(1)
     return options
+
 
 def get_archive_file_name(config, kind, start_dt, end_dt):
     """get the archive file name. has the format of
@@ -99,7 +101,8 @@ def get_archive_file_name(config, kind, start_dt, end_dt):
         str(end_dt.date()), str(end_dt.time()))
     return filename
 
-def load_pbufs_to_db(config, mongo, entity_list, start_dt, end_dt, kind = None):
+
+def load_pbufs_to_db(config, mongo, entity_list, start_dt, end_dt, kind=None):
     """load protocol buffers to mongo"""
     if not kind:
         if len(entity_list) > 0:
@@ -132,15 +135,14 @@ def fetch_and_process_data(kind, start_dt_arg, end_dt_arg,
         kind, start_dt_arg, end_dt_arg, kdc.DownloadStatus.STARTED)
 
     # fetch
-    start_dt = start_dt_arg
-    end_dt = end_dt_arg
-    g_logger.info("Downloading data for %s from %s to %s starts"  % (
+    g_logger.info("Downloading data for %s from %s to %s starts" % (
         kind, start_dt_arg, end_dt_arg))
     entity_list = fetch_entities.download_entities(
-                      kind, 
+                      kind,
                       start_dt_arg, end_dt_arg,
                       fetch_interval,
                       config['max_logs'], config['max_tries'],
+                      "backup_timestamp",  # TODO(jace): make configurable
                       verbose=False)
     g_logger.info(
         "Data downloaded for %s from %s to %s.# rows: %d finishes" % (
@@ -267,7 +269,7 @@ def monitor(config, processes):
     processes = remaining
 
 
-def start_data_process(config, start_dt_arg, end_dt_arg) :
+def start_data_process(config, start_dt_arg, end_dt_arg):
     """Loop through the entity types and perform the main function """
     g_logger.info("Start processing data from %s to %s" %
                   (str(start_dt_arg), str(end_dt_arg)))
@@ -282,8 +284,8 @@ def start_data_process(config, start_dt_arg, end_dt_arg) :
         while start_dt < end_dt:
             if len(active_children()) < config['max_threads']:
                 next_dt = min(start_dt + interval, end_dt)
-                p = Process(target = fetch_and_process_data,
-                    args = (kind, start_dt, next_dt, fetch_interval, config))
+                p = Process(target=fetch_and_process_data,
+                    args=(kind, start_dt, next_dt, fetch_interval, config))
                 p.start()
                 download_params = {"kind": kind, "start_dt": start_dt,
                                    "end_dt": end_dt, "start": time.time()}
