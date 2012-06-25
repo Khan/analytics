@@ -7,36 +7,6 @@
 var VideoStats = {};
 
 /**
- * Raw JSON cache of data keyed off of URLs
- */
-VideoStats.cache_ = {};
-
-/**
- * A wrapper over jQuery.getJSON, which caches the results.
- */
-VideoStats.getJson = function(url, params, callback) {
-    var cacheKey = url;
-    if (params) {
-        cacheKey += JSON.stringify(params);
-    }
-    if (_.has(VideoStats.cache_, cacheKey)) {
-        // Asynchronously call the callback to match getJSON behaviour.
-        var deferred = $.Deferred();
-        _.defer(function() {
-            callback(VideoStats.cache_[cacheKey]);
-            deferred.resolve();
-        });
-        return deferred;
-    }
-
-    var callbackProxy = function(data) {
-        VideoStats.cache_[cacheKey] = data;
-        callback(data);
-    };
-    return $.getJSON(url, params, callbackProxy);
-};
-
-/**
  * Entry point - called on DOMReady event.
  */
 VideoStats.init = function() {
@@ -78,7 +48,7 @@ VideoStats.refresh = function() {
     };
 
     $("#individual-video-summary-container").text("Loading...");
-    VideoStats.getJson(url, params, VideoStats.handleDataLoadForDay);
+    AjaxCache.getJson(url, params, VideoStats.handleDataLoadForDay);
 };
 
 /**

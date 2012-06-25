@@ -104,7 +104,7 @@ var refresh = function refresh() {
     // TODO(david): Caching. Share code with video stats.
     function getResults(url, params) {
 
-        $.getJSON(url, params, _.bind(function(requestCount, data) {
+        AjaxCache.getJson(url, params, _.bind(function(requestCount, data) {
 
             // Another request has taken place, abort this one
             if (requestCount !== resultsRequestCount) {
@@ -134,7 +134,8 @@ var refresh = function refresh() {
                 var moreUrl = BASE_COLLLECTION_URL + "_more?callback=?";
                 var moreParams = {
                     batch_size: batchSize,
-                    id: data["id"]
+                    id: data["id"],
+                    callNum_: numCalls
                 };
                 getResults(moreUrl, moreParams);
 
