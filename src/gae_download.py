@@ -80,6 +80,8 @@ def get_cmd_line_args():
              "override the value in the JSON config if specified.")
     parser.add_option("-p", "--proc_interval", default = 3600,
         help="process interval if no start_date end_date specified")
+    parser.add_option("-l", "--load_db", default=1,
+        help="load the downloaded data to db")
 
     options, _ = parser.parse_args()
     if not options.config:
@@ -163,8 +165,9 @@ def fetch_and_process_data(kind, start_dt_arg, end_dt_arg,
         kind, start_dt_arg, end_dt_arg, kdc.DownloadStatus.SAVED)
 
     # load to db
-    load_pbufs_to_db(config, mongo, entity_list,
-        start_dt_arg, end_dt_arg, kind)
+    if config['load_db']:
+        load_pbufs_to_db(config, mongo, entity_list,
+            start_dt_arg, end_dt_arg, kind)
 
 
 def apply_transform(doc):
@@ -316,6 +319,7 @@ def main():
     if options.archive_dir:
         # Override the archive directory, if specified.
         config['archive_dir'] = options.archive_dir
+    config['load_db'] = int(options.load_db)
     start_data_process(config, start_dt, end_dt)
 
 
