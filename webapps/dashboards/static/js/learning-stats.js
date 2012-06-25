@@ -91,38 +91,33 @@ var Series = Backbone.Model.extend({
  */
 var SeriesView = Backbone.View.extend({
 
-    // TODO(david): Going to be changed to support multiple views
-    el: "body",
+    template: Handlebars.compile($("#series-form-template").text()),
 
     events: {
-        "change #stacks-select": "refresh",
-        "change #topics-select": "refresh"
+        "change .stacks-select": "refresh",
+        "change .topics-select": "refresh"
     },
 
     initialize: function(options) {
 
         this.chart = options.chart;
 
-        // Pre-load the "number of stacks completed" select box
-        $("#stacks-select").append(_.map(_.range(1, 21), function(num) {
-            return $("<option value=" + num + ">").text("exactly " + num)[0];
-        }));
-
-        this.populateTopics();
-
         this.model
             .bind("change:results", this.updateSeries, this)
             .bind("change:numCalls", this.updateProgress, this)
             .bind("allResultsLoaded", function() {
-                $("#efficiency-chart-loading").hide();
-            });
-
-        this.refresh();
+                this.$el.find(".request-pending-progress").hide();
+            }, this);
 
     },
 
     render: function() {
-        // TODO(david): Render a handlebars template here
+        this.$el.html(this.template({
+            stacksOptions: _.range(1, 21)
+        }));
+
+        this.populateTopics();
+
         return this;
     },
 
@@ -130,12 +125,13 @@ var SeriesView = Backbone.View.extend({
      * Get topic IDs to generate learning curves for and populate select box.
      */
     populateTopics: function() {
+        var self = this;
         // TODO(david): Filter out pseudo-topic "any"
         AjaxCache.getJson("/db/learning_stats_topics", {}, function(data) {
             var options = _.map(data["topics"], function(topic) {
                 return $("<option>").text(topic)[0];
             });
-            $("#topics-select").append(options);
+            self.$el.find(".topics-select").append(options);
         });
     },
 
@@ -144,10 +140,10 @@ var SeriesView = Backbone.View.extend({
      */
     refresh: function() {
 
-        $("#efficiency-chart-loading").show();
+        this.$el.find(".request-pending-progress").show();
 
-        var numStacks = $("#stacks-select").val();
-        var topic = $("#topics-select option:selected").val();
+        var numStacks = this.$el.find(".stacks-select").val();
+        var topic = this.$el.find(".topics-select option:selected").val();
 
         // TODO(david): More permanent database, and design summary table with
         //     date partitions.
@@ -179,7 +175,7 @@ var SeriesView = Backbone.View.extend({
     updateProgress: function() {
         var fakedProgress = 1 - Math.pow(0.66, this.model.get("numCalls"));
         fakedProgress = Math.max(0.1, fakedProgress);
-        $("#efficiency-chart-loading .bar")
+        this.$el.find(".request-pending-progress .bar")
                 .css("width", fakedProgress.toFixed(2) * 100 + "%");
     },
 
@@ -211,7 +207,7 @@ var SeriesView = Backbone.View.extend({
         var totalDeltas = _.reduce(results, function(accum, row) {
             return accum + +row["num_deltas"];
         }, 0);
-        $("#total-deltas").text(totalDeltas);
+        this.$el.find(".total-deltas").text(totalDeltas);
 
     }
 
@@ -226,7 +222,12 @@ var EfficiencyChartView = Backbone.View.extend({
     initialize: function() {
         var chart = this.createChart();
         var series = new Series();
-        var seriesView = new SeriesView({ model: series, chart: chart });
+        var seriesView = new SeriesView({
+            el: $("<div>").appendTo("#series-forms"),
+            model: series,
+            chart: chart
+        });
+        seriesView.render().refresh();
     },
 
     /**
