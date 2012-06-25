@@ -12,14 +12,14 @@ A simple dashboard showing aggregate video data for a particular day.
 
 <body>
 <div id="input_variables" style="width:800px; margin: 40px auto 0">
-Date: <input title="Datestamp" id="datestamp" size="20">
-User Category: <select id="user_category">
+Date: <input title="Datestamp" id="daily-video-date" size="20">
+User Category: <select id="user-category">
                <option value="all" selected>All</option>
                <option value="registered">Registered</option>
                <option value="phantom">Phantom</option>
                </select>
 </div>
-<div id="video-stats-container" style="width: 800px; margin: 0 auto 40px;">
+<div id="individual-video-summary-container" style="width: 800px; margin: 0 auto 40px;">
 </div>
 
 <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.6.1/jquery.min.js"></script>
@@ -27,6 +27,7 @@ User Category: <select id="user_category">
 <script src="static/js/third_party/underscore-min.js"></script>
 <script src="static/js/third_party/handlebars.js"></script>
 <script src="static/js/handlebars-helpers.js"></script>
+<script src="static/js/ajax-cache.js"></script>
 <script src="static/js/daily-video-stats.js"></script>
 
 {% raw %}

@@ -15,11 +15,11 @@ VideoStats.init = function() {
     var yesterday = new Date();
     yesterday.setDate(yesterday.getDate() - 1);
 
-    $("#datestamp")
+    $("#daily-video-date")
         .datepicker({ dateFormat: "yy-mm-dd" })
         .datepicker("setDate", yesterday);
-    $("#datestamp").change(VideoStats.refresh);
-    $("#user_category").change(VideoStats.refresh);
+    $("#daily-video-date").change(VideoStats.refresh);
+    $("#user-category").change(VideoStats.refresh);
 
     VideoStats.refresh();
 };
@@ -29,35 +29,42 @@ VideoStats.refresh = function() {
     // daily-ex-stats.js (maybe abstract to a data fetcher)
     var BASE_STAT_SERVER_URL = "http://184.73.72.110:27080/";
 
-    var url = BASE_STAT_SERVER_URL + "report/daily_video_stats/_find?callback=?";
-    var datestamp = $("#datestamp").val();
-    var user_category = $("#user_category").val();
-    var criteria = '{"date_str":"' + datestamp + '","ucat":"' +
-        user_category + '"}';
+    var url = BASE_STAT_SERVER_URL +
+            "report/daily_video_stats/_find?callback=?";
+    var datestamp = $("#daily-video-date").val();
+    var userCategory = $("#user-category").val();
+    var criteria = JSON.stringify({
+        "date_str": datestamp,
+        "ucat": userCategory
+    });
+    var sort = JSON.stringify({
+        "-seconds_watched": 1
+    });
     var params = {
-        //json query
+        // JSON query
         "criteria": criteria,
-        "batch_size": 15000
+        "batch_size": 15000,
+        "sort": sort
     };
-    $.getJSON(url, params, VideoStats.handleDataLoad);
 
-    $("#video-stats-container").html("Loading...");
+    $("#individual-video-summary-container").text("Loading...");
+    AjaxCache.getJson(url, params, VideoStats.handleDataLoadForDay);
 };
 
-
 /**
- * Handles the raw JSON data returned from the server.
+ * Handles the raw JSON data returned from the server for the
+ * data about individual video summaries for a given date.
  * @param {Object} data The raw data with fields including:
  *     rows - JSON object for each video record summary
  *     total_rows - total length of the rows
  *     query - JSON object representing the original query
  */
-VideoStats.handleDataLoad = function(data) {
+VideoStats.handleDataLoadForDay = function(data) {
     var results = data["results"];
     for (var i = 0; i < results.length; i += 1) {
         var row = results[i];
         if (row["vid"] === "total") {
-            row["link"] = "<b>Total</b>";
+            row["link"] = "<b>Total Across All Videos</b>";
         } else {
             row["link"] = '<a href="http://youtube.com/watch?v=' +
                 row["vid"] + '">' + row["vtitle"] + "</a>";
@@ -66,16 +73,17 @@ VideoStats.handleDataLoad = function(data) {
         row["percent_completed"] = (row["completed"] / row["watched"]) || 0;
     }
 
-    VideoStats.renderVideosTable(results);
+    VideoStats.renderVideoSummary(results);
 };
 
 // TODO(benkomalo): have a configurable sort
 /**
- * Renders the main stats table. Each row is a record summarizing the stats on
- * a video level (e.g. how many people completed it).
+ * Renders the table summarizing activity by individual videos.
+ * Each row is a record summarizing the stats on a video level
+ * (e.g. how many people completed it).
  */
-VideoStats.renderVideosTable = function(jsonRows) {
-    var container = $("#video-stats-container");
+VideoStats.renderVideoSummary = function(jsonRows) {
+    var container = $("#individual-video-summary-container");
     if (!(jsonRows && jsonRows.length)) {
         container.html("<strong>No data for that date :(</strong>");
         return;
@@ -86,6 +94,7 @@ VideoStats.renderVideosTable = function(jsonRows) {
     var rowTemplate = Handlebars.compile($("#video-row-template").text());
     _.chain(jsonRows)
         .sortBy(function(row) { return -row["seconds_watched"]; })
+        .first(20)
         .each(function(row) { $(rowTemplate(row)).appendTo(table) });
 
     container.html("");

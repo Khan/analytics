@@ -13,13 +13,28 @@ var BASE_COLLLECTION_URL = BASE_STAT_SERVER_URL +
     "report/weekly_learning_stats/";
 
 
-// TODO(david): Caching. Share code with video stats.
+/** @type {HighCharts.Chart|null} */
+var learningGraph = null;
+
+
+/**
+ * Every batch request needs a unique identifier since JSONP requests can't be
+ * cancelled, so we check in the handler whether this is the latest request.
+ * @type {number}
+ */
+var resultsRequestCount = 0;
 
 
 /**
  * Script entry-point called on DOM ready.
  */
 var init = function init() {
+    // Pre-load the "number of stacks completed" select box
+    $("#stacks-select").append(_.map(_.range(1, 21), function(num) {
+        return $("<option value=" + num + ">").text("exactly " + num)[0];
+    }));
+
+    learningGraph = createChart();
     addEventHandlers();
     refresh();
     getTopics();
@@ -33,7 +48,11 @@ var addEventHandlers = function addEventHandlers() {
 };
 
 
+/**
+ * Get topic IDs to generate learning curves for and populate select box.
+ */
 var getTopics = function() {
+    // TODO(david): Filter out pseudo-topic "any"
     $.get("/db/learning_stats_topics", function(data) {
         var options = _.map(data["topics"], function(topic) {
             return $("<option>").text(topic)[0];
@@ -48,9 +67,10 @@ var getTopics = function() {
  * for new data and then rendering.
  */
 var refresh = function refresh() {
-    var $loadingBar = $("#efficiency-chart-loading"),
+
+    var $loadingBar = $("#efficiency-chart-loading .bar"),
         $chart = $("#efficiency-chart");
-    $loadingBar.show();
+    $loadingBar.css("width", "10%").parent().show();
     $chart.css("opacity", 0.5);
 
     var numStacks = $("#stacks-select").val();
@@ -62,45 +82,111 @@ var refresh = function refresh() {
 
     // TODO(david): Batch up requests
     var criteria = {
-        num_problems_done: "" + (numStacks * 8),
-        topic: topic
+        num_problems_done: numStacks === "any" ? { $lte: 160 } : numStacks * 8,
+        topic: topic,
+        start_dt: '2012-06-13'  // TODO(david): Support date range selection
     };
 
-    // TODO(david): Specify just those fields we want from the server.
+    var batchSize = 1000;
     var params = {
         criteria: JSON.stringify(criteria),
-        batch_size: 100
+        batch_size: batchSize,
+        fields: JSON.stringify({
+            card_number: true,
+            num_deltas: true,
+            sum_deltas: true
+        })
     };
 
-    // TODO(david): JSON data from mongo should be properly typed.
-    $.getJSON(url, params, function(data) {
-        renderChart(data["results"]);
-        $loadingBar.hide();
-        $chart.css("opacity", 1.0);
-    });
+    var results = [];
+    var numCalls = 0;
+
+    // TODO(david): Caching. Share code with video stats.
+    function getResults(url, params) {
+
+        AjaxCache.getJson(url, params, _.bind(function(requestCount, data) {
+
+            // Another request has taken place, abort this one
+            if (requestCount !== resultsRequestCount) {
+                return;
+            }
+
+            var dataResults = data["results"];
+            if (dataResults && dataResults.length) {
+
+                // Update the chart from new data
+                results = results.concat(dataResults);
+                results = groupByCardNumber(results);
+                updateChart(results, learningGraph);
+                updateSampleStats(results);
+
+            }
+
+            // Update UI elements
+            numCalls++;
+            var fakedProgress = 1 - Math.pow(0.66, numCalls);
+            $loadingBar.css("width", fakedProgress.toFixed(2) * 100 + "%");
+            $chart.css("opacity", 1.0);
+
+            if (dataResults && dataResults.length === batchSize) {
+
+                // Prepare and another batch of results
+                var moreUrl = BASE_COLLLECTION_URL + "_more?callback=?";
+                var moreParams = {
+                    batch_size: batchSize,
+                    id: data["id"],
+                    callNum_: numCalls
+                };
+                getResults(moreUrl, moreParams);
+
+            } else {
+
+                // Finished loading, update UI.
+                $loadingBar.parent().hide();
+
+            }
+
+        }, null, ++resultsRequestCount));
+    }
+
+    getResults(url, params);
+    updateSampleStats(results);
+
 };
 
 
 /**
- * Render highcharts.
- * @param {Array.<Object>} results Rows from the reducer summary table in mongo.
+ * Aggregate rows by card number. Idempotent. This is not done through Sleepy
+ * Mongoose because it may be buggy: https://jira.mongodb.org/browse/SERVER-5874
+ * @param {Array.<Object>} results Rows from Mongo collection.
+ * @return {Array.<Object>} Rows aggregated by card number.
  */
-var renderChart = function renderChart(results) {
-    // TODO(david): Don't need the uniq once I specify an ID row in mongo.
-    var incrementalGains = _.chain(results)
-        .sortBy(function(row) { return +row["card_number"]; })
-        .uniq(/* isSorted */ true, function(row) {
-            return row["card_number"];
+var groupByCardNumber = function groupByCardNumber(results) {
+    return _.chain(results)
+        .groupBy(function(row) { return row["card_number"]; })
+        .map(function(group, cardNumber) {
+
+            return _.chain(group)
+                .reduce(function(accum, row) {
+                    return {
+                        sum_deltas: +accum["sum_deltas"] + +row["sum_deltas"],
+                        num_deltas: +accum["num_deltas"] + +row["num_deltas"]
+                    };
+                })
+                .extend({ card_number: cardNumber })
+                .value();
+
         })
-        .map(function(row, index) {
-            return +row["avg_deltas"];
-        })
+        .toArray()
         .value();
+};
 
-    var accumulatedGains = _.reduce(incrementalGains, function(accum, delta) {
-        return accum.concat([_.last(accum) + delta]);
-    }, [0]);
 
+/**
+ * Create learning curve HighCharts graph.
+ * @return {HighCharts.Chart}
+ */
+var createChart = function createLearningGraph() {
     // TODO(david): Overlay charts on different segments for easy comparison
     //     (eg. num_problems_done)
     // TODO(david): Dynamically generate labels and titles
@@ -109,12 +195,12 @@ var renderChart = function renderChart(results) {
             renderTo: "efficiency-chart"
         },
         series: [{
-            data: accumulatedGains,
+            data: [],
             type: "areaspline",
             name: "Accumulated gain in accuracy",
             pointStart: 0  // TODO(david): Bootstrap from 1st card % correct?
         }, {
-            data: incrementalGains,
+            data: [],
             type: "spline",
             name: "Incremental gain in accuracy",
             pointStart: 1
@@ -132,13 +218,52 @@ var renderChart = function renderChart(results) {
     };
 
     var chart = new Highcharts.Chart(chartOptions);
+    chart.series[1].hide();  // Hide "incremental gains" series by default
 
+    return chart;
+};
+
+
+/**
+ * Update learning chart data from fresh results from the server.
+ * @param {Array.<Object>} results Rows from the reducer summary table in mongo.
+ * @param {HighCharts.Chart} chart Chart to update.
+ */
+var updateChart = function updateChart(results, chart) {
+    var incrementalGains = _.chain(results)
+        .groupByCardNumber()
+        .sortBy(function(row) { return +row["card_number"]; })
+        .map(function(row, index) {
+            return row["sum_deltas"] / row["num_deltas"];
+        })
+        .value();
+
+    var accumulatedGains = _.reduce(incrementalGains, function(accum, delta) {
+        return accum.concat([_.last(accum) + delta]);
+    }, [0]);
+
+    chart.series[0].setData(accumulatedGains);
+    chart.series[1].setData(incrementalGains);
+};
+
+
+/**
+ * Update the counter of how many incremental gains this sample uses.
+ * @param {Array.<Object>} results Rows from the reducer summary table in mongo.
+ */
+var updateSampleStats = function updateSampleStats(results) {
     // TODO(david): Show # of distinct users and error bounds
     var totalDeltas = _.reduce(results, function(accum, row) {
         return accum + +row["num_deltas"];
     }, 0);
     $("#total-deltas").text(totalDeltas);
 };
+
+
+// Add utility functions to underscore for convenience in chaining
+_.mixin({
+    groupByCardNumber: groupByCardNumber
+});
 
 
 $(init);
