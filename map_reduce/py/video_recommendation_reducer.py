@@ -1,7 +1,4 @@
-#!/usr/bin/python
-
-import itertools
-import sys
+#!/usr/bin/env python
 
 """The reduce step of our first MapReduce, allowing us to find how many users
 completed both video i and video j for any i and j,
@@ -32,6 +29,11 @@ happening, see:
 https://sites.google.com/a/khanacademy.org/forge/technical/data_n/collaborative-filtering-with-emr
 
 """
+
+
+import itertools
+import sys
+
 
 _out = sys.stdout  # For testing purposes
 _in = sys.stdin  # For testing purposes
