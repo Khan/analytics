@@ -1,4 +1,4 @@
-/* TODO(david): Ensure this conforms to Khan's CSS guidelines. */
+/* TODO(david): Ensure this conforms to Khan's CSS guidelines, or use LESS. */
 
 #compare-button {
     opacity: 0.7;
@@ -6,4 +6,10 @@
 
 #compare-button:hover {
     opacity: 1.0;
+}
+
+.alert-gray {
+    background-color: #eee;
+    color: #333;
+    border-color: #ddd;
 }
