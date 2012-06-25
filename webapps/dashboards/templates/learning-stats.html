@@ -11,6 +11,7 @@
 
 <div class="container">
 
+    <!-- TODO(david): Fluid layout once we need more horizontal space -->
     <!-- TODO(david): Some sidebar for different charts -->
 
     <section>
@@ -63,34 +64,37 @@
 
 {% raw %}
 <script type="text/x-handlebars-template" id="series-form-template">
-<div class="span12">
-    <!--<h2>In series 1,</h2>-->
-    <p class="lead">
-        For students who have completed
-        <select class="stacks-select">
-            <option value="any">any number of</option>
-            {{#each stacksOptions}}
-                <option value="{{.}}">exactly {{.}}</option>
-            {{/each}}
-        </select>
-        stacks in
-        <select class="topics-select">
-            <option value="any">any topic</option>
-            <option disabled="disabled">---</option>
-        </select> for the week of TODO(david),
-        show me their gain in accuracy over
-        <!-- TODO(david): Bucket by time done -->
-        <select>
-            <option>the number of cards done</option>
-        </select>.
-    </p>
-    <div class="alert alert-info">
-        Generated from
-        <span class="total-deltas badge badge-info">0</span>
-        incremental gains.
-    </div>
-    <div class="request-pending-progress progress progress-striped active">
-        <div class="bar" style="width: 10%"></div>
+<div class="span6">
+    <div class="well">
+        <h2>{{seriesName}}</h2>
+        <p class="lead">
+            For students who have completed
+            <select class="stacks-select">
+                <option value="any">any number of</option>
+                {{#each stacksOptions}}
+                    <option value="{{.}}">exactly {{.}}</option>
+                {{/each}}
+            </select>
+            stacks in
+            <select class="topics-select">
+                <option value="any">any topic</option>
+                <option disabled="disabled">---</option>
+            </select> for the week of TODO(david),
+            show me their gain in accuracy over
+            <!-- TODO(david): Bucket by time done -->
+            <select>
+                <option>the number of cards done</option>
+            </select>.
+        </p>
+        <!-- TODO(david): Alert should not be colored. -->
+        <div class="alert alert-info">
+            <i class="icon-info"></i> Generated from
+            <span class="total-deltas badge badge-info">0</span>
+            incremental gains.
+        </div>
+        <div class="request-pending-progress progress progress-striped active">
+            <div class="bar" style="width: 10%"></div>
+        </div>
     </div>
 </div>
 </script>

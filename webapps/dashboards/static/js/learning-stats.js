@@ -41,6 +41,13 @@ var Series = Backbone.Model.extend({
         var self = this;
         this.set("requestCount", this.get("requestCount") + 1);
 
+        // TODO(david) FIXME: Another series could send off a request with the
+        //     same cursor ID, since unfortunately Sleepy Mongoose does not have
+        //     a stateless RESTful API (it's not a cursor ID, it's an ID of the
+        //     query:
+        //     github.com/kchodorow/sleepy.mongoose/wiki/Getting-More-Results ).
+        //     This leads to _more responses with the same ID being interleaved
+        //     among both senders.
         AjaxCache.getJson(url, params, _.bind(function(requestCount, data) {
 
             // A new batch request has been initiated, abort this one
@@ -93,6 +100,7 @@ var SeriesView = Backbone.View.extend({
 
     template: Handlebars.compile($("#series-form-template").text()),
 
+    // TODO(david): Do interesting things on hover over a series form.
     events: {
         "change .stacks-select": "refresh",
         "change .topics-select": "refresh"
@@ -100,7 +108,7 @@ var SeriesView = Backbone.View.extend({
 
     initialize: function(options) {
 
-        this.chart = options.chart;
+        this.chartSeries = options.chartSeries;
 
         this.model
             .bind("change:results", this.updateSeries, this)
@@ -113,8 +121,12 @@ var SeriesView = Backbone.View.extend({
 
     render: function() {
         this.$el.html(this.template({
+            seriesName: this.chartSeries.name,
             stacksOptions: _.range(1, 21)
         }));
+
+        // TODO(david): Color form background with series
+        this.$el.find('h2').css('color', this.chartSeries.color);
 
         this.populateTopics();
 
@@ -200,8 +212,8 @@ var SeriesView = Backbone.View.extend({
             return accum.concat([_.last(accum) + delta]);
         }, [0]);
 
-        this.chart.series[0].setData(accumulatedGains);
-        this.chart.series[1].setData(incrementalGains);
+        this.chartSeries.setData(accumulatedGains);
+        // TODO(david): Restore displaying of incremental gains
 
         // TODO(david): Show # of distinct users and error bounds
         var totalDeltas = _.reduce(results, function(accum, row) {
@@ -219,15 +231,16 @@ var SeriesView = Backbone.View.extend({
  */
 var EfficiencyChartView = Backbone.View.extend({
 
+    // TODO(david): This will be changed once more chart types are added.
+    el: "body",
+
+    events: {
+        "click #compare-button": "addSeries"
+    },
+
     initialize: function() {
-        var chart = this.createChart();
-        var series = new Series();
-        var seriesView = new SeriesView({
-            el: $("<div>").appendTo("#series-forms"),
-            model: series,
-            chart: chart
-        });
-        seriesView.render().refresh();
+        this.chart = this.createChart();
+        this.addSeries();
     },
 
     /**
@@ -235,25 +248,12 @@ var EfficiencyChartView = Backbone.View.extend({
      * @return {HighCharts.Chart}
      */
     createChart: function() {
-        // TODO(david): Overlay charts on different segments for easy comparison
-        //     (eg. num_problems_done)
         // TODO(david): Dynamically generate labels and titles
         var chartOptions = {
             chart: {
                 renderTo: "efficiency-chart"
             },
-            series: [{
-                data: [],
-                type: "areaspline",
-                name: "Accumulated gain in accuracy",
-                // TODO(david): Bootstrap from 1st card % correct?
-                pointStart: 0
-            }, {
-                data: [],
-                type: "spline",
-                name: "Incremental gain in accuracy",
-                pointStart: 1
-            }],
+            series: [],
             title: {
                 text: "Gain in accuracy over number of cards done"
             },
@@ -261,16 +261,42 @@ var EfficiencyChartView = Backbone.View.extend({
                 title: { text: "Gain in accuracy" },
             },
             xAxis: {
-                title: { text: "Card Number" }
+                title: { text: "Card Number" },
+                min: 0,
+                max: 100
             },
             credits: { enabled: false }
         };
 
         var chart = new Highcharts.Chart(chartOptions);
-        chart.series[1].hide();  // Hide "incremental gains" series by default
 
         return chart;
+    },
+
+    addSeries: function() {
+
+        var seriesNum = ++EfficiencyChartView.numSeries;
+        var chartSeries = this.chart.addSeries({
+            data: [],
+            type: "areaspline",
+            name: "Series " + seriesNum,
+            // TODO(david): Bootstrap from 1st card % correct?
+            pointStart: 0
+        });
+
+        var series = new Series();
+        var seriesView = new SeriesView({
+            el: $("<div>").appendTo("#series-forms"),
+            model: series,
+            chartSeries: chartSeries
+        });
+        seriesView.render().refresh();
+
     }
+
+}, {
+
+    numSeries: 0
 
 });
 
