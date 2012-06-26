@@ -27,12 +27,12 @@ GROUP BY get_json_object(VideoLog.json, '$.user'),
 -- Getting frequency counts from the user_vid_completion table
 DROP TABLE video_completion_cnt_${suffix};
 CREATE EXTERNAL TABLE video_completion_cnt_${suffix}(
-  vid_title STRING, cnt INT)
+  vid_key STRING, cnt INT)
 LOCATION 's3://ka-mapreduce/tmp/video_completion_cnt_${suffix}';
 
 INSERT OVERWRITE TABLE video_completion_cnt_${suffix}
-SELECT vid_title, COUNT(1) FROM user_vid_completion_${suffix}
-GROUP BY vid_title;
+SELECT vid_key, COUNT(1) FROM user_vid_completion_${suffix}
+GROUP BY vid_key;
 
 -- Generating the co-ocurrence matrix
 DROP TABLE video_cooccurrence_${suffix};
@@ -46,7 +46,7 @@ FROM (
   FROM (
     FROM user_vid_completion_${suffix}
     SELECT user, vid_key, completion_time
-    CLUSTER BY USER) map_out
+    CLUSTER BY user) map_out
   SELECT TRANSFORM(map_out.*)
   USING 'video_recommendation_reducer.py'
   AS vid1_key, vid2_key, preceed_cnt, succeed_cnt) red_out
@@ -71,8 +71,8 @@ SELECT
   b.preceed_cnt, b.succeed_cnt,
   a.cnt, c.cnt
 FROM video_completion_cnt_${suffix} a
-JOIN video_coocurrence_${suffix} b ON (a.vid_title = b.vid1_key)
-JOIN video_completion_cnt_${suffix} c ON (c.vid_title = b.vid2_key);
+JOIN video_coocurrence_${suffix} b ON (a.vid_key = b.vid1_key)
+JOIN video_completion_cnt_${suffix} c ON (c.vid_key = b.vid2_key);
 
 -- Example queries to see the top 10 video rec for a specific video
 -- SELECT *, (preceed_cnt + succeed_cnt)/sqrt(vid1_cnt)/sqrt(vid2_cnt) AS
@@ -94,13 +94,16 @@ LOCATION 's3://ka-mapreduce/tmp/video_cooccurrence_cnt_pruned_${suffix}';
 ADD FILE s3://ka-mapreduce/code/${branch}/py/video_recommendation_pruner.py;
 
 FROM (
-  FROM video_cooccurrence_cnt_${suffix}
-  SELECT *
-  CLUSTER BY vid1_title
-) unpruned_data
-SELECT TRANSFORM(unpruned_data.*)
-USING 'video_recommendation_pruner.py'
-INSERT OVERWRITE TABLE video_coocurrence_cnt_pruned_${suffix};
-SELECT *;
+  FROM (
+    FROM video_cooccurrence_cnt_${suffix}
+    SELECT *
+    CLUSTER BY vid1_key
+  ) unpruned_data
+  SELECT TRANSFORM(unpruned_data.*)
+  USING 'video_recommendation_pruner.py'
+  AS vid1_key, vid2_key, preceed_cnt, succeed_cnt, vid1_cnt, vid2_cnt
+) pruned_data
+INSERT OVERWRITE TABLE video_cooccurrence_cnt_pruned_${suffix}
+SELECT pruned_data.*;
 
 

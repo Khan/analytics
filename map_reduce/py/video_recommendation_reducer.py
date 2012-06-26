@@ -71,8 +71,10 @@ def main():
     videos = []
 
     for line in _in:
-        line = line.rstrip().split("\t")
+        if not line:
+            continue
 
+        line = line.rstrip().split("\t")
         if len(line) != 3:
             sys.stderr.write("Malformed input: '%s'!\n" % "\t".join(line))
             return
