@@ -255,10 +255,10 @@ var EfficiencyChartView = Backbone.View.extend({
             },
             series: [],
             title: {
-                text: "Gain in accuracy over number of cards done"
+                text: "Accumulated gain in accuracy over number of cards done"
             },
             yAxis: {
-                title: { text: "Gain in accuracy" },
+                title: { text: "Accumulated gain in accuracy" },
             },
             xAxis: {
                 title: { text: "Card Number" },
