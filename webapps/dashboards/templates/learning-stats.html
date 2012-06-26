@@ -43,24 +43,142 @@
 
     <section>
         <div class="page-header">
-            <h1>FAQ <small>What kind of nonsense is this?</small></h1>
+            <h1>FAQ <small>What kind of nonsense is this?</small>
+            </h1>
         </div>
+
+        <h2>Overview</h2>
         <div class="row">
             <div class="span4">
-                <h2>Explanation 1</h2>
-                <p>TODO(david)</p>
+                <h3>Why?</h3>
+                <p>
+                    We're trying out various things this summer &mdash; custom
+                    stacks, inserting videos in stacks, different card selection
+                    algorithms, etc. Are these efforts meaningful, and do they
+                    improve student learning?
+                </p>
+            </div>
+            <div class="span8">
+                <h3>How?</h3>
+                <p>
+                    We'll attempt to measure the learning efficiency
+                    &mdash; that is, how much your accuracy on exercises
+                    increases over the number of cards you do or time taken.
+                    For each group we're comparing (a <strong>segment</strong>),
+                    we'll also look at student retention &mdash; the percent of
+                    students that stick to a topic as the number of cards or
+                    time increases. We can then take the product of the two to
+                    get overall net learning.
+                </p>
+            </div>
+        </div>
+
+        <h2>Learning Efficiency <small>(Gain in accuracy)</small></h2>
+        <div class="row">
+            <div class="span4">
+                <h3>How is data collected?</h3>
+                <p>
+                    For exercises done in topic mode, every problem has a 1/8
+                    chance of being from a randomly selected exercise from
+                    within that topic. Only these cards are used to assess
+                    performance/accuracy. This helps keep performance
+                    measurement independent of the segment that's being
+                    observed. For example, a card selection algorithm that
+                    starts off with hard problems but then gives easy problems
+                    could lead one to falsely conclude that students are vastly
+                    improving in accuracy.
+                </p>
+            </div>
+            <div class="span8">
+                <h3>What is "gain in accuracy"?</h3>
+                <p>
+                    We want to study the effect of our exercises on student
+                    learning free from influence by students who already know
+                    a topic well. Thus, we only look at <em>changes</em> in
+                    accuracies for a particular student working on a particular
+                    topic. We interpolate change in accuracy between every
+                    consecutive pair of random cards.
+                </p>
+                <p>
+                    For example, suppose for a given topic a student answers
+                </p>
+
+                <blockquote>
+                    [<i class="icon-remove"></i>]
+                    <i class="icon-remove"></i>
+                    <i class="icon-remove"></i>
+                    <i class="icon-ok"></i>
+                    [<i class="icon-ok"></i>]
+                    <i class="icon-ok"></i>
+                    <i class="icon-ok"></i>
+                    <i class="icon-ok"></i>
+                    &hellip;
+                </blockquote>
+
+                <p>
+                    where the first and fifth cards are randomly drawn
+                    from that topic. All we know is that the student went from
+                    0% to 100% correct from the first to the fifth card. We
+                    evenly distribute this gain and say:
+                </p>
+
+                <blockquote>
+                    <span class="label">card 1: +0.25 gain in accuracy</span>
+                    <span class="label label-inverse">card 2: +0.25</span>
+                    <span class="label">card 3: +0.25</span>
+                    <span class="label label-inverse">card 4: +0.25</span>
+                </blockquote>
+                <p>
+                    We then average all the gains for each card number. The graph above is just the integral of this function.
+                </p>
             </div>
             <div class="span4">
-                <h2>Explanation 2</h2>
-                <p>TODO(david)</p>
+                <h3>What is an "incremental gain"?</h3>
+                <p>
+                    This is a single interpolated gain we output. For the
+                    example above of the first and fifth cards being random
+                    analytics cards, we'd output 4 incremental gains.
+                </p>
+            </div>
+            <div class="span8">
+                <h3>Why segment by number of stacks done and topic?</h3>
+                <p>
+                    A fast learner may blast through absolute values in
+                    2 stacks, while one who finishes in 4 stacks might
+                    have only started learning after 2 stacks. Our graph of
+                    accumulated gains would mix these populations and may show
+                    increasing gains in the first 2 stacks as well as after
+                    that, due to, respectively, the fast and slow learner.
+                <p>
+                </p>
+                    However, for just comparing across different segments, this
+                    is probably too fine grained and it may be OK to mix slow
+                    and fast learners when just comparing between curves.
+                </p>
             </div>
             <div class="span4">
-                <h2>Explanation 3</h2>
-                <p>TODO(david)</p>
+                <h3>These curves are not very smooth or increasing</h3>
+                <p>
+                    We're (Jace and David) investigating that. The data drop-off
+                    is also pretty steep as the number of stacks increase. We're
+                    going to be focusing on retention/engagement graphs next,
+                    which will hopefully complement this.
+                </p>
+            </div>
+            <div class="span8">
+                <h3>What's next?</h3>
+                <p>
+                    Too much. See my <a href="https://trello.com/card/learning-curves-talk-to-jace/4f9f3469a81e7053712b88ad/72">Trello card</a>
+                    and <a href="https://docs.google.com/a/khanacademy.org/document/d/1kYBq86n-FuJmq94Fjguy71AV8MIZs0t3KSalTIxDXPw/edit">Jace's notes</a>.
+                    In particular, actually segmenting by users (experiments
+                    they're in, coached or not, etc.), retention/engagement
+                    graphs, bucketing by time taken, and world domination.
+                </p>
             </div>
         </div>
     </section>
 </div>
+
 
 {% raw %}
 <script type="text/x-handlebars-template" id="series-form-template">
@@ -82,9 +200,7 @@
             </select> for the week of TODO(david),
             show me their gain in accuracy over
             <!-- TODO(david): Bucket by time done -->
-            <select>
-                <option>the number of cards done</option>
-            </select>.
+            the number of cards done
         </p>
         <!-- TODO(david): Alert should not be colored. -->
         <div class="alert alert-gray">
