@@ -15,7 +15,6 @@ for more information about running EMR at the Khan Academy
 import datetime
 import json
 import optparse
-import os
 import pickle
 import sys
 import time
@@ -29,8 +28,10 @@ from google.appengine.datastore import entity_pb
 
 
 def get_cmd_line_args():
-    parser = optparse.OptionParser(usage="%prog [options]", description=
-        "Map script for converting protobufs to (user, json) format")
+    parser = optparse.OptionParser(
+            usage="%prog [options]",
+            description=("Map script for converting "
+                         "protobufs to (user, json) format"))
     parser.add_option("-k", "--key", default="key",
                      help="field corresponding to the reducer key")
     parser.add_option("-p", "--parent", default=None,
