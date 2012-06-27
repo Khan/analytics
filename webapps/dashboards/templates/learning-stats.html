@@ -25,9 +25,18 @@
         <div class="row">
             <div class="span12">
                 <p>
-                    <button id="compare-button" class="btn">
-                        <i class="icon-plus"></i> Compare against...
-                    </button>
+                    <div id="add-series-buttons" class="btn-group">
+                        <a class="btn dropdown-toggle" data-toggle="dropdown">
+                            <i class="icon-plus"></i> Add series...
+                            <span class="caret"></span>
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a data-series="users">Users</a></li>
+                            <li><a data-series="percentCorrect">Percent correct</a></li>
+                            <li><a data-series="gain">Accuracy Gains</a></li>
+                        </ul>
+                    </div>
+
                 </p>
             </div>
         </div>
@@ -200,12 +209,43 @@
             </select> for the week of TODO(david),
             show me their gain in accuracy over
             <!-- TODO(david): Bucket by time done -->
-            the number of cards done
+            the number of cards done.
         </p>
         <div class="alert alert-gray">
             <i class="icon-info-sign"></i> Generated from
             <span class="total-deltas badge badge-inverse">0</span>
             incremental gains.
+        </div>
+        <div class="request-pending-progress progress progress-striped active">
+            <div class="bar" style="width: 10%"></div>
+        </div>
+    </div>
+</div>
+</script>
+
+<!-- FIXME(david): Don't copy-paste!!!!!!! Use inheritance/partials (sorry 2 am
+ and I have to wake up at 9:30 am tomorrow!!!!!) -->
+<script type="text/x-handlebars-template" id="retention-form-template">
+<div class="span6">
+    <div class="well">
+        <h2>{{seriesName}}</h2>
+        <p class="lead">
+            For stacks done in
+            <select class="topics-select">
+                <option value="any">any topic</option>
+                <option disabled="disabled">---</option>
+            </select> for the week of TODO(david),
+            show me the
+            <select class="yaxis-select">
+                <option value="number">number of users</option>
+                <option value="percent">percent of users</option>
+            </select>
+            over card number.
+        </p>
+        <div class="alert alert-gray">
+            <i class="icon-info-sign"></i> Generated from
+            <span class="total-attempts badge badge-inverse">0</span>
+            total attempts.
         </div>
         <div class="request-pending-progress progress progress-striped active">
             <div class="bar" style="width: 10%"></div>
@@ -221,6 +261,7 @@
 <script src="static/js/third_party/underscore-min.js"></script>
 <script src="static/js/third_party/backbone-min.js"></script>
 <script src="static/js/third_party/handlebars.js"></script>
+<script src="static/js/third_party/bootstrap-dropdown.js"></script>
 
 <script src="static/js/ajax-cache.js"></script>
 

@@ -1,10 +1,10 @@
 /* TODO(david): Ensure this conforms to Khan's CSS guidelines, or use LESS. */
 
-#compare-button {
+#add-series-buttons {
     opacity: 0.7;
 }
 
-#compare-button:hover {
+#add-series-buttons:hover {
     opacity: 1.0;
 }
 

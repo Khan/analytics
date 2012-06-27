@@ -96,6 +96,7 @@ var Series = Backbone.Model.extend({
     // TODO(david): Would this be better as a static function on the class, or
     //     should it just manipulate this.attributes.results instead of taking
     //     in a param and returning?
+    // TODO(david): Always call this when setting results.
     /**
      * Override this method to compact result rows from batch calls. Must be
      * idempotent.
@@ -144,6 +145,8 @@ var AccuracyGainSeries = Series.extend({
 
 /**
  * Abstract base class for a view of a data series.
+ * FIXME(david): Properly document what to override and class-level properties
+ *      to set.
  */
 var SeriesView = Backbone.View.extend({
 
@@ -264,6 +267,10 @@ var SeriesView = Backbone.View.extend({
      */
     getCollectionFields: _.identity
 
+}, {
+
+    modelClass: Series
+
 });
 
 
@@ -336,6 +343,85 @@ var AccuracyGainSeriesView = SeriesView.extend({
     seriesOptions: {
         // TODO(david): Bootstrap from 1st card % correct?
         pointStart: 0
+    },
+
+    yAxis: {
+        index: 1,
+        title: "Accumulated gain in accuracy"
+    }
+
+});
+
+
+/**
+ * View for the topic retention series.
+ */
+var UsersSeriesView = SeriesView.extend({
+
+    // TODO(david): Handlebars template should inherit from base
+    template: Handlebars.compile($("#retention-form-template").text()),
+
+    events: function() {
+        return _.extend({}, SeriesView.prototype.events, {
+            "change .yaxis-select": "updateSeries",
+        });
+    },
+
+    /** @override */
+    getCollectionUrl: function() {
+        return BASE_STAT_SERVER_URL + "report/topic_retention_stats/";
+    },
+
+    /** @override */
+    getCollectionFields: function() {
+        return ["bucket_value", "num_attempts"];
+    },
+
+    /** @override */
+    updateSeries: function() {
+
+        // TODO(david): Better highcharts: max at 1.0 when percent, min 0, etc.
+
+        var results = this.model.get("results");
+
+        var yaxisType = this.$el.find(".yaxis-select option:selected").val();
+        var normalizer = 1;
+        if (yaxisType === "percent") {
+            normalizer = _.chain(results)
+                .pluck("num_attempts")
+                .max()
+                .value();
+            normalizer = Math.max(1, normalizer);
+        }
+
+        var numAttemptsSeries = _.chain(results)
+            .sortBy(function(row) { return +row["bucket_value"]; })
+            .map(function(row) { return row["num_attempts"] / normalizer; })
+            .value();
+
+        this.chartSeries.setData(numAttemptsSeries);
+
+        // TODO(david): A bit of duplicated code here
+        var totalAttempts = _.reduce(results, function(accum, row) {
+            return accum + +row["num_attempts"];
+        }, 0);
+        this.$el.find(".total-attempts").text(totalAttempts);
+
+    }
+
+}, {
+
+    seriesOptions: {
+        type: "spline",
+        pointStart: 1,
+        marker: {
+            enabled: true
+        }
+    },
+
+    yAxis: {
+        index: 0,
+        title: "Unique users",
     }
 
 });
@@ -350,12 +436,12 @@ var DashboardView = Backbone.View.extend({
     el: "body",
 
     events: {
-        "click #compare-button": "addSeries"
+        "click #add-series-buttons .dropdown-menu a": "addSeriesHandler"
     },
 
     initialize: function() {
         this.chart = this.createChart();
-        this.addSeries();
+        this.addSeries(UsersSeriesView);
     },
 
     /**
@@ -363,7 +449,16 @@ var DashboardView = Backbone.View.extend({
      * @return {HighCharts.Chart}
      */
     createChart: function() {
-        // TODO(david): Dynamically generate labels and titles
+
+        // I can't find a way to dynamically add a Y-axis to HighCharts, so
+        // we'll just pre-fill with a bunch of empty ones.
+        var emptyAxes = _.map(_.range(0, 10), function(i) {
+            return {
+                title: { text: null },
+                opposite: !!(i % 2)
+            };
+        });
+
         var chartOptions = {
             chart: {
                 renderTo: "highcharts-graph"
@@ -384,10 +479,7 @@ var DashboardView = Backbone.View.extend({
             title: {
                 text: null
             },
-            // TODO(david): Multiple y-axes
-            yAxis: {
-                title: { text: "Accumulated gain in accuracy" },
-            },
+            yAxis: emptyAxes,
             xAxis: {
                 title: { text: "Card Number" },
                 min: 0,
@@ -401,17 +493,38 @@ var DashboardView = Backbone.View.extend({
         return chart;
     },
 
-    addSeries: function() {
+    addSeriesHandler: function(event) {
+        var seriesType = $(event.target).data("series");
+        var seriesConstructor = {
+            gain: AccuracyGainSeriesView,
+            users: UsersSeriesView,
+            percentCorrect: UsersSeriesView
+        }[seriesType];
 
-        // TODO(david): Add different type of series
-        var seriesViewConstructor = AccuracyGainSeriesView;
+        this.addSeries(seriesConstructor);
+    },
 
-        var seriesNum = ++DashboardView.numSeries;
-        var chartSeries = this.chart.addSeries(_.extend({
+    addSeries: function(seriesViewConstructor) {
+
+        var seriesNum = DashboardView.numSeries++;
+        // TODO(david): Should fail to a default
+        var axisOptions = seriesViewConstructor.yAxis;
+
+        this.chart.addSeries(_.extend({
             data: [],
             type: "areaspline",
-            name: "Series " + seriesNum,
+            name: "Series " + (seriesNum + 1),
+            yAxis: axisOptions.index
         }, seriesViewConstructor.seriesOptions));
+
+        var chartSeries = this.chart.series[seriesNum];
+
+        // Unfortunately, Highcharts 2.2.5 has a bug where setting the title
+        // again will not erase the old one.
+        var yAxis = this.chart.yAxis[axisOptions.index];
+        if (!yAxis.options.title || !yAxis.options.title.text) {
+            yAxis.setTitle({ text: axisOptions.title });
+        }
 
         var series = new seriesViewConstructor.modelClass();
         var seriesView = new seriesViewConstructor({
@@ -419,6 +532,7 @@ var DashboardView = Backbone.View.extend({
             model: series,
             chartSeries: chartSeries
         });
+
         seriesView.render().refresh();
 
     }
