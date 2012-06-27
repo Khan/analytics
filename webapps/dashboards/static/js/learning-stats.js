@@ -3,16 +3,18 @@
  * exercises dashboard.
  */
 
+// TODO(david): Move generic stuff out of here for others to use.
+
 
 (function() {
 
 
 // TODO(david): Shared data fetcher.
 var BASE_STAT_SERVER_URL = "http://184.73.72.110:27080/";
-var BASE_COLLLECTION_URL = BASE_STAT_SERVER_URL +
-    "report/weekly_learning_stats/";
 
 
+// TODO(david): Do I need to document in the JSDoc here what method can be
+//     overriden and what must be overriden?
 /**
  * A single data series to show on a chart.
  */
@@ -35,8 +37,11 @@ var Series = Backbone.Model.extend({
 
     /**
      * Get a single batch of data from the server, and get more if necessary.
+     * @param {string} url The URL to send the AJAX request to
+     * @param {Object} params AJAX parameters
+     * @param {string} collectionUrl Base URL of the collection, ending in /
      */
-    fetchResults: function(url, params) {
+    fetchResults: function(url, params, collectionUrl) {
 
         var self = this;
         this.set("requestCount", this.get("requestCount") + 1);
@@ -61,21 +66,20 @@ var Series = Backbone.Model.extend({
                 // Update with new data
                 var results = self.get("results");
                 results = results.concat(dataResults);
-                results = groupByCardNumber(results);
-                self.set("results", results);
+                self.set("results", self.groupResults(results));
 
             }
 
             if (dataResults && dataResults.length === self.get("batchSize")) {
 
                 // There's probably more; fetch another batch of results
-                var moreUrl = BASE_COLLLECTION_URL + "_more?callback=?";
+                var moreUrl = collectionUrl + "_more?callback=?";
                 var moreParams = {
                     batch_size: self.get("batchSize"),
                     id: data["id"],
                     callNum_: self.get("numCalls")
                 };
-                self.fetchResults(moreUrl, moreParams);
+                self.fetchResults(moreUrl, moreParams, collectionUrl);
 
             } else {
 
@@ -87,22 +91,64 @@ var Series = Backbone.Model.extend({
 
         }, null, this.get("requestCount")));
 
+    },
+
+    // TODO(david): Would this be better as a static function on the class, or
+    //     should it just manipulate this.attributes.results instead of taking
+    //     in a param and returning?
+    /**
+     * Override this method to compact result rows from batch calls. Must be
+     * idempotent.
+     * @param {Array.<Object>} results Rows from Mongo collection.
+     * @return {Array.<Object>} Grouped rows.
+     */
+    groupResults: _.identity
+
+});
+
+
+/**
+ * A series for accuracy gains.
+ */
+var AccuracyGainSeries = Series.extend({
+
+    /**
+     * Aggregate rows by card number. Idempotent. Not done through Sleepy
+     * Mongoose because it may be buggy:
+     * https://jira.mongodb.org/browse/SERVER-5874
+     * @param {Array.<Object>} results Rows from Mongo collection.
+     * @return {Array.<Object>} Rows aggregated by card number.
+     */
+    groupResults: function(results) {
+        return _.chain(results)
+            .groupBy(function(row) { return row["card_number"]; })
+            .map(function(group, cardNumber) {
+
+                return _.chain(group)
+                    .reduce(function(accum, row) {
+                        return {
+                            sum_deltas: +accum["sum_deltas"] + +row["sum_deltas"],
+                            num_deltas: +accum["num_deltas"] + +row["num_deltas"]
+                        };
+                    })
+                    .extend({ card_number: cardNumber })
+                    .value();
+
+            })
+            .toArray()
+            .value();
     }
 
 });
 
 
 /**
- * View of a data series.
- * TODO(david): Change IDs to classes to support multiple series views.
+ * Abstract base class for a view of a data series.
  */
 var SeriesView = Backbone.View.extend({
 
-    template: Handlebars.compile($("#series-form-template").text()),
-
     // TODO(david): Do interesting things on hover over a series form.
     events: {
-        "change .stacks-select": "refresh",
         "change .topics-select": "refresh"
     },
 
@@ -154,33 +200,31 @@ var SeriesView = Backbone.View.extend({
 
         this.$el.find(".request-pending-progress").show();
 
-        var numStacks = this.$el.find(".stacks-select").val();
         var topic = this.$el.find(".topics-select option:selected").val();
+        var url = this.getCollectionUrl() + "_find?callback=?";
 
-        // TODO(david): More permanent database, and design summary table with
-        //     date partitions.
-        var url = BASE_COLLLECTION_URL + "_find?callback=?";
-
-        // TODO(david): Batch up requests
-        var criteria = {
-            num_problems_done: numStacks === "any" ? { $lte: 160 } :
-                numStacks * 8,
-            topic: topic,
-            start_dt: '2012-06-13'  // TODO(david): Support date range selection
-        };
+        // TODO(david): Support date range selection
+        var criteria = _.extend({
+            topic: topic
+        }, this.getFindCriteria());
 
         var params = {
             criteria: JSON.stringify(criteria),
             batch_size: this.model.get("batchSize"),
-            fields: JSON.stringify({
-                card_number: true,
-                num_deltas: true,
-                sum_deltas: true
-            })
         };
 
+        // Maybe specify a projection for this query
+        var fields = this.getCollectionFields();
+        if (fields) {
+            var fieldsObject = _.reduce(fields, function(accum, value) {
+                accum[value] = value;
+                return accum;
+            }, {});
+            params.fields = JSON.stringify(fieldsObject);
+        }
+
         this.model.reset();
-        this.model.fetchResults(url, params);
+        this.model.fetchResults(url, params, this.getCollectionUrl());
 
     },
 
@@ -192,15 +236,77 @@ var SeriesView = Backbone.View.extend({
     },
 
     /**
-     * Update UI elements that show data series info, such as the graph and
-     * sample counter.
+     * Must override to update UI elements that show data series info, such as
+     * the graph and sample counter.
      */
+    updateSeries: function() {
+        throw "Not implemented";
+    },
+
+    /**
+     * Optionally override to specify additional criteria to fitler the mongo
+     * query by.
+     * @return {Object} A map of additional filter criteria key-value pairs.
+     */
+    getFindCriteria: function() {
+        return {};
+    },
+
+    /**
+     * Optionally override to
+     * @return {string} The base URL of the Sleepy Mongoose MongoDB collection
+     */
+    getCollectionUrl: _.identity,
+
+    /**
+     * Optionally override to specify a projection in our Mongo query.
+     * @return {Array.<string>|undefined} An array of collection keys.
+     */
+    getCollectionFields: _.identity
+
+});
+
+
+/**
+ * View for the accuracy gain series.
+ */
+var AccuracyGainSeriesView = SeriesView.extend({
+
+    // TODO(david): Handlebars template should inherit from base
+    template: Handlebars.compile($("#accuracy-gain-form-template").text()),
+
+    events: function() {
+        return _.extend({}, SeriesView.prototype.events, {
+            "change .stacks-select": "refresh",
+        });
+    },
+
+    /** @override */
+    getFindCriteria: function() {
+        var numStacks = this.$el.find(".stacks-select").val();
+        return {
+            num_problems_done: numStacks === "any" ? { $lte: 160 } :
+                numStacks * 8,
+        };
+    },
+
+    /** @override */
+    getCollectionUrl: function() {
+        return BASE_STAT_SERVER_URL + "report/weekly_learning_stats/";
+    },
+
+    /** @override */
+    getCollectionFields: function() {
+        return ["card_number", "sum_deltas", "num_deltas"];
+    },
+
+    /** @override */
     updateSeries: function() {
 
         var results = this.model.get("results");
+        results = this.model.groupResults(results);
 
         var incrementalGains = _.chain(results)
-            .groupByCardNumber()
             .sortBy(function(row) { return +row["card_number"]; })
             .map(function(row, index) {
                 return row["sum_deltas"] / row["num_deltas"];
@@ -223,13 +329,22 @@ var SeriesView = Backbone.View.extend({
 
     }
 
+}, {
+
+    modelClass: AccuracyGainSeries,
+
+    seriesOptions: {
+        // TODO(david): Bootstrap from 1st card % correct?
+        pointStart: 0
+    }
+
 });
 
 
 /**
- * Chart of learning efficiency, as measured by incremental accuracy deltas.
+ * View of the entire dashboard.
  */
-var EfficiencyChartView = Backbone.View.extend({
+var DashboardView = Backbone.View.extend({
 
     // TODO(david): This will be changed once more chart types are added.
     el: "body",
@@ -251,12 +366,25 @@ var EfficiencyChartView = Backbone.View.extend({
         // TODO(david): Dynamically generate labels and titles
         var chartOptions = {
             chart: {
-                renderTo: "efficiency-chart"
+                renderTo: "highcharts-graph"
+            },
+            plotOptions: {
+                series: {
+                    marker: {
+                        enabled: false,
+                        states: {
+                            hover: {
+                                enabled: true
+                            }
+                        }
+                    }
+                }
             },
             series: [],
             title: {
-                text: "Accumulated gain in accuracy over number of cards done"
+                text: null
             },
+            // TODO(david): Multiple y-axes
             yAxis: {
                 title: { text: "Accumulated gain in accuracy" },
             },
@@ -275,17 +403,18 @@ var EfficiencyChartView = Backbone.View.extend({
 
     addSeries: function() {
 
-        var seriesNum = ++EfficiencyChartView.numSeries;
-        var chartSeries = this.chart.addSeries({
+        // TODO(david): Add different type of series
+        var seriesViewConstructor = AccuracyGainSeriesView;
+
+        var seriesNum = ++DashboardView.numSeries;
+        var chartSeries = this.chart.addSeries(_.extend({
             data: [],
             type: "areaspline",
             name: "Series " + seriesNum,
-            // TODO(david): Bootstrap from 1st card % correct?
-            pointStart: 0
-        });
+        }, seriesViewConstructor.seriesOptions));
 
-        var series = new Series();
-        var seriesView = new SeriesView({
+        var series = new seriesViewConstructor.modelClass();
+        var seriesView = new seriesViewConstructor({
             el: $("<div>").appendTo("#series-forms"),
             model: series,
             chartSeries: chartSeries
@@ -294,6 +423,8 @@ var EfficiencyChartView = Backbone.View.extend({
 
     }
 
+    // TODO(david): Button to remove series
+
 }, {
 
     numSeries: 0
@@ -301,41 +432,8 @@ var EfficiencyChartView = Backbone.View.extend({
 });
 
 
-/**
- * Aggregate rows by card number. Idempotent. This is not done through Sleepy
- * Mongoose because it may be buggy: https://jira.mongodb.org/browse/SERVER-5874
- * @param {Array.<Object>} results Rows from Mongo collection.
- * @return {Array.<Object>} Rows aggregated by card number.
- */
-var groupByCardNumber = function groupByCardNumber(results) {
-    return _.chain(results)
-        .groupBy(function(row) { return row["card_number"]; })
-        .map(function(group, cardNumber) {
-
-            return _.chain(group)
-                .reduce(function(accum, row) {
-                    return {
-                        sum_deltas: +accum["sum_deltas"] + +row["sum_deltas"],
-                        num_deltas: +accum["num_deltas"] + +row["num_deltas"]
-                    };
-                })
-                .extend({ card_number: cardNumber })
-                .value();
-
-        })
-        .toArray()
-        .value();
-};
-
-
-// Add utility functions to underscore for convenience in chaining
-_.mixin({
-    groupByCardNumber: groupByCardNumber
-});
-
-
 $(function() {
-    var dashboard = new EfficiencyChartView();
+    var dashboard = new DashboardView();
 });
 
 
