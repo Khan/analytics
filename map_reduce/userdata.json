@@ -6,12 +6,10 @@
       "Jar": "/home/hadoop/contrib/streaming/hadoop-streaming.jar", 
       "Args": [ 
          "-D", "mapred.output.compress=true",
-         "-input",    "s3n://ka-mapreduce/rawdata/<end_dt>/UserData/", 
+         "-input",    "s3n://ka-mapreduce/rawdata/<end_dt>/UserData/*.json.gz", 
          "-output",   "s3n://ka-mapreduce/entity_store_incr/UserData/dt=<end_dt>/", 
-         "-mapper",   "load_pbufs_to_hive.py",
+         "-mapper",   "/bin/cat",
          "-reducer",  "/bin/cat",
-         "-cacheArchive",  "s3n://ka-mapreduce/code/third_party/google_appengine.jar#google_appengine", 
-         "-cacheFile", "s3://ka-mapreduce/code/py/load_pbufs_to_hive.py#load_pbufs_to_hive.py", 
          "-numReduceTasks", "16"
       ] 
    } 

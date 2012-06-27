@@ -12,8 +12,11 @@ TODO(yunfang): adding a controldb in mongo to coordinate the fetch and
 """
 
 import datetime as dt
+import json
+import os
 import pickle
 import subprocess
+import sys
 import time
 
 from optparse import OptionParser
@@ -32,6 +35,9 @@ from google.appengine.api import datastore
 from google.appengine.api import datastore_types
 from google.appengine.api import users
 from google.appengine.datastore import entity_pb
+
+sys.path.append(os.path.dirname(__file__) + "/../map_reduce/py")
+import load_pbufs_to_hive
 
 import date_util
 import fetch_entities
@@ -91,16 +97,16 @@ def get_cmd_line_args():
     return options
 
 
-def get_archive_file_name(config, kind, start_dt, end_dt):
+def get_archive_file_name(config, kind, start_dt, end_dt, ftype='pickle'):
     """get the archive file name. has the format of
        {ARCHIVE_DIR}/YY-mm-dd/{kind}/kind-start_dt-end_dt.pickle
     """
     datestr = str(start_dt.date())
     dirname = "%s/%s/%s" % (config['archive_dir'], datestr, kind)
     mkdir_p(dirname)
-    filename = "%s/%s-%s-%s-%s-%s.pickle" % (dirname, kind,
+    filename = "%s/%s-%s-%s-%s-%s.%s" % (dirname, kind,
         str(start_dt.date()), str(start_dt.time()),
-        str(end_dt.date()), str(end_dt.time()))
+        str(end_dt.date()), str(end_dt.time()), ftype)
     return filename
 
 
@@ -153,8 +159,9 @@ def fetch_and_process_data(kind, start_dt_arg, end_dt_arg,
         kind, start_dt_arg, end_dt_arg, kdc.DownloadStatus.FETCHED)
 
     # save to a file
+    # TODO(yunfang): revisit if we should save the pickled pb
     archived_file = get_archive_file_name(config, kind,
-        start_dt_arg, end_dt_arg)
+        start_dt_arg, end_dt_arg, 'pickle')
     with open(archived_file, 'wb') as f:
         pickle.dump(entity_list, f)
     ret = subprocess.call(["gzip", "-f", archived_file])
@@ -163,6 +170,24 @@ def fetch_and_process_data(kind, start_dt_arg, end_dt_arg,
             archived_file))
     else:
         g_logger.error("Cannot gzip %s" % (archived_file))
+
+    #jsonize the entities
+    json_filename = get_archive_file_name(config, kind,
+        start_dt_arg, end_dt_arg, 'json')
+    json_key = config['kinds'][kind][3]
+    f = open(json_filename, 'wb')
+    for pb in entity_list:
+        doc = load_pbufs_to_hive.pb_to_dict(pb)
+        json_str = json.dumps(doc)
+        print >>f, "%s\t%s" % (doc[json_key], json_str)
+    f.close()
+    ret = subprocess.call(["gzip", "-f", json_filename])
+    if ret == 0:
+        g_logger.info("%s rows saved to %s.gz" % (len(entity_list),
+            json_filename))
+    else:
+        g_logger.error("Cannot gzip %s" % (json_filename))
+
     kdc.record_progress(mongo, config['coordinator_cfg'],
         kind, start_dt_arg, end_dt_arg, kdc.DownloadStatus.SAVED)
 
