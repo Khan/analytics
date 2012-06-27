@@ -24,7 +24,8 @@ var Series = Backbone.Model.extend({
         results: [],
         numCalls: 0,
         batchSize: 1000,
-        requestCount: 0
+        requestCount: 0,
+        callbacksCancelled: false
     },
 
     /**
@@ -33,6 +34,7 @@ var Series = Backbone.Model.extend({
     reset: function() {
         this.set("results", []);
         this.set("numCalls", 0);
+        this.set("callbacksCancelled", false);
     },
 
     /**
@@ -55,8 +57,10 @@ var Series = Backbone.Model.extend({
         //     among both senders.
         AjaxCache.getJson(url, params, _.bind(function(requestCount, data) {
 
-            // A new batch request has been initiated, abort this one
-            if (requestCount !== self.get("requestCount")) {
+            // A new batch request has been initiated or we've been asked to
+            // cancel any callbacks. Abort.
+            if (requestCount !== self.get("requestCount") ||
+                    self.get("callbacksCancelled")) {
                 return;
             }
 
@@ -91,6 +95,13 @@ var Series = Backbone.Model.extend({
 
         }, null, this.get("requestCount")));
 
+    },
+
+    /**
+     * Whether any pending callbacks should be cancelled.
+     */
+    cancelCallbacks: function() {
+        this.set("callbacksCancelled", true);
     },
 
     // TODO(david): Would this be better as a static function on the class, or
@@ -153,7 +164,8 @@ var SeriesView = Backbone.View.extend({
     // TODO(david): Do interesting things on hover over a series form.
     events: {
         "change .topics-select": "refresh",
-        "change .weeks-select": "refresh"
+        "change .weeks-select": "refresh",
+        "click .close": "remove"
     },
 
     initialize: function(options) {
@@ -232,8 +244,6 @@ var SeriesView = Backbone.View.extend({
             start_date === "any" ? {} : { start_dt: start_date },
             this.getFindCriteria());
 
-        console.log(criteria);
-
         var params = {
             criteria: JSON.stringify(criteria),
             batch_size: this.model.get("batchSize"),
@@ -260,6 +270,13 @@ var SeriesView = Backbone.View.extend({
         this.$(".request-pending-progress .bar")
                 .css("width", fakedProgress.toFixed(2) * 100 + "%");
     },
+
+    remove: function() {
+        Backbone.View.prototype.remove.call(this);
+        this.model.cancelCallbacks();
+        this.chartSeries.remove();
+    },
+
 
     /**
      * Must override to update UI elements that show data series info, such as
@@ -614,15 +631,20 @@ var DashboardView = Backbone.View.extend({
         var seriesNum = DashboardView.numSeries++;
         // TODO(david): Should fail to a default
         var axisOptions = seriesViewConstructor.yAxis;
+        var seriesName = "Series " + (seriesNum + 1);
 
         this.chart.addSeries(_.extend({
             data: [],
             type: "areaspline",
-            name: "Series " + (seriesNum + 1),
+            name: seriesName,
             yAxis: axisOptions.index
         }, seriesViewConstructor.seriesOptions));
 
-        var chartSeries = this.chart.series[seriesNum];
+        // Unfortunately, HighCharts 2.2.5 has a bug where calling addSeries
+        // does not return the series added.
+        var chartSeries = _.find(this.chart.series, function(series) {
+            return series.name === seriesName;
+        });
 
         // Unfortunately, Highcharts 2.2.5 has a bug where setting the title
         // again will not erase the old one.
@@ -641,8 +663,6 @@ var DashboardView = Backbone.View.extend({
         seriesView.render().refresh();
 
     }
-
-    // TODO(david): Button to remove series
 
 }, {
 
