@@ -25,9 +25,18 @@
         <div class="row">
             <div class="span12">
                 <p>
-                    <button id="compare-button" class="btn">
-                        <i class="icon-plus"></i> Compare against...
-                    </button>
+                    <div id="add-series-buttons" class="btn-group">
+                        <a class="btn dropdown-toggle" data-toggle="dropdown">
+                            <i class="icon-plus"></i> Add series...
+                            <span class="caret"></span>
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a data-series="users">Users</a></li>
+                            <li><a data-series="percentCorrect">Percent correct</a></li>
+                            <li><a data-series="gain">Accuracy Gains</a></li>
+                        </ul>
+                    </div>
+
                 </p>
             </div>
         </div>
@@ -173,6 +182,9 @@
                     In particular, actually segmenting by users (experiments
                     they're in, coached or not, etc.), retention/engagement
                     graphs, bucketing by time taken, and world domination.
+
+                    <br>
+                    TODO(david): Just did % correct and retention, now document those!
                 </p>
             </div>
         </div>
@@ -184,7 +196,8 @@
 <script type="text/x-handlebars-template" id="accuracy-gain-form-template">
 <div class="span6">
     <div class="well">
-        <h2>{{seriesName}}</h2>
+        <button class="close">&times;</button>
+        <h2>{{seriesName}} - Accuracy gain</h2>
         <p class="lead">
             For students who have completed
             <select class="stacks-select">
@@ -197,15 +210,87 @@
             <select class="topics-select">
                 <option value="any">any topic</option>
                 <option disabled="disabled">---</option>
-            </select> for the week of TODO(david),
+            </select> in
+            <select class="weeks-select">
+                <option value="any">any week</option>
+                <option disabled="disabled">---</option>
+            </select>,
             show me their gain in accuracy over
             <!-- TODO(david): Bucket by time done -->
-            the number of cards done
+            the number of cards done.
         </p>
         <div class="alert alert-gray">
             <i class="icon-info-sign"></i> Generated from
             <span class="total-deltas badge badge-inverse">0</span>
             incremental gains.
+        </div>
+        <div class="request-pending-progress progress progress-striped active">
+            <div class="bar" style="width: 10%"></div>
+        </div>
+    </div>
+</div>
+</script>
+
+<!-- FIXME(david): Don't copy-paste!!!!!!! Use inheritance/partials/template
+ values (sorry 2 am
+ and I have to wake up at 9:30 am tomorrow!!!!!). I reiterate, I am preparing
+ for my demo tomorrow which is why I am copy-pasting code... but will definitely
+ fix this abomination after the scavenger hunt (and a nap)! -->
+<script type="text/x-handlebars-template" id="retention-form-template">
+<div class="span6">
+    <div class="well">
+        <button class="close">&times;</button>
+        <h2>{{seriesName}} - Unique users</h2>
+        <p class="lead">
+            For stacks done in
+            <select class="topics-select">
+                <option value="any">any topic</option>
+                <option disabled="disabled">---</option>
+            </select> in
+            <select class="weeks-select">
+                <option value="any">any week</option>
+                <option disabled="disabled">---</option>
+            </select>,
+            show me the
+            <select class="yaxis-select">
+                <option value="number">number of users</option>
+                <option value="percent">percent of users</option>
+            </select>
+            over card number.
+        </p>
+        <div class="alert alert-gray">
+            <i class="icon-info-sign"></i> Generated from
+            <span class="total-attempts badge badge-inverse">0</span>
+            total attempts.
+        </div>
+        <div class="request-pending-progress progress progress-striped active">
+            <div class="bar" style="width: 10%"></div>
+        </div>
+    </div>
+</div>
+</script>
+
+<script type="text/x-handlebars-template" id="percent-correct-form-template">
+<div class="span6">
+    <div class="well">
+        <button class="close">&times;</button>
+        <h2>{{seriesName}} - Percent correct</h2>
+        <p class="lead">
+            For stacks done in
+            <select class="topics-select">
+                <option value="any">any topic</option>
+                <option disabled="disabled">---</option>
+            </select> in
+            <select class="weeks-select">
+                <option value="any">any week</option>
+                <option disabled="disabled">---</option>
+            </select>,
+            show me percent correct over card number.
+        </p>
+        <div class="alert alert-gray">
+            <i class="icon-info-sign"></i> Generated from
+            <span class="total-attempts badge badge-inverse">0</span>
+            total attempts.
         </div>
         <div class="request-pending-progress progress progress-striped active">
             <div class="bar" style="width: 10%"></div>
@@ -221,6 +306,7 @@
 <script src="static/js/third_party/underscore-min.js"></script>
 <script src="static/js/third_party/backbone-min.js"></script>
 <script src="static/js/third_party/handlebars.js"></script>
+<script src="static/js/third_party/bootstrap-dropdown.js"></script>
 
 <script src="static/js/ajax-cache.js"></script>
 
