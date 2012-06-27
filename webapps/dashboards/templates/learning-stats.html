@@ -209,7 +209,11 @@
             <select class="topics-select">
                 <option value="any">any topic</option>
                 <option disabled="disabled">---</option>
-            </select> for the week of TODO(david),
+            </select> in
+            <select class="weeks-select">
+                <option value="any">any week</option>
+                <option disabled="disabled">---</option>
+            </select>,
             show me their gain in accuracy over
             <!-- TODO(david): Bucket by time done -->
             the number of cards done.
@@ -227,7 +231,9 @@
 </script>
 
 <!-- FIXME(david): Don't copy-paste!!!!!!! Use inheritance/partials (sorry 2 am
- and I have to wake up at 9:30 am tomorrow!!!!!) -->
+ and I have to wake up at 9:30 am tomorrow!!!!!). I reiterate, I am preparing
+for my demo tomorrow which is why I am copy-pasting code... but will definitely
+fix this abomination after the scavenger hunt (and a nap)! -->
 <script type="text/x-handlebars-template" id="retention-form-template">
 <div class="span6">
     <div class="well">
@@ -237,7 +243,11 @@
             <select class="topics-select">
                 <option value="any">any topic</option>
                 <option disabled="disabled">---</option>
-            </select> for the week of TODO(david),
+            </select> in
+            <select class="weeks-select">
+                <option value="any">any week</option>
+                <option disabled="disabled">---</option>
+            </select>,
             show me the
             <select class="yaxis-select">
                 <option value="number">number of users</option>
@@ -266,7 +276,11 @@
             <select class="topics-select">
                 <option value="any">any topic</option>
                 <option disabled="disabled">---</option>
-            </select> for the week of TODO(david),
+            </select> in
+            <select class="weeks-select">
+                <option value="any">any week</option>
+                <option disabled="disabled">---</option>
+            </select>,
             show me percent correct over card number.
         </p>
         <div class="alert alert-gray">

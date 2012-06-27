@@ -53,6 +53,16 @@ def learning_stats_topics():
     })
 
 
+@app.route('/db/<collection_name>/start_dates')
+def collection_start_dates(collection_name):
+    # TODO(david): Should actually return distinct date ranges, but now it's
+    #     5 am and I have to sleep for 9:30 am scavenger hunt!
+    collection = getattr(db.report, collection_name)
+    return flask.jsonify({
+        'start_dates': collection.distinct('start_dt')
+    })
+
+
 def main():
     parser = optparse.OptionParser()
     parser.add_option("-d", "--debug", action="store_true", dest="debug",

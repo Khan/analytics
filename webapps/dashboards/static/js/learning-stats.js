@@ -152,7 +152,8 @@ var SeriesView = Backbone.View.extend({
 
     // TODO(david): Do interesting things on hover over a series form.
     events: {
-        "change .topics-select": "refresh"
+        "change .topics-select": "refresh",
+        "change .weeks-select": "refresh"
     },
 
     initialize: function(options) {
@@ -178,6 +179,7 @@ var SeriesView = Backbone.View.extend({
         this.$('h2').css('color', this.chartSeries.color);
 
         this.populateTopics();
+        this.populateWeeks();
 
         return this;
     },
@@ -197,6 +199,22 @@ var SeriesView = Backbone.View.extend({
     },
 
     /**
+     * Get start dates for weeks to populate select box.
+     */
+    populateWeeks: function() {
+        var self = this;
+        AjaxCache.getJson("/db/" + this.getCollectionName() + "/start_dates",
+            {}, function(data) {
+                var options = _.map(data["start_dates"], function(start_date) {
+                    return $("<option>")
+                        .val(start_date)
+                        .text("the week of " + start_date)[0];
+                });
+                self.$el.find(".weeks-select").append(options);
+            });
+    },
+
+    /**
      * Ask the server for new data from user-set controls on the dashboard.
      */
     refresh: function() {
@@ -204,12 +222,17 @@ var SeriesView = Backbone.View.extend({
         this.$(".request-pending-progress").show();
 
         var topic = this.$(".topics-select option:selected").val();
+        var start_date = this.$el.find(".weeks-select option:selected").val();
         var url = this.getCollectionUrl() + "_find?callback=?";
 
         // TODO(david): Support date range selection
         var criteria = _.extend({
-            topic: topic
-        }, this.getFindCriteria());
+                topic: topic
+            },
+            start_date === "any" ? {} : { start_dt: start_date },
+            this.getFindCriteria());
+
+        console.log(criteria);
 
         var params = {
             criteria: JSON.stringify(criteria),
@@ -247,19 +270,26 @@ var SeriesView = Backbone.View.extend({
     },
 
     /**
+     * Must override to
+     * @return {String} The Mongo collection name for this series.
+     */
+    getCollectionName: _.identity,
+
+    /**
      * Optionally override to specify additional criteria to fitler the mongo
      * query by.
      * @return {Object} A map of additional filter criteria key-value pairs.
      */
-    getFindCriteria: function() {
-        return {};
-    },
+    getFindCriteria: _.identity,
 
     /**
      * Optionally override to
      * @return {string} The base URL of the Sleepy Mongoose MongoDB collection
      */
-    getCollectionUrl: _.identity,
+    getCollectionUrl: function() {
+        return BASE_STAT_SERVER_URL + "report/" + this.getCollectionName()
+            + "/";
+    },
 
     /**
      * Optionally override to specify a projection in our Mongo query.
@@ -298,8 +328,8 @@ var AccuracyGainSeriesView = SeriesView.extend({
     },
 
     /** @override */
-    getCollectionUrl: function() {
-        return BASE_STAT_SERVER_URL + "report/weekly_learning_stats/";
+    getCollectionName: function() {
+        return "weekly_learning_stats";
     },
 
     /** @override */
@@ -368,8 +398,8 @@ var UsersSeriesView = SeriesView.extend({
     },
 
     /** @override */
-    getCollectionUrl: function() {
-        return BASE_STAT_SERVER_URL + "report/topic_retention_stats/";
+    getCollectionName: function() {
+        return "topic_retention_stats";
     },
 
     /** @override */
@@ -437,8 +467,8 @@ var PercentCorrectSeriesView = SeriesView.extend({
     template: Handlebars.compile($("#percent-correct-form-template").text()),
 
     /** @override */
-    getCollectionUrl: function() {
-        return BASE_STAT_SERVER_URL + "report/topic_retention_stats/";
+    getCollectionName: function() {
+        return "topic_retention_stats";
     },
 
     /** @override */
