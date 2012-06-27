@@ -1,6 +1,6 @@
 /**
- * Script for rendering learning efficiency and retention (TODO(david)) from
- * exercises dashboard.
+ * Script for rendering learning efficiency and retention from exercises
+ * dashboard.
  */
 
 // TODO(david): Move generic stuff out of here for others to use.
@@ -427,6 +427,61 @@ var UsersSeriesView = SeriesView.extend({
 });
 
 
+// TODO(david): Similar code with UsersSeriesView. Could inherit.
+/**
+ * View for the percent correct series.
+ */
+var PercentCorrectSeriesView = SeriesView.extend({
+
+    // TODO(david): Handlebars template should inherit from base
+    template: Handlebars.compile($("#percent-correct-form-template").text()),
+
+    /** @override */
+    getCollectionUrl: function() {
+        return BASE_STAT_SERVER_URL + "report/topic_retention_stats/";
+    },
+
+    /** @override */
+    getCollectionFields: function() {
+        return ["bucket_value", "num_attempts", "num_correct"];
+    },
+
+    /** @override */
+    updateSeries: function() {
+
+        var results = this.model.get("results");
+
+        var numAttemptsSeries = _.chain(results)
+            .sortBy(function(row) { return +row["bucket_value"]; })
+            .map(function(row) { return row["num_correct"] / row["num_attempts"]; })
+            .value();
+
+        this.chartSeries.setData(numAttemptsSeries);
+
+        // TODO(david): A bit of duplicated code here
+        var totalAttempts = _.reduce(results, function(accum, row) {
+            return accum + +row["num_attempts"];
+        }, 0);
+        this.$el.find(".total-attempts").text(totalAttempts);
+
+    }
+
+}, {
+
+    seriesOptions: {
+        type: "spline",
+        pointStart: 1,
+    },
+
+    yAxis: {
+        index: 2,
+        title: "Percent correct",
+    }
+
+});
+
+
+
 /**
  * View of the entire dashboard.
  */
@@ -479,7 +534,18 @@ var DashboardView = Backbone.View.extend({
             title: {
                 text: null
             },
-            yAxis: emptyAxes,
+            // TODO(david): Should get these properties from the classes
+            yAxis: [{
+                title: { text: null },
+                min: 0
+            }, {
+                title: { text: null }
+            }, {
+                title: { text: null },
+                opposite: true,
+                min: 0,
+                max: 1
+            }],
             xAxis: {
                 title: { text: "Card Number" },
                 min: 0,
@@ -502,7 +568,7 @@ var DashboardView = Backbone.View.extend({
         var seriesConstructor = {
             gain: AccuracyGainSeriesView,
             users: UsersSeriesView,
-            percentCorrect: UsersSeriesView
+            percentCorrect: PercentCorrectSeriesView
         }[seriesType];
 
         this.addSeries(seriesConstructor);

@@ -182,6 +182,9 @@
                     In particular, actually segmenting by users (experiments
                     they're in, coached or not, etc.), retention/engagement
                     graphs, bucketing by time taken, and world domination.
+
+                    <br>
+                    TODO(david): Just did % correct and retention, now document those!
                 </p>
             </div>
         </div>
@@ -193,7 +196,7 @@
 <script type="text/x-handlebars-template" id="accuracy-gain-form-template">
 <div class="span6">
     <div class="well">
-        <h2>{{seriesName}}</h2>
+        <h2>{{seriesName}} - Accuracy gain</h2>
         <p class="lead">
             For students who have completed
             <select class="stacks-select">
@@ -228,7 +231,7 @@
 <script type="text/x-handlebars-template" id="retention-form-template">
 <div class="span6">
     <div class="well">
-        <h2>{{seriesName}}</h2>
+        <h2>{{seriesName}} - Unique users</h2>
         <p class="lead">
             For stacks done in
             <select class="topics-select">
@@ -241,6 +244,30 @@
                 <option value="percent">percent of users</option>
             </select>
             over card number.
+        </p>
+        <div class="alert alert-gray">
+            <i class="icon-info-sign"></i> Generated from
+            <span class="total-attempts badge badge-inverse">0</span>
+            total attempts.
+        </div>
+        <div class="request-pending-progress progress progress-striped active">
+            <div class="bar" style="width: 10%"></div>
+        </div>
+    </div>
+</div>
+</script>
+
+<script type="text/x-handlebars-template" id="percent-correct-form-template">
+<div class="span6">
+    <div class="well">
+        <h2>{{seriesName}} - Percent correct</h2>
+        <p class="lead">
+            For stacks done in
+            <select class="topics-select">
+                <option value="any">any topic</option>
+                <option disabled="disabled">---</option>
+            </select> for the week of TODO(david),
+            show me percent correct over card number.
         </p>
         <div class="alert alert-gray">
             <i class="icon-info-sign"></i> Generated from
