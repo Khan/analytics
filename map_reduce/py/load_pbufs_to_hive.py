@@ -10,6 +10,9 @@ Output is a series of lines piped to stdout:
 username<tab>json_encoded_entities
 Check out https://sites.google.com/a/khanacademy.org/forge/technical/data_n/running-emr-elastic-mapreduce-on-the-khan-academy-data
 for more information about running EMR at the Khan Academy
+
+TODO(yunfang): Consider moving the primary functions here to a library
+               as the pb_to_dict process doesn't really happen in hive
 """
 
 import datetime

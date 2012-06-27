@@ -82,7 +82,7 @@ FROM user_video_summary WHERE
 GROUP BY user;
 
 -- Some high level metrics on usage distribution
-DROP TABLE EXISTS user_video_distribution;
+DROP TABLE user_video_distribution;
 CREATE EXTERNAL TABLE user_video_distribution(
   registered BOOLEAN, visits INT, num_users INT,
   videos INT, completed INT, seconds INT)
