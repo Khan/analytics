@@ -163,7 +163,7 @@ var SeriesView = Backbone.View.extend({
             .bind("change:results", this.updateSeries, this)
             .bind("change:numCalls", this.updateProgress, this)
             .bind("allResultsLoaded", function() {
-                this.$el.find(".request-pending-progress").hide();
+                this.$(".request-pending-progress").hide();
             }, this);
 
     },
@@ -175,7 +175,7 @@ var SeriesView = Backbone.View.extend({
         }));
 
         // TODO(david): Color form background with series
-        this.$el.find('h2').css('color', this.chartSeries.color);
+        this.$('h2').css('color', this.chartSeries.color);
 
         this.populateTopics();
 
@@ -192,7 +192,7 @@ var SeriesView = Backbone.View.extend({
             var options = _.map(data["topics"], function(topic) {
                 return $("<option>").text(topic)[0];
             });
-            self.$el.find(".topics-select").append(options);
+            self.$(".topics-select").append(options);
         });
     },
 
@@ -201,9 +201,9 @@ var SeriesView = Backbone.View.extend({
      */
     refresh: function() {
 
-        this.$el.find(".request-pending-progress").show();
+        this.$(".request-pending-progress").show();
 
-        var topic = this.$el.find(".topics-select option:selected").val();
+        var topic = this.$(".topics-select option:selected").val();
         var url = this.getCollectionUrl() + "_find?callback=?";
 
         // TODO(david): Support date range selection
@@ -234,7 +234,7 @@ var SeriesView = Backbone.View.extend({
     updateProgress: function() {
         var fakedProgress = 1 - Math.pow(0.66, this.model.get("numCalls"));
         fakedProgress = Math.max(0.1, fakedProgress);
-        this.$el.find(".request-pending-progress .bar")
+        this.$(".request-pending-progress .bar")
                 .css("width", fakedProgress.toFixed(2) * 100 + "%");
     },
 
@@ -290,7 +290,7 @@ var AccuracyGainSeriesView = SeriesView.extend({
 
     /** @override */
     getFindCriteria: function() {
-        var numStacks = this.$el.find(".stacks-select").val();
+        var numStacks = this.$(".stacks-select").val();
         return {
             num_problems_done: numStacks === "any" ? { $lte: 160 } :
                 numStacks * 8,
@@ -332,7 +332,7 @@ var AccuracyGainSeriesView = SeriesView.extend({
         var totalDeltas = _.reduce(results, function(accum, row) {
             return accum + +row["num_deltas"];
         }, 0);
-        this.$el.find(".total-deltas").text(totalDeltas);
+        this.$(".total-deltas").text(totalDeltas);
 
     }
 
@@ -493,6 +493,10 @@ var DashboardView = Backbone.View.extend({
         return chart;
     },
 
+    /**
+     * Click event handler to add a new series.
+     * @param {Object} event
+     */
     addSeriesHandler: function(event) {
         var seriesType = $(event.target).data("series");
         var seriesConstructor = {
@@ -504,6 +508,11 @@ var DashboardView = Backbone.View.extend({
         this.addSeries(seriesConstructor);
     },
 
+    /**
+     * Add a series to the dashboard.
+     * @param {function} seriesViewConstructor A constructor to create the
+     *     desired series.
+     */
     addSeries: function(seriesViewConstructor) {
 
         var seriesNum = DashboardView.numSeries++;
