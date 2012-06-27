@@ -8,9 +8,13 @@ consecutive pairs of randomized test cards in topic stacks.
 # TODO(david): Tests
 # TODO(david): Reduce on time_taken as well.
 
-
-import json
 import sys
+import os.path
+
+# Add the directory where table_parser.py is to the Python path.
+sys.path.append(os.path.dirname(__file__))
+
+import table_parser
 
 
 def emit_accuracy_deltas(attempts, user_topic, user_segment):
@@ -43,15 +47,6 @@ def emit_accuracy_deltas(attempts, user_topic, user_segment):
         comparison purposes (eg. A/B test experiments, has coach, etc.)
     """
 
-    # Skip topics for which we don't have complete information about (those for
-    # which we don't have info up to the first problem done in that topic). We
-    # approximate this by ensuring the problem number of the first known
-    # exercise in this topic is 1.
-    # TODO(david): Make this a better heuristic. Actually log card numbers in
-    #     stacklogs or something.
-    if not attempts or attempts[0][1] != 1:
-        return
-
     is_test = lambda info: info.get('purpose', None) == 'randomized'
     test_cards = [(i, x[0]) for i, x in enumerate(attempts, 1) if
                  is_test(x[2])]
@@ -71,37 +66,5 @@ def emit_accuracy_deltas(attempts, user_topic, user_segment):
                         len(attempts), i, incremental_gain)
 
 
-def parse_user_topic_input():
-    """Takes input from stdin -- exercise attempts done in topic mode clustered
-    on user-topic and sorted by time done (tab-delimited rows from
-    topic_attempts table) -- and give that to the reducer.
-    """
-
-    prev_user_segment = None
-    prev_user_topic = None
-    attempts = []
-
-    for line in sys.stdin:
-        (user, topic, exercise, time_done, time_taken, problem_number, correct,
-                scheduler_info, user_segment, dt) = line.strip().split('\t')
-
-        user_topic = (user, topic)
-        if user_topic != prev_user_topic:
-            # We're getting a new user-topic, so perform the reduce operation
-            # on our previous group of user-topics
-            emit_accuracy_deltas(attempts, prev_user_topic, prev_user_segment)
-            attempts = []
-
-        correct = correct == 'true'
-        problem_number = int(problem_number)
-        scheduler_info = json.loads(scheduler_info)
-        attempts.append((correct, problem_number, scheduler_info))
-
-        prev_user_topic = user_topic
-        prev_user_segment = user_segment
-
-    emit_accuracy_deltas(attempts, prev_user_topic, prev_user_segment)
-
-
 if __name__ == '__main__':
-    parse_user_topic_input()
+    table_parser.parse_user_topic_input(emit_accuracy_deltas)
