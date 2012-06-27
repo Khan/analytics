@@ -145,3 +145,10 @@ LOCATION 's3://ka-mapreduce/summary_tables/video_topic';
 ADD FILE s3://ka-mapreduce/code/hive/create_topic_attempts.q;
 SOURCE /mnt/var/lib/hive_081/downloaded_resources/create_topic_attempts.q;
 ALTER TABLE topic_attempts RECOVER PARTITIONS;
+
+-- Add utility files that custom Python mapper/reducer scripts can import.
+-- NOTE: To import a utility file, you'll need to add the current directory to
+-- Python's path before the import so Hadoop can pick it up:
+--     sys.path.append(os.path.dirname(__file__))
+--     import table_parser
+ADD FILE s3://ka-mapreduce/code/py/table_parser.py;

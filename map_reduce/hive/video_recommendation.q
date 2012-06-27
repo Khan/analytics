@@ -83,13 +83,15 @@ JOIN video_completion_cnt_${suffix} c ON (c.vid_key = b.vid2_key);
 -- TODO(benkomalo): separate this out to a different file for a dedicated
 -- import job flow.
 
--- Prune the results for importing to production
-DROP TABLE video_cooccurrence_cnt_pruned_${suffix};
-CREATE EXTERNAL TABLE video_cooccurrence_cnt_pruned_${suffix}(
-  vid1_key STRING, vid2_key STRING,
-  preceed_cnt INT, succeed_cnt INT,
-  vid1_cnt INT, vid2_cnt INT)
-LOCATION 's3://ka-mapreduce/tmp/video_cooccurrence_cnt_pruned_${suffix}';
+-- Prune the results for importing to production (we want to limit the best
+-- 20 results for each video)
+DROP TABLE video_suggestions_pruned_${suffix};
+CREATE EXTERNAL TABLE video_suggestions_pruned_${suffix}(
+  vid1_key STRING,
+  vid2_key STRING,
+  score DOUBLE)
+COMMENT 'Pruned video "similarity" scores (not necessarily symmetric - each entry is a vid1->vid2 score)'
+LOCATION 's3://ka-mapreduce/tmp/video_suggestions_pruned_${suffix}';
 
 ADD FILE s3://ka-mapreduce/code/${branch}/py/video_recommendation_pruner.py;
 
@@ -101,9 +103,9 @@ FROM (
   ) unpruned_data
   SELECT TRANSFORM(unpruned_data.*)
   USING 'video_recommendation_pruner.py'
-  AS vid1_key, vid2_key, preceed_cnt, succeed_cnt, vid1_cnt, vid2_cnt
+  AS vid1_key, vid2_key, score
 ) pruned_data
-INSERT OVERWRITE TABLE video_cooccurrence_cnt_pruned_${suffix}
+INSERT OVERWRITE TABLE video_suggestions_pruned_${suffix}
 SELECT pruned_data.*;
 
 
