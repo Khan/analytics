@@ -91,7 +91,7 @@ CREATE EXTERNAL TABLE video_suggestions_pruned_${suffix}(
   vid2_key STRING,
   score DOUBLE)
 COMMENT 'Pruned video "similarity" scores (not necessarily symmetric - each entry is a vid1->vid2 score)'
-LOCATION 's3://ka-mapreduce/tmp/video_suggestions_prune_${suffix}';
+LOCATION 's3://ka-mapreduce/tmp/video_suggestions_pruned_${suffix}';
 
 ADD FILE s3://ka-mapreduce/code/${branch}/py/video_recommendation_pruner.py;
 
