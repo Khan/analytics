@@ -188,7 +188,7 @@ var SeriesView = Backbone.View.extend({
         }));
 
         // TODO(david): Color form background with series
-        this.$('h2').css('color', this.chartSeries.color);
+        this.$("h2").css("color", this.chartSeries.color);
 
         this.populateTopics();
         this.populateWeeks();
