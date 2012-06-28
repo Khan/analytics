@@ -17,8 +17,8 @@ current_dir=`dirname $0`
 
 # Bulk download small factual tables 
 # TODO(yunfang): Revisit if this is the best place to do the download
-${curren_dir}/../src/bulk_download.py \
-  -c ${curren_dir}/../cfg/bulk_download.json -d $day 2>&1
+${current_dir}/../src/bulk_download.py \
+  -c ${current_dir}/../cfg/bulk_download.json -d $day 2>&1
 
 
 # Upload to s3.
@@ -33,7 +33,7 @@ echo "Convert pbuf to json and load into the datastore"
 elastic-mapreduce --create --name "${day} GAE Upload" \
   --num-instances 3 --master-instance-type m1.small \
   --slave-instance-type c1.medium \
-  --json `dirname $0`/load_gae_to_hive.json \
+  --json ${current_dir}/load_gae_to_hive.json \
   --param "<dt>=${day}" 2>&1
 
 
@@ -42,6 +42,6 @@ echo "Updating the UserData"
 elastic-mapreduce --create --name "${day} UserDataP" \
   --num-instances 3 --master-instance-type m1.small \
   --slave-instance-type m1.large \
-  --json `dirname $0`/userdata.json \
+  --json ${current_dir}/userdata.json \
   --param "<start_dt>=${day_before}" \
   --param "<end_dt>=${day}" 2>&1
