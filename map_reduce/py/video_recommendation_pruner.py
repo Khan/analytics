@@ -4,7 +4,7 @@
 
 This accepts entries for a video co-occurence matrix, clustered by
 the first video of each video pair, and emits the NUM_BEST most
-correlated videos for each video with a score for each
+correlated videos for each video with a score for each.
 
 Input expected in tab-delimited lines containing matrix entries of the form:
 
@@ -31,8 +31,14 @@ import math
 import sys
 
 
+# Default separator between column values.
 DELIMITER = '\t'
+
+
+# The maximum number of correlated videos for a given video.
 NUM_BEST = 20
+
+
 _IN = sys.stdin  # For unit testing.
 _OUT = sys.stdout
 

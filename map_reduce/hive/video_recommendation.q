@@ -95,10 +95,15 @@ LOCATION 's3://ka-mapreduce/tmp/video_suggestions_pruned_${suffix}';
 
 ADD FILE s3://ka-mapreduce/code/${branch}/py/video_recommendation_pruner.py;
 
+-- Pre-filter out any video pairs that have low counts to reduce noise and
+-- speed up the actual reduce step.
+set hivevar:MIN_COOCCURRENCE=20;
+
 FROM (
   FROM (
     FROM video_cooccurrence_cnt_${suffix}
     SELECT *
+    WHERE (preceed_cnt + succeed_cnt) >= ${MIN_COOCCURRENCE}
     CLUSTER BY vid1_key
   ) unpruned_data
   SELECT TRANSFORM(unpruned_data.*)
