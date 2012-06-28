@@ -3,12 +3,110 @@
 <head>
 <link rel="shortcut icon" href="http://www.khanacademy.org/favicon.ico?leaf">
 <link rel="stylesheet" type="text/css" href="static/css/third_party/bootstrap.css">
+
+<style>
+section {
+    margin: 80px 0;
+}
+
+section .row {
+    margin-bottom: 24px;
+}
+</style>
 </head>
 <body>
-<ul style="margin: 20px">
-<li><a href="/exercises">Daily exercises</a> - time series graphs on exercises activity</li>
-<li><a href="/videos">Daily videos</a> - a summary of videos watched on a given day</li>
-<li><a href="/learning">Learning</a> - learning efficiency and retention from exercises</li>
-</ul>
+<div class="container">
+    <section>
+        <div class="page-header">
+            <h1>Internal Analytics <small>a mishmash of content, engagement, retention & learning data</small</h1>
+        </div>
+        <div class="row">
+            <span class="span6">
+                <h3><a href="/exercises">Daily Exercises</a></h3>
+                Time series graphs on exercises activity
+                <div>
+                    <a href="/exercises">
+                        <img src="static/img/preview-dailyex.png">
+                    </a>
+                </div>
+            </span>
+            <span class="span6">
+                <h3><a href="/videos">Daily videos</a></h3>
+                A summary of videos watched on a given day
+            </span>
+        </div>
+
+        <div class="row">
+            <span class="span6">
+                <h3><a href="/learning">Learning in Exercises</a></h3>
+                Learning efficiency and retention over time
+                <div>
+                    <a href="/learning">
+                        <img src="static/img/preview-learningdash.png">
+                    </a>
+                </div>
+            </span>
+
+            <span class="span6">
+                <h3><a href="http://www.khanacademy.org/gae_bingo/dashboard">GAE/Bingo</a></h3>
+                A/B Test Experiment Results
+                <div>
+                    <a href="http://www.khanacademy.org/gae_bingo/dashboard">
+                        <img src="static/img/preview-gaebingo.png">
+                    </a>
+                </div>
+            </span>
+        </div>
+    </section>
+
+    <section>
+        <div class="page-header">
+            <h1>External Analytics <small>sometimes we need help</small</h1>
+        </div>
+        <div class="row">
+            <span class="span6">
+                <h3><a href="https://www.google.com/analytics/web/?pli=1#report/visitors-overview/a6742635w12978934p13634188/">Google Analytics</a></h3>
+                <img src="static/img/google-analytics.png">
+                Various client side reports using the Google Analytics JS API (user counts, page flows, etc).
+            </span>
+            <span class="span6">
+                <h3><a href="https://developers.facebook.com/apps/160249463991765/insights">Facebook Insights</a></h3>
+                <img src="static/img/fbinsights.png">
+                Facebook provided metrics on demographics and shares/CTR/exposure to Facebook users.
+            </span>
+        </div>
+        <div class="row">
+        TODO(benkomalo): get mixpanel in here?
+        </div>
+
+    <section>
+        <div class="page-header">
+            <h1>Production <small>hopefully you don't have to be here</small</h1>
+        </div>
+        <div class="row">
+            <span class="span6">
+                <h3><a href="https://appengine.google.com/dashboard?&app_id=s~khan-academy">KA AppEngine</a></h3>
+                <img src="static/img/appengine.png">
+                Khan Academy App on GAE
+            </span>
+            <span class="span6">
+                <h3><a href="http://code.google.com/status/appengine">AppEngine Global</a></h3>
+                <img src="static/img/appengine.png">
+                General AppEngine Health
+            </span>
+        </div>
+        <div class="row">
+            <span class="span6">
+                <h3><a href="http://www.khanacademy.org/dashboard">Entity Dashboard</a></h3>
+                Raw daily counts of Entities being created on production.
+            </span>
+            <span class="span6">
+                <h3><a href="https://console.aws.amazon.com/console/home">AWS Console</a></h3>
+                <img src="static/img/aws.png">
+                Amazon Web Services
+            </span>
+        </div>
+    </section>
+</div>
 </body>
 </html>
