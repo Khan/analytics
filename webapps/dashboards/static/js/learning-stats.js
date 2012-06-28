@@ -161,6 +161,8 @@ var AccuracyGainSeries = Series.extend({
  */
 var SeriesView = Backbone.View.extend({
 
+    template: Handlebars.compile($("#series-filter-template").text()),
+
     // TODO(david): Do interesting things on hover over a series form.
     events: {
         "change .topics-select": "refresh",
@@ -181,11 +183,29 @@ var SeriesView = Backbone.View.extend({
 
     },
 
+    /**
+     * Override to give the template that should be inserted as series filter
+     * form contents.
+     * @return {function(context)} Template function to render form contents.
+     */
+    childTemplate: _.identity,
+
+    /**
+     * Override to give the context
+     */
+    getChildContext: _.identity,
+
     render: function() {
-        this.$el.html(this.template({
+        var context = _.extend({
             seriesName: this.chartSeries.name,
             stacksOptions: _.range(1, 21)
-        }));
+        }, this.getChildContext());
+
+        // This is my "poor man's" template inheritance in handlebars... the
+        // "base" template has a variable in the middle called 'content'
+        this.$el.html(this.template(_.extend(context, {
+            content: this.childTemplate(context)
+        })));
 
         // TODO(david): Color form background with series
         this.$("h2").css("color", this.chartSeries.color);
@@ -217,12 +237,12 @@ var SeriesView = Backbone.View.extend({
         var self = this;
         AjaxCache.getJson("/db/" + this.getCollectionName() + "/start_dates",
             {}, function(data) {
-                var options = _.map(data["start_dates"], function(start_date) {
+                var options = _.map(data["start_dates"], function(startDate) {
                     return $("<option>")
-                        .val(start_date)
-                        .text("the week of " + start_date)[0];
+                        .val(startDate)
+                        .text("the week of " + startDate)[0];
                 });
-                self.$el.find(".weeks-select").append(options);
+                self.$(".weeks-select").append(options);
             });
     },
 
@@ -234,14 +254,14 @@ var SeriesView = Backbone.View.extend({
         this.$(".request-pending-progress").show();
 
         var topic = this.$(".topics-select option:selected").val();
-        var start_date = this.$el.find(".weeks-select option:selected").val();
+        var startDate = this.$(".weeks-select option:selected").val();
         var url = this.getCollectionUrl() + "_find?callback=?";
 
         // TODO(david): Support date range selection
         var criteria = _.extend({
                 topic: topic
             },
-            start_date === "any" ? {} : { start_dt: start_date },
+            startDate === "any" ? {} : { start_dt: startDate },
             this.getFindCriteria());
 
         var params = {
@@ -326,13 +346,23 @@ var SeriesView = Backbone.View.extend({
  */
 var AccuracyGainSeriesView = SeriesView.extend({
 
-    // TODO(david): Handlebars template should inherit from base
-    template: Handlebars.compile($("#accuracy-gain-form-template").text()),
-
     events: function() {
         return _.extend({}, SeriesView.prototype.events, {
             "change .stacks-select": "refresh",
         });
+    },
+
+    /** @override */
+    childTemplate: Handlebars.compile($("#accuracy-gain-template").text()),
+
+    /** @override */
+    getChildContext: function() {
+        // TODO(david): It would be nice if handlebars supported template
+        //     inheritance... then we don't have to stick presentation details
+        //     here in the JS.
+        return {
+            sampleType: "incremental gains"
+        };
     },
 
     /** @override */
@@ -379,13 +409,15 @@ var AccuracyGainSeriesView = SeriesView.extend({
         var totalDeltas = _.reduce(results, function(accum, row) {
             return accum + +row["num_deltas"];
         }, 0);
-        this.$(".total-deltas").text(totalDeltas);
+        this.$(".total-samples").text(totalDeltas);
 
     }
 
 }, {
 
     modelClass: AccuracyGainSeries,
+
+    seriesName: "Accuracy Gain",
 
     seriesOptions: {
         // TODO(david): Bootstrap from 1st card % correct?
@@ -405,13 +437,20 @@ var AccuracyGainSeriesView = SeriesView.extend({
  */
 var UsersSeriesView = SeriesView.extend({
 
-    // TODO(david): Handlebars template should inherit from base
-    template: Handlebars.compile($("#retention-form-template").text()),
-
     events: function() {
         return _.extend({}, SeriesView.prototype.events, {
-            "change .yaxis-select": "updateSeries",
+            "change .users-select": "updateSeries",
         });
+    },
+
+    /** @override */
+    childTemplate: Handlebars.compile($("#accuracy-gain-template").text()),
+
+    /** @override */
+    getChildContext: function() {
+        return {
+            sampleType: "total attempts"
+        };
     },
 
     /** @override */
@@ -431,7 +470,7 @@ var UsersSeriesView = SeriesView.extend({
 
         var results = this.model.get("results");
 
-        var yaxisType = this.$el.find(".yaxis-select option:selected").val();
+        var yaxisType = this.$(".users-select option:selected").val();
         var normalizer = 1;
         if (yaxisType === "percent") {
             normalizer = _.chain(results)
@@ -452,11 +491,13 @@ var UsersSeriesView = SeriesView.extend({
         var totalAttempts = _.reduce(results, function(accum, row) {
             return accum + +row["num_attempts"];
         }, 0);
-        this.$el.find(".total-attempts").text(totalAttempts);
+        this.$(".total-samples").text(totalAttempts);
 
     }
 
 }, {
+
+    seriesName: "Unique users",
 
     seriesOptions: {
         type: "spline",
@@ -480,8 +521,15 @@ var UsersSeriesView = SeriesView.extend({
  */
 var PercentCorrectSeriesView = SeriesView.extend({
 
-    // TODO(david): Handlebars template should inherit from base
-    template: Handlebars.compile($("#percent-correct-form-template").text()),
+    /** @override */
+    childTemplate: Handlebars.compile($("#percent-correct-template").text()),
+
+    /** @override */
+    getChildContext: function() {
+        return {
+            sampleType: "total attempts"
+        };
+    },
 
     /** @override */
     getCollectionName: function() {
@@ -505,15 +553,17 @@ var PercentCorrectSeriesView = SeriesView.extend({
 
         this.chartSeries.setData(numAttemptsSeries);
 
-        // TODO(david): A bit of duplicated code here
+        // TODO(david): A bit of duplicated code here XXX
         var totalAttempts = _.reduce(results, function(accum, row) {
             return accum + +row["num_attempts"];
         }, 0);
-        this.$el.find(".total-attempts").text(totalAttempts);
+        this.$(".total-samples").text(totalAttempts);
 
     }
 
 }, {
+
+    seriesName: "Percent correct",
 
     seriesOptions: {
         type: "spline",
@@ -526,7 +576,6 @@ var PercentCorrectSeriesView = SeriesView.extend({
     }
 
 });
-
 
 
 /**
@@ -551,15 +600,6 @@ var DashboardView = Backbone.View.extend({
      * @return {HighCharts.Chart}
      */
     createChart: function() {
-
-        // I can't find a way to dynamically add a Y-axis to HighCharts, so
-        // we'll just pre-fill with a bunch of empty ones.
-        var emptyAxes = _.map(_.range(0, 10), function(i) {
-            return {
-                title: { text: null },
-                opposite: !!(i % 2)
-            };
-        });
 
         var chartOptions = {
             chart: {
@@ -631,7 +671,8 @@ var DashboardView = Backbone.View.extend({
         var seriesNum = DashboardView.numSeries++;
         // TODO(david): Should fail to a default
         var axisOptions = seriesViewConstructor.yAxis;
-        var seriesName = "Series " + (seriesNum + 1);
+        var seriesName = "Series " + (seriesNum + 1) + " - " +
+            seriesViewConstructor.seriesName;
 
         this.chart.addSeries(_.extend({
             data: [],
@@ -671,7 +712,21 @@ var DashboardView = Backbone.View.extend({
 });
 
 
+/**
+ * Register all handlebars partials on the page.
+ */
+var registerHandlebarsPartials = function registerHandlebarsPartials() {
+    $("#handlebars-partials script[type='text/x-handlebars-template']").each(
+        function(index, elem) {
+            var $elem = $(elem);
+            Handlebars.registerPartial($elem.attr("id"), $elem.text());
+        }
+    );
+};
+
+
 $(function() {
+    registerHandlebarsPartials();
     var dashboard = new DashboardView();
 });
 
