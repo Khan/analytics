@@ -9,7 +9,7 @@ upload-hive:
 	scp -i $(PRIVATE_KEY) hive/* $(HIVE_USER)@$(HIVE_MASTER):~/
 
 upload-s3:
-	python deploy.py
+	python deploy.py -v
 
 hadoop-ui:
 	ssh -f -i $(PRIVATE_KEY) -l $(HIVE_USER) -N -L2001:localhost:9100 \
