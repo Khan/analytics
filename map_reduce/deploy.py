@@ -80,7 +80,7 @@ def files_in_tree():
     unwanted_prefix = '.' + os.path.sep
     for (dirpath, dirnames, filenames) in os.walk('.'):
         for filename in filenames:
-            if filename == __file__:
+            if filename == os.path.basename(__file__):
                 continue
 
             for ext in extensions_allowed:
@@ -136,7 +136,6 @@ def summarize_changes(replaced_files, new_files, spurious_files):
     args = {
         'num_replaced': len(replaced_files),
         'num_new': len(new_files),
-        'num_unknown': len(spurious_files),
     }
 
     # TODO(benkomalo): do some kind of timestamp checking
@@ -144,8 +143,14 @@ def summarize_changes(replaced_files, new_files, spurious_files):
     #                  we can do version tracking of what's deployed and do
     #                  a delta with names of authors of all changes since
     #                  last deploy
+    spurious_files_warning = ""
+    if spurious_files:
+        spurious_files_warning = (
+            "(%(num_unknown)d files on S3 but not in codebase)" %
+            len(spurious_files))
+
     return ("%(num_replaced)d updated files, %(num_new)d new files. " +
-            "(%(num_unknown)d files on S3 but not in codebase)" +
+            spurious_files_warning +
             " (note - no timestamp checking is done. files are always " +
             "pushed if they exist in the local tree)") % args
 
@@ -181,7 +186,6 @@ def send_hipchat_deploy_message(replaced_files, new_files, spurious_files):
                "%(summary)s") % args
 
     _hipchat_message(message, ["analytics"])
-    print "Notified room analytics"
 
 
 # TODO(benkomalo): wire up options for subdirectory to deploy to (for testing)
@@ -201,7 +205,7 @@ def do_deploy(verbose):
     print "About to deploy with the following changes:"
     print summarize_changes(replaced_files, new_files, spurious_files)
     if verbose and spurious_files:
-        print "\nFiles in S3 not in local tree:"
+        print "\nFiles in s3://ka-mapreduce/code/ not in local tree:"
         print "\n".join("\t%s" % filename for filename in spurious_files)
     if raw_input("Proceed? [y/N]: ").lower() not in ['y', 'yes']:
         return

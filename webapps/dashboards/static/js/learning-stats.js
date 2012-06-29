@@ -28,6 +28,13 @@ var Series = Backbone.Model.extend({
         callbacksCancelled: false
     },
 
+    initialize: function() {
+        this.on("change:results", function(model, results) {
+            // Compress the amount of space the results set take
+            model.attributes.results = model.groupResults(results);
+        });
+    },
+
     /**
      * Reset to prepare for a new chain of batch calls.
      */
@@ -60,7 +67,7 @@ var Series = Backbone.Model.extend({
             // A new batch request has been initiated or we've been asked to
             // cancel any callbacks. Abort.
             if (requestCount !== self.get("requestCount") ||
-                    self.get("callbacksCancelled")) {
+                    self.isCallbackCancelled()) {
                 return;
             }
 
@@ -68,9 +75,7 @@ var Series = Backbone.Model.extend({
             if (dataResults && dataResults.length) {
 
                 // Update with new data
-                var results = self.get("results");
-                results = results.concat(dataResults);
-                self.set("results", self.groupResults(results));
+                self.set("results", self.get("results").concat(dataResults));
 
             }
 
@@ -98,19 +103,25 @@ var Series = Backbone.Model.extend({
     },
 
     /**
-     * Whether any pending callbacks should be cancelled.
+     * Cancel any pending callbacks.
      */
     cancelCallbacks: function() {
         this.set("callbacksCancelled", true);
     },
 
+    /**
+     * @return {boolean} Whether any pending callbacks are to be cancelled.
+     */
+    isCallbackCancelled: function() {
+        return this.get("callbacksCancelled");
+    },
+
     // TODO(david): Would this be better as a static function on the class, or
     //     should it just manipulate this.attributes.results instead of taking
     //     in a param and returning?
-    // TODO(david): Always call this when setting results.
     /**
-     * Override this method to compact result rows from batch calls. Must be
-     * idempotent.
+     * Optionally override this method to compact result rows from batch calls.
+     * Must be idempotent.
      * @param {Array.<Object>} results Rows from Mongo collection.
      * @return {Array.<Object>} Grouped rows.
      */
@@ -161,6 +172,8 @@ var AccuracyGainSeries = Series.extend({
  */
 var SeriesView = Backbone.View.extend({
 
+    template: Handlebars.compile($("#series-filter-template").text()),
+
     // TODO(david): Do interesting things on hover over a series form.
     events: {
         "change .topics-select": "refresh",
@@ -181,11 +194,29 @@ var SeriesView = Backbone.View.extend({
 
     },
 
+    /**
+     * Override to give the template that should be inserted as series filter
+     * form contents.
+     * @return {function(context)} Template function to render form contents.
+     */
+    childTemplate: _.identity,
+
+    /**
+     * Override to give the template context.
+     */
+    getChildContext: _.identity,
+
     render: function() {
-        this.$el.html(this.template({
+        var context = _.extend({
             seriesName: this.chartSeries.name,
             stacksOptions: _.range(1, 21)
-        }));
+        }, this.getChildContext());
+
+        // This is my "poor man's" template inheritance in handlebars... the
+        // "base" template has a variable in the middle called 'content'
+        this.$el.html(this.template(_.extend(context, {
+            content: this.childTemplate(context)
+        })));
 
         // TODO(david): Color form background with series
         this.$("h2").css("color", this.chartSeries.color);
@@ -201,11 +232,11 @@ var SeriesView = Backbone.View.extend({
      */
     populateTopics: function() {
         var self = this;
-        // TODO(david): Filter out pseudo-topic "any"
         AjaxCache.getJson("/db/learning_stats_topics", {}, function(data) {
-            var options = _.map(data["topics"], function(topic) {
-                return $("<option>").text(topic)[0];
-            });
+            var options = _.chain(data["topics"])
+                .without("any")
+                .map(function(topic) { return $("<option>").text(topic)[0]; })
+                .value();
             self.$(".topics-select").append(options);
         });
     },
@@ -217,12 +248,12 @@ var SeriesView = Backbone.View.extend({
         var self = this;
         AjaxCache.getJson("/db/" + this.getCollectionName() + "/start_dates",
             {}, function(data) {
-                var options = _.map(data["start_dates"], function(start_date) {
+                var options = _.map(data["start_dates"], function(startDate) {
                     return $("<option>")
-                        .val(start_date)
-                        .text("the week of " + start_date)[0];
+                        .val(startDate)
+                        .text("the week of " + startDate)[0];
                 });
-                self.$el.find(".weeks-select").append(options);
+                self.$(".weeks-select").append(options);
             });
     },
 
@@ -234,14 +265,14 @@ var SeriesView = Backbone.View.extend({
         this.$(".request-pending-progress").show();
 
         var topic = this.$(".topics-select option:selected").val();
-        var start_date = this.$el.find(".weeks-select option:selected").val();
+        var startDate = this.$(".weeks-select option:selected").val();
         var url = this.getCollectionUrl() + "_find?callback=?";
 
         // TODO(david): Support date range selection
         var criteria = _.extend({
                 topic: topic
             },
-            start_date === "any" ? {} : { start_dt: start_date },
+            startDate === "any" ? {} : { start_dt: startDate },
             this.getFindCriteria());
 
         var params = {
@@ -277,7 +308,6 @@ var SeriesView = Backbone.View.extend({
         this.chartSeries.remove();
     },
 
-
     /**
      * Must override to update UI elements that show data series info, such as
      * the graph and sample counter.
@@ -290,7 +320,9 @@ var SeriesView = Backbone.View.extend({
      * Must override to
      * @return {String} The Mongo collection name for this series.
      */
-    getCollectionName: _.identity,
+    getCollectionName: function() {
+        throw "Not implemented";
+    },
 
     /**
      * Optionally override to specify additional criteria to fitler the mongo
@@ -300,7 +332,6 @@ var SeriesView = Backbone.View.extend({
     getFindCriteria: _.identity,
 
     /**
-     * Optionally override to
      * @return {string} The base URL of the Sleepy Mongoose MongoDB collection
      */
     getCollectionUrl: function() {
@@ -326,13 +357,23 @@ var SeriesView = Backbone.View.extend({
  */
 var AccuracyGainSeriesView = SeriesView.extend({
 
-    // TODO(david): Handlebars template should inherit from base
-    template: Handlebars.compile($("#accuracy-gain-form-template").text()),
-
     events: function() {
         return _.extend({}, SeriesView.prototype.events, {
             "change .stacks-select": "refresh",
         });
+    },
+
+    /** @override */
+    childTemplate: Handlebars.compile($("#accuracy-gain-template").text()),
+
+    /** @override */
+    getChildContext: function() {
+        // TODO(david): It would be nice if handlebars supported template
+        //     inheritance... then we don't have to stick presentation details
+        //     here in the JS.
+        return {
+            sampleType: "incremental gains"
+        };
     },
 
     /** @override */
@@ -379,7 +420,7 @@ var AccuracyGainSeriesView = SeriesView.extend({
         var totalDeltas = _.reduce(results, function(accum, row) {
             return accum + +row["num_deltas"];
         }, 0);
-        this.$(".total-deltas").text(totalDeltas);
+        this.$(".total-samples").text(totalDeltas);
 
     }
 
@@ -387,14 +428,15 @@ var AccuracyGainSeriesView = SeriesView.extend({
 
     modelClass: AccuracyGainSeries,
 
+    seriesName: "Accuracy Gain",
+
     seriesOptions: {
         // TODO(david): Bootstrap from 1st card % correct?
         pointStart: 0
     },
 
     yAxis: {
-        index: 1,
-        title: "Accumulated gain in accuracy"
+        title: { text: "Accumulated gain in accuracy" }
     }
 
 });
@@ -405,13 +447,20 @@ var AccuracyGainSeriesView = SeriesView.extend({
  */
 var UsersSeriesView = SeriesView.extend({
 
-    // TODO(david): Handlebars template should inherit from base
-    template: Handlebars.compile($("#retention-form-template").text()),
-
     events: function() {
         return _.extend({}, SeriesView.prototype.events, {
-            "change .yaxis-select": "updateSeries",
+            "change .users-select": "updateSeries",
         });
+    },
+
+    /** @override */
+    childTemplate: Handlebars.compile($("#accuracy-gain-template").text()),
+
+    /** @override */
+    getChildContext: function() {
+        return {
+            sampleType: "total attempts"
+        };
     },
 
     /** @override */
@@ -431,7 +480,7 @@ var UsersSeriesView = SeriesView.extend({
 
         var results = this.model.get("results");
 
-        var yaxisType = this.$el.find(".yaxis-select option:selected").val();
+        var yaxisType = this.$(".users-select option:selected").val();
         var normalizer = 1;
         if (yaxisType === "percent") {
             normalizer = _.chain(results)
@@ -452,11 +501,13 @@ var UsersSeriesView = SeriesView.extend({
         var totalAttempts = _.reduce(results, function(accum, row) {
             return accum + +row["num_attempts"];
         }, 0);
-        this.$el.find(".total-attempts").text(totalAttempts);
+        this.$(".total-samples").text(totalAttempts);
 
     }
 
 }, {
+
+    seriesName: "Unique users",
 
     seriesOptions: {
         type: "spline",
@@ -467,21 +518,27 @@ var UsersSeriesView = SeriesView.extend({
     },
 
     yAxis: {
-        index: 0,
-        title: "Unique users",
+        title: { text: "Unique users" },
+        min: 0
     }
 
 });
 
 
-// TODO(david): Similar code with UsersSeriesView. Could inherit.
 /**
  * View for the percent correct series.
  */
 var PercentCorrectSeriesView = SeriesView.extend({
 
-    // TODO(david): Handlebars template should inherit from base
-    template: Handlebars.compile($("#percent-correct-form-template").text()),
+    /** @override */
+    childTemplate: Handlebars.compile($("#percent-correct-template").text()),
+
+    /** @override */
+    getChildContext: function() {
+        return {
+            sampleType: "total attempts"
+        };
+    },
 
     /** @override */
     getCollectionName: function() {
@@ -509,11 +566,13 @@ var PercentCorrectSeriesView = SeriesView.extend({
         var totalAttempts = _.reduce(results, function(accum, row) {
             return accum + +row["num_attempts"];
         }, 0);
-        this.$el.find(".total-attempts").text(totalAttempts);
+        this.$(".total-samples").text(totalAttempts);
 
     }
 
 }, {
+
+    seriesName: "Percent correct",
 
     seriesOptions: {
         type: "spline",
@@ -521,12 +580,12 @@ var PercentCorrectSeriesView = SeriesView.extend({
     },
 
     yAxis: {
-        index: 2,
-        title: "Percent correct",
+        title: { text: "Percent correct" },
+        min: 0,
+        max: 1
     }
 
 });
-
 
 
 /**
@@ -552,13 +611,9 @@ var DashboardView = Backbone.View.extend({
      */
     createChart: function() {
 
-        // I can't find a way to dynamically add a Y-axis to HighCharts, so
-        // we'll just pre-fill with a bunch of empty ones.
-        var emptyAxes = _.map(_.range(0, 10), function(i) {
-            return {
-                title: { text: null },
-                opposite: !!(i % 2)
-            };
+        // Highcharts can't dynamically add axes so pre-fill with empty axes
+        var emptyAxes = _.map(_.range(0, 20), function(index) {
+            return { title: { text: null }, opposite: !!(index % 2) };
         });
 
         var chartOptions = {
@@ -581,18 +636,7 @@ var DashboardView = Backbone.View.extend({
             title: {
                 text: null
             },
-            // TODO(david): Should get these properties from the classes
-            yAxis: [{
-                title: { text: null },
-                min: 0
-            }, {
-                title: { text: null }
-            }, {
-                title: { text: null },
-                opposite: true,
-                min: 0,
-                max: 1
-            }],
+            yAxis: emptyAxes,
             xAxis: {
                 title: { text: "Card Number" },
                 min: 0,
@@ -629,15 +673,22 @@ var DashboardView = Backbone.View.extend({
     addSeries: function(seriesViewConstructor) {
 
         var seriesNum = DashboardView.numSeries++;
-        // TODO(david): Should fail to a default
-        var axisOptions = seriesViewConstructor.yAxis;
-        var seriesName = "Series " + (seriesNum + 1);
+        var axisOptions = seriesViewConstructor.yAxis || { index: 0 };
+        var seriesName = "Series " + (seriesNum + 1) + " - " +
+            seriesViewConstructor.seriesName;
+
+        var yAxisIndex =_.indexOf(DashboardView.yAxesNames,
+            seriesViewConstructor.seriesName);
+        if (yAxisIndex === -1) {
+            yAxisIndex = DashboardView.yAxesNames.length;
+            DashboardView.yAxesNames.push(seriesViewConstructor.seriesName);
+        }
 
         this.chart.addSeries(_.extend({
             data: [],
             type: "areaspline",
             name: seriesName,
-            yAxis: axisOptions.index
+            yAxis: yAxisIndex
         }, seriesViewConstructor.seriesOptions));
 
         // Unfortunately, HighCharts 2.2.5 has a bug where calling addSeries
@@ -646,11 +697,14 @@ var DashboardView = Backbone.View.extend({
             return series.name === seriesName;
         });
 
-        // Unfortunately, Highcharts 2.2.5 has a bug where setting the title
-        // again will not erase the old one.
-        var yAxis = this.chart.yAxis[axisOptions.index];
+        var yAxis = this.chart.yAxis[yAxisIndex];
         if (!yAxis.options.title || !yAxis.options.title.text) {
-            yAxis.setTitle({ text: axisOptions.title });
+            // Unfortunately, Highcharts 2.2.5 has a bug where setting the title
+            // again will not erase the old one.
+            yAxis.setTitle(axisOptions.title);
+        }
+        if (_.has(axisOptions, 'min') || _.has(axisOptions, 'max')) {
+            yAxis.setExtremes(axisOptions.min, axisOptions.max);
         }
 
         var series = new seriesViewConstructor.modelClass();
@@ -666,12 +720,28 @@ var DashboardView = Backbone.View.extend({
 
 }, {
 
-    numSeries: 0
+    numSeries: 0,
+
+    yAxesNames: []
 
 });
 
 
+/**
+ * Register all handlebars partials on the page.
+ */
+var registerHandlebarsPartials = function registerHandlebarsPartials() {
+    $("#handlebars-partials script[type='text/x-handlebars-template']").each(
+        function(index, elem) {
+            var $elem = $(elem);
+            Handlebars.registerPartial($elem.attr("id"), $elem.text());
+        }
+    );
+};
+
+
 $(function() {
+    registerHandlebarsPartials();
     var dashboard = new DashboardView();
 });
 
