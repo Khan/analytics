@@ -454,7 +454,7 @@ var UsersSeriesView = SeriesView.extend({
     },
 
     /** @override */
-    childTemplate: Handlebars.compile($("#accuracy-gain-template").text()),
+    childTemplate: Handlebars.compile($("#retention-template").text()),
 
     /** @override */
     getChildContext: function() {

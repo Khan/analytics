@@ -1,11 +1,7 @@
 /* TODO(david): Ensure this conforms to Khan's CSS guidelines, or use LESS. */
 
-#add-series-buttons {
-    opacity: 0.7;
-}
-
-#add-series-buttons:hover {
-    opacity: 1.0;
+body {
+    background: white url(/static/img/third_party/bg-white.png);
 }
 
 .alert-gray {
