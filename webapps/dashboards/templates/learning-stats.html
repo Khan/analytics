@@ -24,20 +24,29 @@
 
         <div class="row">
             <div class="span12">
-                <p>
-                    <div id="add-series-buttons" class="btn-group">
-                        <a class="btn dropdown-toggle" data-toggle="dropdown">
-                            <i class="icon-plus"></i> Add series...
-                            <span class="caret"></span>
-                        </a>
-                        <ul class="dropdown-menu">
-                            <li><a data-series="users">Users</a></li>
-                            <li><a data-series="percentCorrect">Percent correct</a></li>
-                            <li><a data-series="gain">Accuracy Gains</a></li>
-                        </ul>
+                <form class="form-horizontal">
+                    <div class="control-group">
+                        <label class="control-label">
+                            <i class="icon-plus"></i> <strong>Add series:</strong>
+                        </label>
+                        <div class="controls">
+                            <div id="add-series-buttons" class="btn-group">
+                                <button data-series="users" class="btn">
+                                    <i class="icon-user"></i>
+                                    User retention
+                                </button>
+                                <button data-series="percentCorrect" class="btn">
+                                    <i class="icon-ok"></i>
+                                    Percent correct
+                                </button>
+                                <button data-series="gain" class="btn">
+                                    <i class="icon-chevron-up"></i>
+                                    Accuracy gains
+                                </button>
+                            </div>
+                        </div>
                     </div>
-
-                </p>
+                </form>
             </div>
         </div>
 

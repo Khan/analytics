@@ -597,7 +597,7 @@ var DashboardView = Backbone.View.extend({
     el: "body",
 
     events: {
-        "click #add-series-buttons .dropdown-menu a": "addSeriesHandler"
+        "click #add-series-buttons .btn": "addSeriesHandler"
     },
 
     initialize: function() {
@@ -655,7 +655,9 @@ var DashboardView = Backbone.View.extend({
      * @param {Object} event
      */
     addSeriesHandler: function(event) {
-        var seriesType = $(event.target).data("series");
+        event.preventDefault();
+
+        var seriesType = $(event.currentTarget).data("series");
         var seriesConstructor = {
             gain: AccuracyGainSeriesView,
             users: UsersSeriesView,
@@ -673,7 +675,7 @@ var DashboardView = Backbone.View.extend({
     addSeries: function(seriesViewConstructor) {
 
         var seriesNum = DashboardView.numSeries++;
-        var axisOptions = seriesViewConstructor.yAxis || { index: 0 };
+        var axisOptions = seriesViewConstructor.yAxis || {};
         var seriesName = "Series " + (seriesNum + 1) + " - " +
             seriesViewConstructor.seriesName;
 
