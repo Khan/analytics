@@ -28,6 +28,13 @@ var Series = Backbone.Model.extend({
         callbacksCancelled: false
     },
 
+    initialize: function() {
+        this.on("change:results", function(model, results) {
+            // Compress the amount of space the results set take
+            model.attributes.results = model.groupResults(results);
+        });
+    },
+
     /**
      * Reset to prepare for a new chain of batch calls.
      */
@@ -60,7 +67,7 @@ var Series = Backbone.Model.extend({
             // A new batch request has been initiated or we've been asked to
             // cancel any callbacks. Abort.
             if (requestCount !== self.get("requestCount") ||
-                    self.get("callbacksCancelled")) {
+                    self.isCallbackCancelled()) {
                 return;
             }
 
@@ -68,9 +75,7 @@ var Series = Backbone.Model.extend({
             if (dataResults && dataResults.length) {
 
                 // Update with new data
-                var results = self.get("results");
-                results = results.concat(dataResults);
-                self.set("results", self.groupResults(results));
+                self.set("results", self.get("results").concat(dataResults));
 
             }
 
@@ -98,19 +103,25 @@ var Series = Backbone.Model.extend({
     },
 
     /**
-     * Whether any pending callbacks should be cancelled.
+     * Cancel any pending callbacks.
      */
     cancelCallbacks: function() {
         this.set("callbacksCancelled", true);
     },
 
+    /**
+     * @return {boolean} Whether any pending callbacks are to be cancelled.
+     */
+    isCallbackCancelled: function() {
+        return this.get("callbacksCancelled");
+    },
+
     // TODO(david): Would this be better as a static function on the class, or
     //     should it just manipulate this.attributes.results instead of taking
     //     in a param and returning?
-    // TODO(david): Always call this when setting results.
     /**
-     * Override this method to compact result rows from batch calls. Must be
-     * idempotent.
+     * Optionally override this method to compact result rows from batch calls.
+     * Must be idempotent.
      * @param {Array.<Object>} results Rows from Mongo collection.
      * @return {Array.<Object>} Grouped rows.
      */
@@ -191,7 +202,7 @@ var SeriesView = Backbone.View.extend({
     childTemplate: _.identity,
 
     /**
-     * Override to give the context
+     * Override to give the template context.
      */
     getChildContext: _.identity,
 
@@ -221,11 +232,11 @@ var SeriesView = Backbone.View.extend({
      */
     populateTopics: function() {
         var self = this;
-        // TODO(david): Filter out pseudo-topic "any"
         AjaxCache.getJson("/db/learning_stats_topics", {}, function(data) {
-            var options = _.map(data["topics"], function(topic) {
-                return $("<option>").text(topic)[0];
-            });
+            var options = _.chain(data["topics"])
+                .without("any")
+                .map(function(topic) { return $("<option>").text(topic)[0]; })
+                .value();
             self.$(".topics-select").append(options);
         });
     },
@@ -297,7 +308,6 @@ var SeriesView = Backbone.View.extend({
         this.chartSeries.remove();
     },
 
-
     /**
      * Must override to update UI elements that show data series info, such as
      * the graph and sample counter.
@@ -310,7 +320,9 @@ var SeriesView = Backbone.View.extend({
      * Must override to
      * @return {String} The Mongo collection name for this series.
      */
-    getCollectionName: _.identity,
+    getCollectionName: function() {
+        throw "Not implemented";
+    },
 
     /**
      * Optionally override to specify additional criteria to fitler the mongo
@@ -320,7 +332,6 @@ var SeriesView = Backbone.View.extend({
     getFindCriteria: _.identity,
 
     /**
-     * Optionally override to
      * @return {string} The base URL of the Sleepy Mongoose MongoDB collection
      */
     getCollectionUrl: function() {
@@ -425,8 +436,7 @@ var AccuracyGainSeriesView = SeriesView.extend({
     },
 
     yAxis: {
-        index: 1,
-        title: "Accumulated gain in accuracy"
+        title: { text: "Accumulated gain in accuracy" }
     }
 
 });
@@ -508,14 +518,13 @@ var UsersSeriesView = SeriesView.extend({
     },
 
     yAxis: {
-        index: 0,
-        title: "Unique users",
+        title: { text: "Unique users" },
+        min: 0
     }
 
 });
 
 
-// TODO(david): Similar code with UsersSeriesView. Could inherit.
 /**
  * View for the percent correct series.
  */
@@ -553,7 +562,7 @@ var PercentCorrectSeriesView = SeriesView.extend({
 
         this.chartSeries.setData(numAttemptsSeries);
 
-        // TODO(david): A bit of duplicated code here XXX
+        // TODO(david): A bit of duplicated code here
         var totalAttempts = _.reduce(results, function(accum, row) {
             return accum + +row["num_attempts"];
         }, 0);
@@ -571,8 +580,9 @@ var PercentCorrectSeriesView = SeriesView.extend({
     },
 
     yAxis: {
-        index: 2,
-        title: "Percent correct",
+        title: { text: "Percent correct" },
+        min: 0,
+        max: 1
     }
 
 });
@@ -601,6 +611,11 @@ var DashboardView = Backbone.View.extend({
      */
     createChart: function() {
 
+        // Highcharts can't dynamically add axes so pre-fill with empty axes
+        var emptyAxes = _.map(_.range(0, 20), function(index) {
+            return { title: { text: null }, opposite: !!(index % 2) };
+        });
+
         var chartOptions = {
             chart: {
                 renderTo: "highcharts-graph"
@@ -621,18 +636,7 @@ var DashboardView = Backbone.View.extend({
             title: {
                 text: null
             },
-            // TODO(david): Should get these properties from the classes
-            yAxis: [{
-                title: { text: null },
-                min: 0
-            }, {
-                title: { text: null }
-            }, {
-                title: { text: null },
-                opposite: true,
-                min: 0,
-                max: 1
-            }],
+            yAxis: emptyAxes,
             xAxis: {
                 title: { text: "Card Number" },
                 min: 0,
@@ -669,16 +673,22 @@ var DashboardView = Backbone.View.extend({
     addSeries: function(seriesViewConstructor) {
 
         var seriesNum = DashboardView.numSeries++;
-        // TODO(david): Should fail to a default
-        var axisOptions = seriesViewConstructor.yAxis;
+        var axisOptions = seriesViewConstructor.yAxis || { index: 0 };
         var seriesName = "Series " + (seriesNum + 1) + " - " +
             seriesViewConstructor.seriesName;
+
+        var yAxisIndex =_.indexOf(DashboardView.yAxesNames,
+            seriesViewConstructor.seriesName);
+        if (yAxisIndex === -1) {
+            yAxisIndex = DashboardView.yAxesNames.length;
+            DashboardView.yAxesNames.push(seriesViewConstructor.seriesName);
+        }
 
         this.chart.addSeries(_.extend({
             data: [],
             type: "areaspline",
             name: seriesName,
-            yAxis: axisOptions.index
+            yAxis: yAxisIndex
         }, seriesViewConstructor.seriesOptions));
 
         // Unfortunately, HighCharts 2.2.5 has a bug where calling addSeries
@@ -687,11 +697,14 @@ var DashboardView = Backbone.View.extend({
             return series.name === seriesName;
         });
 
-        // Unfortunately, Highcharts 2.2.5 has a bug where setting the title
-        // again will not erase the old one.
-        var yAxis = this.chart.yAxis[axisOptions.index];
+        var yAxis = this.chart.yAxis[yAxisIndex];
         if (!yAxis.options.title || !yAxis.options.title.text) {
-            yAxis.setTitle({ text: axisOptions.title });
+            // Unfortunately, Highcharts 2.2.5 has a bug where setting the title
+            // again will not erase the old one.
+            yAxis.setTitle(axisOptions.title);
+        }
+        if (_.has(axisOptions, 'min') || _.has(axisOptions, 'max')) {
+            yAxis.setExtremes(axisOptions.min, axisOptions.max);
         }
 
         var series = new seriesViewConstructor.modelClass();
@@ -707,7 +720,9 @@ var DashboardView = Backbone.View.extend({
 
 }, {
 
-    numSeries: 0
+    numSeries: 0,
+
+    yAxesNames: []
 
 });
 
