@@ -37,19 +37,26 @@ class TestOAuthClient(object):
 
         return OAuthToken.from_string(response)
 
-    def access_resource(self, relative_url, access_token, method="GET"):
+    def access_resource(self,
+                        relative_url,
+                        access_token,
+                        method="GET",
+                        params=None):
 
         full_url = self.server_url + relative_url
         url = urlparse.urlparse(full_url)
-        query_params = cgi.parse_qs(url.query)
-        for key in query_params:
-            query_params[key] = query_params[key][0]
+        full_params = cgi.parse_qs(url.query)
+        for key in full_params:
+            full_params[key] = full_params[key][0]
+
+        if params:
+            full_params.update(params)
 
         oauth_request = OAuthRequest.from_consumer_and_token(
                 self.consumer,
                 token = access_token,
                 http_url = full_url,
-                parameters = query_params,
+                parameters = full_params,
                 http_method=method
                 )
 
