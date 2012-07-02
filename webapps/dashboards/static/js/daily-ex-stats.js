@@ -43,7 +43,7 @@ $(document).ready(function() {
     var BUTTON_TEXT_COMPLICATE = "I'm not nearly confused enough.  Give me more power!";
     var BUTTON_TEXT_SIMPLIFY = "Too. Much. Power.  Make it simpler!";
 
-    var BASE_STAT_SERVER_URL = "http://184.73.72.110:28017/";
+    var BASE_STAT_SERVER_URL = "http://107.21.23.204:28017/";
 
     var chart;
     var setExChart = function() {

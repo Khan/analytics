@@ -10,7 +10,7 @@
 
 
 // TODO(david): Shared data fetcher.
-var BASE_STAT_SERVER_URL = "http://184.73.72.110:27080/";
+var BASE_STAT_SERVER_URL = "http://107.21.23.204:27080/";
 
 
 // TODO(david): Do I need to document in the JSDoc here what method can be

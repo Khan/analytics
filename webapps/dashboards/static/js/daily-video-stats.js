@@ -80,7 +80,7 @@ VideoStats.refreshEngagementSummary = function() {
     var today = new Date(2012, 3, 22);
     var ranges = VideoStats.generateDateRanges(type, today, nRanges);
 
-    var BASE_STAT_SERVER_URL = "http://184.73.72.110:27080/";
+    var BASE_STAT_SERVER_URL = "http://107.21.23.204:27080/";
     var url = BASE_STAT_SERVER_URL + "report/user_video_distribution/_find?callback=?";
     var deferreds = [];
     // TODO(benkomalo): deal with phantom users!
@@ -244,7 +244,7 @@ VideoStats.renderEnagementTables = function(ranges, type) {
 VideoStats.refreshDailyActivity = function() {
     // TODO(benkomalo): consolidate this with the server info in
     // daily-ex-stats.js (maybe abstract to a data fetcher)
-    var BASE_STAT_SERVER_URL = "http://184.73.72.110:27080/";
+    var BASE_STAT_SERVER_URL = "http://107.21.23.204:27080/";
 
     var url = BASE_STAT_SERVER_URL +
             "report/daily_video_stats/_find?callback=?";
