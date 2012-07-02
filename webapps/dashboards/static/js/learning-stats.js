@@ -507,7 +507,7 @@ var UsersSeriesView = SeriesView.extend({
 
 }, {
 
-    seriesName: "Unique users",
+    seriesName: "User retention",
 
     seriesOptions: {
         type: "spline",
@@ -518,7 +518,7 @@ var UsersSeriesView = SeriesView.extend({
     },
 
     yAxis: {
-        title: { text: "Unique users" },
+        title: { text: "User retention" },
         min: 0
     }
 

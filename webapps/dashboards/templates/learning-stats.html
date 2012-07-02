@@ -24,7 +24,7 @@
 
         <div class="row">
             <div class="span12">
-                <form class="form-horizontal">
+                <form class="form-horizontal" action="">
                     <div class="control-group">
                         <label class="control-label">
                             <i class="icon-plus"></i> <strong>Add series:</strong>
@@ -41,7 +41,7 @@
                                 </button>
                                 <button data-series="gain" class="btn">
                                     <i class="icon-chevron-up"></i>
-                                    Accuracy gains
+                                    Accuracy gain
                                 </button>
                             </div>
                         </div>
@@ -91,7 +91,7 @@
             </div>
         </div>
 
-        <h2>Learning Efficiency <small>(Gain in accuracy)</small></h2>
+        <h2>Learning efficiency <small>(Gain in accuracy)</small></h2>
         <div class="row">
             <div class="span4">
                 <h3>How is data collected?</h3>
@@ -167,14 +167,14 @@
                     accumulated gains would mix these populations and may show
                     increasing gains in the first 2 stacks as well as after
                     that, due to, respectively, the fast and slow learner.
-                <p>
                 </p>
+                <p>
                     However, for just comparing across different segments, this
                     is probably too fine grained and it may be OK to mix slow
                     and fast learners when just comparing between curves.
                 </p>
             </div>
-            <div class="span4">
+            <div class="span12">
                 <h3>These curves are not very smooth or increasing</h3>
                 <p>
                     We're (Jace and David) investigating that. The data drop-off
@@ -183,25 +183,58 @@
                     which will hopefully complement this.
                 </p>
             </div>
-            <div class="span8">
-                <h3>What's next?</h3>
-                <p>
-                    Too much. See my <a href="https://trello.com/card/learning-curves-talk-to-jace/4f9f3469a81e7053712b88ad/72">Trello card</a>
-                    and <a href="https://docs.google.com/a/khanacademy.org/document/d/1kYBq86n-FuJmq94Fjguy71AV8MIZs0t3KSalTIxDXPw/edit">Jace's notes</a>.
-                    In particular, actually segmenting by users (experiments
-                    they're in, coached or not, etc.), retention/engagement
-                    graphs, bucketing by time taken, and world domination.
+        </div>
 
-                    <br>
-                    TODO(david): Just did % correct and retention, now document those!
+        <h2>Other graphs</h2>
+        <div class="row">
+            <div class="span4">
+                <h3>Percent correct</h3>
+                <p>
+                    At every card number, we simply graph the percent of
+                    responses that were correct on their first attempt.
+                    Currently, we don't use the random analytics cards here that
+                    we use in accuracy gains. TODO(david): Use the random
+                    analytics cards for the same reason we use it for accuracy
+                    gains and to make comparisons with accuracy gain graphs more
+                    meaningful.
                 </p>
             </div>
+            <div class="span8">
+                <h3>User retention</h3>
+                <p>
+                    At every card number, we graph how many users have done that
+                    card. We look at every problem attempt without filtering for
+                    just the random analytics cards (as we do for accuracy
+                    gains).
+                </p>
+                <p>
+                    Fine, you say, but what about students who finish a topic
+                    because they became proficient in all skills? How can you
+                    measure retention if the graph shows both students who gave
+                    up and students who have completed a topic? Well, these
+                    graphs are really designed to only meet one use case:
+                    comparing alternatives within a single topic. Everything
+                    else is off-label use. :)
+
+                </p>
+            </div>
+        </div>
+
+        <h2>What's next?</h2>
+        <div class="row">
+            <p class="span12">
+                Too much. See my <a href="https://trello.com/card/learning-curves-talk-to-jace/4f9f3469a81e7053712b88ad/72">Trello card</a>
+                and <a href="https://docs.google.com/a/khanacademy.org/document/d/1kYBq86n-FuJmq94Fjguy71AV8MIZs0t3KSalTIxDXPw/edit">Jace's notes</a>.
+                In particular, actually segmenting by users (experiments
+                they're in, coached or not, etc.), bucketing by time taken, and
+                world domination.
+            </p>
         </div>
     </section>
 </div>
 
 {% raw %}
-{{! TODO(david): This should probably go in its own file? }}
+<!-- TODO(david): This should probably go in its own file? -->
 <div id="handlebars-partials">
 
 <script type="text/x-handlebars-template" id="stacks-select-partial">
