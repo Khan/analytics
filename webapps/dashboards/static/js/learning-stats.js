@@ -209,7 +209,7 @@ var SeriesView = Backbone.View.extend({
     render: function() {
         var context = _.extend({
             seriesName: this.chartSeries.name,
-            stacksOptions: _.range(1, 21)
+            stacksOptions: _.range(1, 41)
         }, this.getChildContext());
 
         // This is my "poor man's" template inheritance in handlebars... the
@@ -359,8 +359,24 @@ var AccuracyGainSeriesView = SeriesView.extend({
 
     events: function() {
         return _.extend({}, SeriesView.prototype.events, {
-            "change .stacks-select": "refresh",
+            "change .stacks-select": "changeNumStacks",
+            "click .comparison-op": "changeComparison"
         });
+    },
+
+    changeNumStacks: function() {
+        var numStacks = this.$(".stacks-select").val();
+        this.$(".comparison-op").toggle(numStacks !== "any");
+        this.refresh();
+    },
+
+    changeComparison: function() {
+        var $op = this.$(".comparison-op");
+        var operator = $op.text();
+        var choices = ["exactly", "at least", "no more than"];
+        var next = choices[(_.indexOf(choices, operator) + 1) % choices.length];
+        $op.text(next);
+        this.refresh();
     },
 
     /** @override */
@@ -379,9 +395,22 @@ var AccuracyGainSeriesView = SeriesView.extend({
     /** @override */
     getFindCriteria: function() {
         var numStacks = this.$(".stacks-select").val();
+        var operator = this.$(".comparison-op").text();
+
+        var numDoneVal = {};
+        if (numStacks === "any") {
+            numDoneVal['$lte'] = 160;
+        } else {
+            var numCards = numStacks * 8;  // TODO(david): Not always true
+            numDoneVal = {
+                "exactly": numCards,
+                "at least": { "$gte": numCards },
+                "no more than": { "$lte": numCards }
+            }[operator];
+        }
+
         return {
-            num_problems_done: numStacks === "any" ? { $lte: 160 } :
-                numStacks * 8,
+            num_problems_done: numDoneVal
         };
     },
 

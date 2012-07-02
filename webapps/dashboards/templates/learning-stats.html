@@ -238,10 +238,11 @@
 <div id="handlebars-partials">
 
 <script type="text/x-handlebars-template" id="stacks-select-partial">
+<a class="comparison-op" href="#" style="display: none;">exactly</a>
 <select class="stacks-select">
-    <option value="any">any number of</option>
+    <option value="any">any # of</option>
     {{#each stacksOptions}}
-        <option value="{{.}}">exactly {{.}}</option>
+        <option value="{{.}}">{{.}}</option>
     {{/each}}
 </select>
 </script>

@@ -9,3 +9,7 @@ body {
     color: #333;
     border-color: #ddd;
 }
+
+.stacks-select {
+    width: 80px;
+}
