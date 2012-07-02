@@ -92,19 +92,38 @@ def files_in_tree():
     return files
 
 
-def files_in_prod():
+def _get_branch_dirname(branch=""):
+    dirname = 'code/'
+    if branch:
+        if branch.endswith('/'):
+            dirname += branch
+        else:
+            dirname += branch + '/'
+    return dirname
+
+
+def files_in_prod(branch=""):
     """Collects names of code files in ka-mapreduce S3 code bucket."""
 
     s3conn = boto.connect_s3()
     bucket = s3conn.get_bucket('ka-mapreduce')
     extensions_allowed = ['py', 'q']
 
-    dirname = 'code/'
+    dirname = _get_branch_dirname(branch)
+
     files = []
     for key in bucket.list(prefix=dirname):
         name = key.name[len(dirname):]
-        if name.startswith('dev/'):
-            # Skip dev files - we don't care about them in the deploy process
+        # TODO(benkomalo): Maybe we should have code/prod/ and code/dev.
+        # As it is, "prod" is just under "ka-mapreduce/code/" and "dev" is
+        # under "ka-mapreduce/code/dev", but we may have other branches
+        # So it'll be weird with prod being in the top level, and other
+        # branches underneath.
+
+        if not branch and (name.startswith('dev/') or
+                           name.startswith('branch-')):
+            # Skip dev or branch subdirs - we don't care about
+            # them in the deploy process of the top level main branch.
             continue
         if not any(name.endswith('.' + ext) for ext in extensions_allowed):
             # Don't care about unknown files.
@@ -114,12 +133,10 @@ def files_in_prod():
     return files
 
 
-def copy_files_to_prod(filenames, subdir=None):
+def copy_files_to_prod(filenames, branch=None):
     """Copies all given files to ka-mapreduce S3 code bucket"""
 
-    dirname = 'code/'
-    if subdir:
-        dirname += subdir
+    dirname = _get_branch_dirname(branch)
 
     s3conn = boto.connect_s3()
     bucket = s3conn.get_bucket('ka-mapreduce')
@@ -146,16 +163,17 @@ def summarize_changes(replaced_files, new_files, spurious_files):
     spurious_files_warning = ""
     if spurious_files:
         spurious_files_warning = (
-            "(%(num_unknown)d files on S3 but not in codebase)" %
-            len(spurious_files))
+            "(%d files on S3 but not in codebase)" % len(spurious_files))
 
-    return ("%(num_replaced)d updated files, %(num_new)d new files. " +
-            spurious_files_warning +
-            " (note - no timestamp checking is done. files are always " +
-            "pushed if they exist in the local tree)") % args
+    return (("%(num_replaced)d updated files, %(num_new)d new files. " +
+             spurious_files_warning +
+             " (note - no timestamp checking is done. files are always " +
+             "pushed if they exist in the local tree)")
+             % args)
 
 
-def send_hipchat_deploy_message(replaced_files, new_files, spurious_files):
+def send_hipchat_deploy_message(
+        replaced_files, new_files, spurious_files, dest_path):
     """Send a summary of the deploy information to HipChat."""
 
     git_version = parse_git_version()
@@ -176,11 +194,13 @@ def send_hipchat_deploy_message(replaced_files, new_files, spurious_files):
         'version_stamp': git_version_stamp,
         'git_msg': git_msg,
         'github_url': github_url,
+        'dest_path': dest_path,
         'summary': summarize_changes(replaced_files,
                                      new_files,
                                      spurious_files),
     }
     message = ("%(deployer)s just deployed files to S3.<br>" +
+               "Destination: %(dest_path)s<br>" +
                "Version: <a href='%(github_url)s'>%(version_stamp)s</a> " +
                "- %(git_msg)s<br>" +
                "%(summary)s") % args
@@ -189,9 +209,9 @@ def send_hipchat_deploy_message(replaced_files, new_files, spurious_files):
 
 
 # TODO(benkomalo): wire up options for subdirectory to deploy to (for testing)
-def do_deploy(verbose):
+def do_deploy(verbose, branch=""):
     in_tree = set(files_in_tree())
-    in_prod = set(files_in_prod())
+    in_prod = set(files_in_prod(branch))
     new_files = in_tree - in_prod
     replaced_files = in_prod & in_tree
     spurious_files = in_prod - in_tree
@@ -202,17 +222,19 @@ def do_deploy(verbose):
 
     files_to_push = new_files | replaced_files
 
-    print "About to deploy with the following changes:"
+    dest_path = "s3://ka-mapreduce/code/%s" % branch
+    print "About to deploy to [%s] with the following changes:" % dest_path
     print summarize_changes(replaced_files, new_files, spurious_files)
     if verbose and spurious_files:
-        print "\nFiles in s3://ka-mapreduce/code/ not in local tree:"
+        print "\nFiles in %s not in local tree:" % dest_path
         print "\n".join("\t%s" % filename for filename in spurious_files)
     if raw_input("Proceed? [y/N]: ").lower() not in ['y', 'yes']:
         return
 
-    copy_files_to_prod(files_to_push)
+    copy_files_to_prod(files_to_push, branch)
     print "Done!"
-    send_hipchat_deploy_message(replaced_files, new_files, spurious_files)
+    send_hipchat_deploy_message(
+            replaced_files, new_files, spurious_files, dest_path)
 
 
 if __name__ == '__main__':
@@ -220,6 +242,10 @@ if __name__ == '__main__':
     parser.add_option('-v', '--verbose',
         action="store_true", dest="verbose",
         help="Print more information during the deploy process")
+    parser.add_option('-b', '--branch',
+        default="",
+        help=("The branch to deploy to. By default, no branch is specified "
+              "implying that the default production branch is used"))
 
     options, args = parser.parse_args()
-    do_deploy(options.verbose)
+    do_deploy(options.verbose, options.branch)

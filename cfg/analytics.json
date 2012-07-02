@@ -15,7 +15,7 @@
                 "port": 12345
             },
             "reporting": {
-                "host": "184.73.72.110",  # currently on ka-backup
+                "host": "107.21.23.204",  # reporting database
                 "port": 27017
             } 
         }

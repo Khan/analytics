@@ -19,7 +19,7 @@ app = flask.Flask(__name__)
 
 # TODO(david): Allow specifying db params via cmd line args, and/or use
 #     cfg/analytics.json for defaults.
-db = pymongo.Connection('184.73.72.110')
+db = pymongo.Connection('107.21.23.204')
 
 
 @app.route('/')

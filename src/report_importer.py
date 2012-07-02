@@ -194,7 +194,7 @@ def parse_command_line_args():
               'you may have duplicate data if you re-import)'))
     # TODO(benkomalo): add in a flag to delete existing data.
     parser.add_option('--report_db_host',
-        default='184.73.72.110',
+        default='107.21.23.204',
         help='The hostname of the reporting db')
     parser.add_option('--report_db_port',
         default=None,
