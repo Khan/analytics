@@ -21,7 +21,7 @@ update the contents of oauth_util/access_token.py on this machine.
 """)
 
 
-def fetch_url(url_path, post_params):
+def fetch_url(url_path, post_params=None):
     """url_path is like '/api/v1/users'.  Hostname is taken from consts.py."""
     client = test_oauth_client.TestOAuthClient(
         consts.SERVER_URL, consts.CONSUMER_KEY, consts.CONSUMER_SECRET)
