@@ -18,3 +18,9 @@ Handlebars.registerHelper("percentify", function(num) {
     return value + "%";
 });
 
+/**
+ * Formats a number to a fixed number of decimal places.
+ */
+Handlebars.registerHelper("fixedPlaces", function(num, options) {
+    return Number(num).toFixed(options.hash.digits || 0);
+});
