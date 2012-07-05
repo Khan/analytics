@@ -57,6 +57,37 @@
                 </div>
             </div>
         </div>
+
+        <div class="row">
+            <div class="span12">
+                <table id="supplemental-data-table" class="table table-striped table-bordered">
+                    <thead>
+                        <tr>
+                            <th rowspan="2">Series</th>
+                            <th rowspan="2">Topic</th>
+                            <th rowspan="2">Week of</th>
+                            <th rowspan="2">Segment</th>
+                            <th rowspan="2"># Users</th>
+                            <th rowspan="2">Cards / user</th>
+                            <th rowspan="2">Mins / user</th>
+                            <th colspan="2">1st card % correct</th>
+                            <th colspan="2">All cards % correct</th>
+                            <th colspan="2">Accuracy Gain</th>
+                        </tr>
+                        <tr>
+                            <th>All</th>
+                            <th>Randomized</th>
+                            <th>All</th>
+                            <th>Randomized</th>
+                            <th>Per user</th>
+                            <th>Total System</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    </tbody>
+                </table>
+            </div>
+        </div>
     </section>
 
     <section>
@@ -307,6 +338,22 @@ me the {{>users-select-partial}} over card number.
 For stacks done in {{>topics-select-partial}} in {{>weeks-select-partial}} show
 me percent correct over card number.
 </script>
+
+<script type="text/x-handlebars-template" id="supplemental-data-row">
+<td><nobr><strong>{{{series}}}</strong></nobr></td>
+<td>{{topic}}</td>
+<td><nobr>{{startDate}}</nobr></td>
+<td>{{segment}}</td>
+<td>{{users}}</td>
+<td>{{fixedPlaces cardsPerUser digits="1"}}</td>
+<td>{{fixedPlaces minutesPerUser digits="1"}}</td>
+<td>{{percentify firstCardAccuracyAll}}</td>
+<td>{{percentify firstCardAccuracyRandomized}}</td>
+<td>{{percentify allCardsAccuracy}}</td>
+<td>{{percentify randomizedCardsAccuracy}}</td>
+<td>{{fixedPlaces gainPerUser digits="3"}}</td>
+<td>{{fixedPlaces totalGain}}</td>
+</script>
 {% endraw %}
 
 <!-- Third-party libraries -->
@@ -318,6 +365,7 @@ me percent correct over card number.
 <script src="static/js/third_party/bootstrap-dropdown.js"></script>
 
 <script src="static/js/ajax-cache.js"></script>
+<script src="static/js/handlebars-helpers.js"></script>
 
 <!-- Main entry point -->
 <script src="static/js/learning-stats.js"></script>

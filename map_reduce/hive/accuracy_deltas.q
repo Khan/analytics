@@ -9,13 +9,7 @@
 
 ADD FILE s3://ka-mapreduce/code/py/accuracy_deltas_reducer.py;
 
-CREATE EXTERNAL TABLE IF NOT EXISTS accuracy_deltas_summary (
-    topic STRING, user_segment STRING, num_problems_done INT, card_number INT,
-    sum_deltas DOUBLE, num_deltas INT, avg_deltas DOUBLE)
-  COMMENT 'Average accuracy deltas across user segments and ending cards'
-  PARTITIONED BY (start_dt STRING, end_dt STRING)
-  LOCATION 's3://ka-mapreduce/summary_tables/accuracy_deltas_summary';
-
+-- This table is defined in ka_hive_init.q
 INSERT OVERWRITE TABLE accuracy_deltas_summary
   PARTITION (start_dt='${start_dt}', end_dt='${end_dt}')
   SELECT topic, user_segment, num_problems_done, card_number,

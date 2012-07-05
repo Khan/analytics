@@ -10,7 +10,7 @@
 
 
 // TODO(david): Shared data fetcher.
-var BASE_STAT_SERVER_URL = "http://107.21.23.204:27080/";
+var BASE_DB_URL = "http://107.21.23.204:27080/report/";
 
 
 // TODO(david): Do I need to document in the JSDoc here what method can be
@@ -48,9 +48,15 @@ var Series = Backbone.Model.extend({
      * Get a single batch of data from the server, and get more if necessary.
      * @param {string} url The URL to send the AJAX request to
      * @param {Object} params AJAX parameters
-     * @param {string} collectionUrl Base URL of the collection, ending in /
+     * @param {string} collectionUrl Base URL of the collection.
+     * @param {boolean=} opt_firstCall Whether this is the first call in the
+     *     chain of batch requests. Defaults to true.
      */
-    fetchResults: function(url, params, collectionUrl) {
+    fetchResults: function(url, params, collectionUrl, opt_firstCall) {
+
+        if (opt_firstCall !== false) {
+            this.reset();
+        }
 
         var self = this;
         this.set("requestCount", this.get("requestCount") + 1);
@@ -82,13 +88,14 @@ var Series = Backbone.Model.extend({
             if (dataResults && dataResults.length === self.get("batchSize")) {
 
                 // There's probably more; fetch another batch of results
-                var moreUrl = collectionUrl + "_more?callback=?";
+                var moreUrl = collectionUrl + "/_more?callback=?";
                 var moreParams = {
                     batch_size: self.get("batchSize"),
                     id: data["id"],
                     callNum_: self.get("numCalls")
                 };
-                self.fetchResults(moreUrl, moreParams, collectionUrl);
+                self.fetchResults(moreUrl, moreParams, collectionUrl,
+                    /* opt_firstCall */ false);
 
             } else {
 
@@ -166,6 +173,14 @@ var AccuracyGainSeries = Series.extend({
 
 
 /**
+ * Model for filters (options) specifying a series.
+ */
+var SeriesFilters = Backbone.Model.extend({
+    // Nothing here yet
+});
+
+
+/**
  * Abstract base class for a view of a data series.
  * FIXME(david): Properly document what to override and class-level properties
  *      to set.
@@ -176,14 +191,15 @@ var SeriesView = Backbone.View.extend({
 
     // TODO(david): Do interesting things on hover over a series form.
     events: {
-        "change .topics-select": "refresh",
-        "change .weeks-select": "refresh",
+        "change .topics-select": "onFiltersChange",
+        "change .weeks-select": "onFiltersChange",
         "click .close": "remove"
     },
 
     initialize: function(options) {
 
         this.chartSeries = options.chartSeries;
+        this.seriesFilters = options.seriesFilters || new SeriesFilters();
 
         this.model
             .bind("change:results", this.updateSeries, this)
@@ -224,6 +240,8 @@ var SeriesView = Backbone.View.extend({
         this.populateTopics();
         this.populateWeeks();
 
+        this.onFiltersChange();
+
         return this;
     },
 
@@ -257,6 +275,15 @@ var SeriesView = Backbone.View.extend({
             });
     },
 
+    onFiltersChange: function() {
+        this.seriesFilters.set({
+            topic: this.$(".topics-select option:selected").val(),
+            startDate: this.$(".weeks-select option:selected").val()
+        });
+
+        this.refresh();
+    },
+
     /**
      * Ask the server for new data from user-set controls on the dashboard.
      */
@@ -264,9 +291,9 @@ var SeriesView = Backbone.View.extend({
 
         this.$(".request-pending-progress").show();
 
-        var topic = this.$(".topics-select option:selected").val();
-        var startDate = this.$(".weeks-select option:selected").val();
-        var url = this.getCollectionUrl() + "_find?callback=?";
+        var topic = this.seriesFilters.get("topic");
+        var startDate = this.seriesFilters.get("startDate");
+        var url = this.getCollectionUrl() + "/_find?callback=?";
 
         // TODO(david): Support date range selection
         var criteria = _.extend({
@@ -277,7 +304,7 @@ var SeriesView = Backbone.View.extend({
 
         var params = {
             criteria: JSON.stringify(criteria),
-            batch_size: this.model.get("batchSize"),
+            batch_size: this.model.get("batchSize")
         };
 
         // Maybe specify a projection for this query
@@ -290,7 +317,6 @@ var SeriesView = Backbone.View.extend({
             params.fields = JSON.stringify(fieldsObject);
         }
 
-        this.model.reset();
         this.model.fetchResults(url, params, this.getCollectionUrl());
 
     },
@@ -335,8 +361,7 @@ var SeriesView = Backbone.View.extend({
      * @return {string} The base URL of the Sleepy Mongoose MongoDB collection
      */
     getCollectionUrl: function() {
-        return BASE_STAT_SERVER_URL + "report/" + this.getCollectionName()
-            + "/";
+        return BASE_DB_URL + this.getCollectionName();
     },
 
     /**
@@ -367,6 +392,7 @@ var AccuracyGainSeriesView = SeriesView.extend({
     changeNumStacks: function() {
         var numStacks = this.$(".stacks-select").val();
         this.$(".comparison-op").toggle(numStacks !== "any");
+        this.seriesFilters.set("numStacks", numStacks);
         this.refresh();
     },
 
@@ -376,6 +402,7 @@ var AccuracyGainSeriesView = SeriesView.extend({
         var choices = ["exactly", "at least", "no more than"];
         var next = choices[(_.indexOf(choices, operator) + 1) % choices.length];
         $op.text(next);
+        this.seriesFilters.set("comparisonOp", next);
         this.refresh();
     },
 
@@ -394,8 +421,8 @@ var AccuracyGainSeriesView = SeriesView.extend({
 
     /** @override */
     getFindCriteria: function() {
-        var numStacks = this.$(".stacks-select").val();
-        var operator = this.$(".comparison-op").text();
+        var numStacks = this.seriesFilters.get("numStacks");
+        var operator = this.seriesFilters.get("comparisonOp");
 
         var numDoneVal = {};
         if (numStacks === "any") {
@@ -618,6 +645,83 @@ var PercentCorrectSeriesView = SeriesView.extend({
 
 
 /**
+ * View of supplemental data for a topic-segment presented in a table row.
+ */
+var SupplementalDataView = Backbone.View.extend({
+
+    template: Handlebars.compile($("#supplemental-data-row").text()),
+
+    initialize: function(options) {
+        this.chartSeries = options.chartSeries;
+        this.seriesFilters = options.seriesFilters;
+
+        this.model.on("change:results", this.updateData, this);
+        this.seriesFilters.on("change", this.refresh, this);
+    },
+
+    render: function() {
+        this.refresh();
+    },
+
+    refresh: function() {
+        var topic = this.seriesFilters.get("topic");
+        var startDate = this.seriesFilters.get("startDate");
+        var collectionUrl = BASE_DB_URL + "topic_segment_stats";
+        var url = collectionUrl + "/_find?callback=?";
+
+        // TODO(david): Support date range selection
+        var criteria = _.extend(
+            { topic: topic },
+            startDate === "any" ? {} : { start_dt: startDate }
+        );
+
+        var params = {
+            criteria: JSON.stringify(criteria),
+            batch_size: 15000
+        };
+
+        this.model.fetchResults(url, params, collectionUrl);
+    },
+
+    updateData: function() {
+        var results = this.model.get("results")[0];
+        if (!results) {
+            return;
+        }
+
+        var $series = $("<span>")
+            // Strip everything including and after the first hyphen
+            .text(/^[^-]*/.exec(this.chartSeries.name)[0])
+            .css("color", this.chartSeries.color);
+
+        var context = {
+            series: $series.wrap("<p>").parent().html(),  // Outer HTML
+            topic: results.topic,
+            startDate: results.start_dt,
+            segment: results.user_segment,
+            users: results.all_users,
+            cardsPerUser: results.all_attempts / results.all_users,
+            minutesPerUser: results.total_time / 60 / results.all_users,
+            gainPerUser: results.sum_deltas_randomized /
+                results.random_card_users,
+            firstCardAccuracyAll: results.first_card_correct_all /
+                results.first_card_attempts_all,
+            firstCardAccuracyRandomized: results.first_card_correct_randomized /
+                results.first_card_attempts_randomized,
+            allCardsAccuracy: results.num_correct_all /
+                results.num_attempts_all,
+            randomizedCardsAccuracy: results.num_correct_randomized /
+                results.num_attempts_randomized,
+            totalGain: results.sum_deltas_randomized
+        };
+
+        this.$el.html(this.template(context));
+    }
+
+});
+
+
+/**
  * View of the entire dashboard.
  */
 var DashboardView = Backbone.View.extend({
@@ -738,14 +842,23 @@ var DashboardView = Backbone.View.extend({
             yAxis.setExtremes(axisOptions.min, axisOptions.max);
         }
 
-        var series = new seriesViewConstructor.modelClass();
+        var seriesFilters = new SeriesFilters();
+
         var seriesView = new seriesViewConstructor({
             el: $("<div>").appendTo("#series-forms"),
-            model: series,
-            chartSeries: chartSeries
+            model: new seriesViewConstructor.modelClass(),
+            chartSeries: chartSeries,
+            seriesFilters: seriesFilters
         });
+        seriesView.render();
 
-        seriesView.render().refresh();
+        var supplementalDataView = new SupplementalDataView({
+            el: $("<tr>").appendTo("#supplemental-data-table tbody"),
+            model: new Series(),
+            chartSeries: chartSeries,
+            seriesFilters: seriesFilters
+        });
+        supplementalDataView.render();
 
     }
 

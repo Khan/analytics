@@ -40,12 +40,8 @@ def emit_topic_retention(attempts, user_topic, user_segment):
     # Output retention stats by card number
     # TODO(david): Output time taken buckets
     for i, attempt in enumerate(attempts, 1):
-        # Output a row for the given topic and for the psuedo-topic "any",
-        # which is an aggregation of all topics
-        for pseudo_topic in [topic, 'any']:
-            print '%s\t%s\t%s\t%s\t%s\t%s' % (pseudo_topic, user_segment,
-                    is_randomized(attempt[2]), "card_number", i,
-                    int(attempt[0]))
+        print '%s\t%s\t%s\t%s\t%s\t%s' % (topic, user_segment,
+                is_randomized(attempt[2]), "card_number", i, int(attempt[0]))
 
 
 if __name__ == '__main__':
