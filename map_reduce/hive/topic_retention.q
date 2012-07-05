@@ -8,13 +8,7 @@
 
 ADD FILE s3://ka-mapreduce/code/py/topic_retention_reducer.py;
 
-CREATE EXTERNAL TABLE IF NOT EXISTS topic_retention_summary (
-  topic STRING, user_segment STRING, is_randomized BOOLEAN, bucket_type STRING,
-  bucket_value INT, num_correct INT, num_attempts INT
-) COMMENT 'User retention on exercise topics over time or number of cards done'
-PARTITIONED BY (start_dt STRING, end_dt STRING)
-LOCATION 's3://ka-mapreduce/summary_tables/topic_retention_summary';
-
+-- Table definition is in ka_hive_init.q
 -- TODO(david): There's a bit of duplicated code here between accuracy_deltas.q
 --     (the initial mapper bit).
 INSERT OVERWRITE TABLE topic_retention_summary

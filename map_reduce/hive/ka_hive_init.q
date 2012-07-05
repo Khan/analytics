@@ -8,7 +8,8 @@
 -- prior to doing so.
 
 
---Datastore Entity Tables
+--------------------------------------------------------------------------------
+-- Datastore Entity Tables
 
 
 CREATE EXTERNAL TABLE IF NOT EXISTS Exercise (
@@ -115,6 +116,7 @@ CREATE EXTERNAL TABLE IF NOT EXISTS VideoLog (
 ALTER TABLE VideoLog RECOVER PARTITIONS;
 
 
+--------------------------------------------------------------------------------
 -- Summary Tables
 
 -- Describes activity on a per-video basis for users on a given day
@@ -150,9 +152,30 @@ ADD FILE s3://ka-mapreduce/code/hive/create_topic_attempts.q;
 SOURCE /mnt/var/lib/hive_081/downloaded_resources/create_topic_attempts.q;
 ALTER TABLE topic_attempts RECOVER PARTITIONS;
 
--- Add utility files that custom Python mapper/reducer scripts can import.
+CREATE EXTERNAL TABLE IF NOT EXISTS topic_retention_summary (
+  topic STRING, user_segment STRING, is_randomized BOOLEAN, bucket_type STRING,
+  bucket_value INT, num_correct INT, num_attempts INT
+) COMMENT 'User retention on exercise topics over time or number of cards done'
+PARTITIONED BY (start_dt STRING, end_dt STRING)
+LOCATION 's3://ka-mapreduce/summary_tables/topic_retention_summary';
+ALTER TABLE topic_retention_summary RECOVER PARTITIONS;
+
+CREATE EXTERNAL TABLE IF NOT EXISTS accuracy_deltas_summary (
+  topic STRING, user_segment STRING, num_problems_done INT, card_number INT,
+  sum_deltas DOUBLE, num_deltas INT, avg_deltas DOUBLE)
+COMMENT 'Average accuracy deltas across user segments and ending cards'
+PARTITIONED BY (start_dt STRING, end_dt STRING)
+LOCATION 's3://ka-mapreduce/summary_tables/accuracy_deltas_summary';
+ALTER TABLE accuracy_deltas_summary RECOVER PARTITIONS;
+
+
+--------------------------------------------------------------------------------
+-- Utility files that custom Python mapper/reducer scripts can import.
+
 -- NOTE: To import a utility file, you'll need to add the current directory to
 -- Python's path before the import so Hadoop can pick it up:
 --     sys.path.append(os.path.dirname(__file__))
 --     import table_parser
+
+
 ADD FILE s3://ka-mapreduce/code/py/table_parser.py;
