@@ -18,10 +18,15 @@ Reads lines from files representing Hive table data on S3 and dumps them to
 a reporting database. The data is read off of S3, but requires meta data to
 first be read about it from a Hive masternode.
 
-If tables are partitioned, partition columns should be specified in a key=value
-format, in which case only the data on the specified partition will be
-imported. If a partition is specified, the partition values will also be
-included as properties in the imported document.
+If tables are partitioned, partition columns will be included in the imported
+data. Clients may specify partition columns using a key=value
+format, in which case only the data in partitions with those matching columns
+will be imported. If no partition columns are specified, this will import all
+partitions (so you may want to delete data in the report db first, else you
+may get duplicates)
+
+TODO(benkomalo): write out partitions imported to a meta table or something
+   so the import process is idempotent
 
 Each row will be saved to the reporting table as a document in the specified
 target_collection.
@@ -59,10 +64,10 @@ def main(table_location,
     if key_index >= num_cols:
         raise Exception("Invalid key index (there aren't enough columns)")
 
-    partition_values = {}
+    base_partition_values = {}
     for partition in partition_cols:
         key, value = partition.split('=')
-        partition_values[key] = value
+        base_partition_values[key] = value
     table_location += _format_path_from_partition(partition_cols)
 
     # Open our target db connection
@@ -72,11 +77,10 @@ def main(table_location,
     mongo_collection = mongodb[target_collection]
 
     # Open our input connections.
-
     s3conn = boto.connect_s3()
     bucket = s3conn.get_bucket('ka-mapreduce')
-    s3keys = bucket.list(prefix=table_location[len('s3://ka-mapreduce/'):] +
-                                '/')
+    path_prefix = table_location[len('s3://ka-mapreduce/'):] + '/'
+    s3keys = bucket.list(prefix=path_prefix)
 
     # TODO(benkomalo): add a flag to bail on any errors so no partial data is
     #    saved?
@@ -92,9 +96,18 @@ def main(table_location,
 
     # Note: a table's data may be broken down into multiple files on disk.
     for key in s3keys:
-        if key.name.endswith('_$.folder$'):
+        if key.name.endswith('_$folder$'):
             # S3 meta data - not useful.
             continue
+
+        # Find out if files are under additional partition "directories"
+        # e.g. "start_dt=2012-01-01/end_dt=2012-02-01/some_file"
+        base_path = key.name[len(path_prefix):]
+        path_parts = base_path.split('/')
+        partition_values = base_partition_values.copy()
+        for partition in path_parts[:-1]:
+            name, value = partition.split('=')
+            partition_values[name] = value
 
         contents = key.get_contents_as_string()
         for line in contents.split('\n'):
