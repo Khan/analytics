@@ -37,7 +37,8 @@ SELECT * FROM (
       userdata_info.registered,
       COUNT(distinct user_video_summary.user),
       COUNT(distinct concat(user_video_summary.user, user_video_summary.dt)),
-      SUM(user_video_summary.completed), SUM(user_video_summary.num_seconds)
+      SUM(IF(user_video_summary.completed, 1, 0)),
+      SUM(user_video_summary.num_seconds)
     FROM user_video_summary
     LEFT OUTER JOIN userdata_info ON
       (user_video_summary.user = userdata_info.user)
@@ -53,7 +54,8 @@ SELECT * FROM (
       userdata_info.registered,
       COUNT(distinct user_video_summary.user),
       COUNT(distinct concat(user_video_summary.user, user_video_summary.dt)),
-      SUM(user_video_summary.completed), SUM(user_video_summary.num_seconds)
+      SUM(IF(user_video_summary.completed, 1, 0)),
+      SUM(user_video_summary.num_seconds)
     FROM user_video_summary LEFT OUTER JOIN userdata_info ON
       (user_video_summary.user = userdata_info.user)
     WHERE user_video_summary.dt >= '${start_dt}' AND
