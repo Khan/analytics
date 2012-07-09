@@ -67,7 +67,7 @@ SELECT * FROM (
 -- Summarize the video usage by user
 DROP TABLE user_video_range_summary;
 CREATE EXTERNAL TABLE user_video_range_summary(
-  user STRING, visits STRING, videos int, completed int, seconds int)
+  user STRING, visits STRING, videos INT, completed INT, seconds INT)
 PARTITIONED BY (start_dt STRING, end_dt STRING)
 LOCATION 's3://ka-mapreduce/${path_prefix}user_video_range_summary';
 ALTER TABLE user_video_range_summary RECOVER PARTITIONS;
@@ -78,7 +78,7 @@ ALTER TABLE user_video_range_summary
 INSERT OVERWRITE TABLE user_video_range_summary
 PARTITION (start_dt='${start_dt}', end_dt='${end_dt}')
 SELECT user, COUNT(distinct dt), COUNT(distinct video_key),
-  SUM(completed), SUM(num_seconds)
+  SUM(IF(completed, 1, 0)), SUM(num_seconds)
 FROM user_video_summary WHERE
   dt >= '${start_dt}' AND dt < '${end_dt}'
 GROUP BY user;
@@ -103,4 +103,7 @@ SELECT
   SUM(videos), SUM(completed), SUM(seconds)
 FROM user_video_range_summary LEFT OUTER JOIN userdata_info ON
   (user_video_range_summary.user = userdata_info.user)
+WHERE
+  user_video_range_summary.start_dt = '${start_dt}' AND
+  user_video_range_summary.end_dt = '${end_dt}'
 GROUP BY userdata_info.registered, visits;
