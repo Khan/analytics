@@ -24,6 +24,8 @@ A simple dashboard showing aggregate video data for a particular day.
         {# TODO(benkomalo): put in a datepicker instead of just the last 4 ranges #}
         {# Date: <input title="Datestamp" id="engagement-summary-date" size="20"></input> #}
     </div>
+    <div id="engagement-summary-graph-container">
+    </div>
     <div id="engagement-summary-table-container">
         {# This shows a chart of the video usage distribution for users
            across various date buckets. Rendered by JS.
@@ -49,6 +51,8 @@ A simple dashboard showing aggregate video data for a particular day.
 <script src="static/js/third_party/jquery-ui-1.8.20.custom.min.js"></script>
 <script src="static/js/third_party/underscore-min.js"></script>
 <script src="static/js/third_party/handlebars.js"></script>
+<script src="static/js/third_party/highcharts.js"></script>
+<script src="static/js/third_party/backbone-min.js"></script>
 <script src="static/js/handlebars-helpers.js"></script>
 <script src="static/js/ajax-cache.js"></script>
 <script src="static/js/daily-video-stats.js"></script>
