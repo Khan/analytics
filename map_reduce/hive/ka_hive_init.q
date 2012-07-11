@@ -137,7 +137,7 @@ ALTER TABLE user_exercise_summary RECOVER PARTITIONS;
 
 
 -- Describes feedbacks on a per-video basis for users on a given day
-CREATE EXTERNAL IF NOT EXISTS TABLE user_feedback_summary(
+CREATE EXTERNAL TABLE IF NOT EXISTS user_feedback_summary(
   user STRING, video_key STRING, record_cnt INT,
   question_cnt INT, answer_cnt INT) PARTITIONED BY (dt STRING)
 LOCATION 's3://ka-mapreduce/summary_tables/user_feedback_summary';
