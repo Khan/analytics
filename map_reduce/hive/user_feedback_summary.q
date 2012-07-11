@@ -2,14 +2,6 @@
 -- 1 parameter needs to be supplied
 -- dt: datestamp to summarize this thing
 
-DROP TABLE user_feedback_summary;
-CREATE EXTERNAL TABLE user_feedback_summary(
-  user STRING, video_key STRING, record_cnt INT,
-  question_cnt INT, answer_cnt INT) PARTITIONED BY (dt STRING)
-LOCATION 's3://ka-mapreduce/summary_tables/user_feedback_summary';
-ALTER TABLE user_feedback_summary RECOVER PARTITIONS;
-
-
 INSERT OVERWRITE TABLE user_feedback_summary PARTITION (dt='${dt}')
 SELECT
   parsed.user, parsed.vid_key, COUNT(1), SUM(parsed.q), SUM(parsed.a)

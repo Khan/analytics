@@ -2,13 +2,6 @@
 -- 1 parameter needs to be supplied
 -- dt: datestamp to summarize this thing
 
-DROP TABLE user_video_summary;
-CREATE EXTERNAL TABLE IF NOT EXISTS user_video_summary(
-  user STRING, video_key STRING, video_title STRING,
-  num_seconds INT, completed BOOLEAN) PARTITIONED BY (dt STRING)
-LOCATION 's3://ka-mapreduce/summary_tables/user_video_summary';
-ALTER TABLE user_video_summary RECOVER PARTITIONS;
-
 -- LATERAL VIEW doesn't work with WHERE clause, otherwise we'd
 -- use the more efficient json_tuple UDTF.
 -- https://issues.apache.org/jira/browse/HIVE-1056
