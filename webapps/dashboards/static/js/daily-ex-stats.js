@@ -43,7 +43,10 @@ $(document).ready(function() {
     var BUTTON_TEXT_COMPLICATE = "I'm not nearly confused enough.  Give me more power!";
     var BUTTON_TEXT_SIMPLIFY = "Too. Much. Power.  Make it simpler!";
 
-    var BASE_STAT_SERVER_URL = "http://107.21.23.204:28017/";
+    var URL_BASE = "http://107.21.23.204:27080/report/";
+    var URL_SUFFIX = "/_find?callback=?";
+    
+    var SORT_BY_DATE = JSON.stringify({"date": 1});
 
     var chart;
     var setExChart = function() {
@@ -67,15 +70,19 @@ $(document).ready(function() {
 
         var deferreds = [];
         $.each(tmodes, function(ix, tmode) {
+            var criteria = JSON.stringify({
+                "exercise": exName,
+                "filter_mode": tmode,
+                "super_mode": superMode
+            });
             var params = {
-                filter_exercise: exName,
-                filter_filter_mode: tmode,
-                filter_super_mode: superMode
+                "criteria": criteria,
+                "sort": SORT_BY_DATE
             };
 
             // jQuery uses "jsonp=?" as a special indicator to use an
             // auto-generated JSONP callback.
-            var url = BASE_STAT_SERVER_URL + "report/daily_ex_stats/?jsonp=?";
+            var url = URL_BASE + "daily_ex_stats" + URL_SUFFIX;
             deferreds[deferreds.length] = $.getJSON(url, params, function(sdata) {
 
                 series = sdata;
@@ -85,7 +92,7 @@ $(document).ready(function() {
                 // [[date1,val1], [date2, val2], ...]
                 var getData = function(series, dateField) {
                     var data = [];
-                    var rows = series["rows"];
+                    var rows = series["results"];
                     $.each(rows, function(exName, row) {
                         var denom = 1.0;
                         if (normName != "none" && normName in row) {
@@ -140,12 +147,16 @@ $(document).ready(function() {
 
         var deferreds = [];
         $.each(tmodes, function(ix, tmode) {
+            var criteria = JSON.stringify({
+                "filter_mode": tmode,
+                "super_mode": superMode
+            });
             var params = {
-                filter_filter_mode: tmode,
-                filter_super_mode: superMode
+                "criteria": criteria,
+                "sort": SORT_BY_DATE
             };
 
-            var url = BASE_STAT_SERVER_URL + "report/daily_ex_mode_stats/?jsonp=?";
+            var url = URL_BASE + "daily_ex_mode_stats" + URL_SUFFIX;
 
             deferreds[deferreds.length] = $.getJSON(url, params, function(sdata) {
                 series = sdata;
@@ -155,7 +166,7 @@ $(document).ready(function() {
                 // [[date1,val1], [date2, val2], ...]
                 var getData = function(series, dateField) {
                     var data = [];
-                    var rows = series["rows"];
+                    var rows = series["results"];
                     $.each(rows, function(exName, row) {
                         var denom = 1.0;
                         if (usePercentages) {
@@ -199,17 +210,22 @@ $(document).ready(function() {
             tmode = tmode[0];
         }
 
+        var criteria = JSON.stringify({
+            "exercise": exName,
+            "filter_mode": tmode,
+            "super_mode": superMode
+        });
         var params = {
-            filter_exercise: exName,
-            filter_filter_mode: tmode,
-            filter_super_mode: superMode
+            "criteria": criteria,
+            "sort": SORT_BY_DATE
         };
-        var url = BASE_STAT_SERVER_URL + "report/daily_ex_mode_stats/?jsonp=?";
+
+        var url = URL_BASE + "daily_ex_mode_stats" + URL_SUFFIX;
 
         $.getJSON(url, params, function(sdata) {
 
             var seriesSet = [];
-            var query_rows = sdata["rows"];
+            var query_rows = sdata["results"];
             $.each(query_rows, function(exName, row) {
                 for (var property in row) {
                     if (!row.hasOwnProperty(property)) { continue; }
