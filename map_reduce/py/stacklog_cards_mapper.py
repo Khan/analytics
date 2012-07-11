@@ -25,6 +25,7 @@ def main():
             continue
 
         topic_id = data['topic_id']
+        extra_data = json.loads(data['extra_data'])
         cards_list = json.loads(data['cards_list'])
 
         for card in cards_list:
@@ -40,13 +41,7 @@ def main():
                 continue
 
             scheduler_info = json.dumps(card['card'].get('schedulerInfo', {}))
-
-            # TODO(david): This is where we stick extra information about the
-            #     user, such as A/B test experiments they are being subjected
-            #     to, card selection algorithm, etc. Possibly comma-delimited
-            #     for multiple experiments/segments, or a JSON array, or a Hive
-            #     array?
-            user_segment = "control"
+            user_segment = extra_data.get('segment', 'control')
 
             print '\t'.join([associated_log['ProblemLog'], user_id, topic_id,
                 scheduler_info, user_segment])
