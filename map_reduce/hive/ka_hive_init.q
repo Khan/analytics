@@ -128,6 +128,22 @@ LOCATION 's3://ka-mapreduce/summary_tables/user_video_summary';
 ALTER TABLE user_video_summary RECOVER PARTITIONS;
 
 
+-- Describes activity on a per-exercise basis for users on a given day
+CREATE EXTERNAL TABLE IF NOT EXISTS user_exercise_summary(
+  user STRING, exercise STRING, time_spent  INT,
+  num_correct INT, num_wrong INT, proficient BOOLEAN) PARTITIONED BY (dt STRING)
+LOCATION 's3://ka-mapreduce/summary_tables/user_exercise_summary';
+ALTER TABLE user_exercise_summary RECOVER PARTITIONS;
+
+
+-- Describes feedbacks on a per-video basis for users on a given day
+CREATE EXTERNAL IF NOT EXISTS TABLE user_feedback_summary(
+  user STRING, video_key STRING, record_cnt INT,
+  question_cnt INT, answer_cnt INT) PARTITIONED BY (dt STRING)
+LOCATION 's3://ka-mapreduce/summary_tables/user_feedback_summary';
+ALTER TABLE user_feedback_summary RECOVER PARTITIONS;
+
+
 -- Defined in userdata_info.q
 CREATE EXTERNAL TABLE IF NOT EXISTS userdata_info(
   user STRING,
