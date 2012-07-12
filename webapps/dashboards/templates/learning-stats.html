@@ -299,6 +299,13 @@
 </select>
 </script>
 
+<script type="text/x-handlebars-template" id="segment-select-partial">
+<select class="segment-select">
+    <option>any</option>
+    <option disabled="disabled">---</option>
+</select>
+</script>
+
 </div>
 {% endraw %}
 
@@ -324,19 +331,20 @@
 </script>
 
 <script type="text/x-handlebars-template" id="accuracy-gain-template">
-For students who have completed {{>stacks-select-partial}} stacks in
-{{>topics-select-partial}} in {{>weeks-select-partial}} show me accuracy gain
-over card number.
+For {{>segment-select-partial}} students who have completed
+{{>stacks-select-partial}} stacks in {{>topics-select-partial}} in
+{{>weeks-select-partial}} show me accuracy gain over card number.
 </script>
 
 <script type="text/x-handlebars-template" id="retention-template">
-For stacks done in {{>topics-select-partial}} in {{>weeks-select-partial}} show
-me the {{>users-select-partial}} over card number.
+For stacks done in {{>topics-select-partial}} in {{>weeks-select-partial}} by
+{{>segment-select-partial}} users, show me the {{>users-select-partial}} over
+card number.
 </script>
 
 <script type="text/x-handlebars-template" id="percent-correct-template">
-For stacks done in {{>topics-select-partial}} in {{>weeks-select-partial}} show
-me percent correct over card number.
+For stacks done in {{>topics-select-partial}} in {{>weeks-select-partial}}
+by {{>segment-select-partial}} users, show me percent correct over card number.
 </script>
 
 <script type="text/x-handlebars-template" id="supplemental-data-row">
