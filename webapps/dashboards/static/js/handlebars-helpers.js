@@ -24,3 +24,13 @@ Handlebars.registerHelper("percentify", function(num) {
 Handlebars.registerHelper("fixedPlaces", function(num, options) {
     return Number(num).toFixed(options.hash.digits || 0);
 });
+
+/**
+ * Substring given start and len.
+ */
+Handlebars.registerHelper("substr", function(str, options) {
+    var argsMap = options.hash;
+    var len = argsMap.len === undefined ? str.length : argsMap.len;
+    var start = argsMap.start === undefined ? 0 : argsMap.start;
+    return String(str).substr(start, len);
+});

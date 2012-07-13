@@ -42,6 +42,12 @@ def learning_dashboard():
     return flask.render_template('learning-stats.html')
 
 
+# TODO(david): Add to analytics homepage after I get a nice screenshot
+@app.route('/real-time')
+def real_time_stats():
+    return flask.render_template('real-time-stats.html')
+
+
 @app.route('/db/learning_stats_topics')
 def learning_stats_topics():
     # TODO(david): Find a way of using the Khan API to find topics that have
