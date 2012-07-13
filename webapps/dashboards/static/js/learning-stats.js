@@ -193,6 +193,7 @@ var SeriesView = Backbone.View.extend({
     events: {
         "change .topics-select": "onFiltersChange",
         "change .weeks-select": "onFiltersChange",
+        "change .segment-select": "onFiltersChange",
         "click .close": "remove"
     },
 
@@ -275,11 +276,56 @@ var SeriesView = Backbone.View.extend({
             });
     },
 
+    populateSegments: function() {
+
+        // TODO(david): Duplicated code here with SupplementalDataView.refresh
+        // TODO(david): I'm eventually just going to make the UI make more sense
+        //     by just making the supplemental data table the place where you
+        //     specify series options.
+        var topic = this.seriesFilters.get("topic");
+        var startDate = this.seriesFilters.get("startDate");
+        var url = BASE_DB_URL + "topic_segment_stats/_find?callback=?";
+
+        var criteria = _.extend(
+            { topic: topic },
+            startDate === "any" ? {} : { start_dt: startDate }
+        );
+
+        var self = this;
+        AjaxCache.getJson(url, {
+            criteria: JSON.stringify(criteria),
+            batch_size: 15000
+        }, function(data) {
+            var options = _.chain(data.results)
+                .pluck("user_segment")
+                .uniq()
+                .map(function(val) { return $("<option>").text(val)[0]; })
+                .value();
+
+            options = [
+                $("<option>any</option>")[0],
+                $("(<option disabled='disabled'>---</option>)")[0]
+            ].concat(options);
+
+            // Select the previously selected segment if available
+            var prevSelected = self.seriesFilters.get("segment");
+            $(options)
+                .filter(function() { return $(this).val() === prevSelected; })
+                .attr("selected", "selected");
+
+            self.$(".segment-select").html("").append(options);
+        });
+
+    },
+
     onFiltersChange: function() {
         this.seriesFilters.set({
             topic: this.$(".topics-select option:selected").val(),
-            startDate: this.$(".weeks-select option:selected").val()
+            startDate: this.$(".weeks-select option:selected").val(),
+            segment: this.$(".segment-select option:selected").val()
         });
+
+        this.populateSegments();
 
         this.refresh();
     },
@@ -293,6 +339,7 @@ var SeriesView = Backbone.View.extend({
 
         var topic = this.seriesFilters.get("topic");
         var startDate = this.seriesFilters.get("startDate");
+        var segment = this.seriesFilters.get("segment");
         var url = this.getCollectionUrl() + "/_find?callback=?";
 
         // TODO(david): Support date range selection
@@ -300,6 +347,7 @@ var SeriesView = Backbone.View.extend({
                 topic: topic
             },
             startDate === "any" ? {} : { start_dt: startDate },
+            segment === "any" ? {} : { user_segment: segment },
             this.getFindCriteria());
 
         var params = {
@@ -666,13 +714,15 @@ var SupplementalDataView = Backbone.View.extend({
     refresh: function() {
         var topic = this.seriesFilters.get("topic");
         var startDate = this.seriesFilters.get("startDate");
+        var segment = this.seriesFilters.get("segment");
         var collectionUrl = BASE_DB_URL + "topic_segment_stats";
         var url = collectionUrl + "/_find?callback=?";
 
         // TODO(david): Support date range selection
         var criteria = _.extend(
             { topic: topic },
-            startDate === "any" ? {} : { start_dt: startDate }
+            startDate === "any" ? {} : { start_dt: startDate },
+            segment === "any" ? {} : { user_segment: segment }
         );
 
         var params = {
@@ -684,6 +734,9 @@ var SupplementalDataView = Backbone.View.extend({
     },
 
     updateData: function() {
+        // TODO(david): Aggregate results rows when we get multiple rows. Will
+        //     do this when we actually get multiple segment data (custom stack
+        //     launch) to test/play with.
         var results = this.model.get("results")[0];
         if (!results) {
             return;
