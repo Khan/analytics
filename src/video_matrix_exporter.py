@@ -18,6 +18,7 @@ import boto
 
 import boto_util
 import hive_mysql_connector
+import oauth_util.consts
 import oauth_util.fetch_url as oauth_fetcher
 
 
@@ -26,15 +27,15 @@ class VideoInfo(object):
         self.key = key
         self.index = index
         self.best_matches = {}
-        
+
 
 def get_video_info(video_infos, vid_key):
     if vid_key not in video_infos:
         index = len(video_infos)
         video_infos[vid_key] = VideoInfo(vid_key, index)
     return video_infos[vid_key]
-        
-        
+
+
 def add_score(video_infos, vid1_key, vid2_key, score):
     vid1_info = get_video_info(video_infos, vid1_key)
     vid2_info = get_video_info(video_infos, vid2_key)
@@ -42,9 +43,6 @@ def add_score(video_infos, vid1_key, vid2_key, score):
 
 
 def upload_to_gae(video_infos):
-    # TODO(benkomalo): actually implement once we've figured out the schema
-    # in GAE. Right now it just makes a dummy call to GAE to ensure we have
-    # proper access to make calls to it.
     try:
         video_keys = video_infos.keys()
         video_keys.sort(key=lambda video_key: video_infos[video_key].index)
@@ -102,16 +100,16 @@ def main(table_location, options):
                 continue
 
             vid1_key, vid2_key, score = parts
-    
-            try: 
+
+            try:
                 score = float(score)
             except ValueError:
                 # Some of the values were invalid - deal with it.
                 # TODO(benkomalo): error handling.
                 continue
-            
+
             add_score(video_infos, vid1_key, vid2_key, score)
-            
+
             if lines_read % 1000 == 0:
                 print "Read %s lines..." % lines_read
 
@@ -120,6 +118,7 @@ def main(table_location, options):
     print "\nSummary of collected data:"
     print ("\tDetected %d videos, with a total of %d video pair data" %
            (len(video_infos), total_pairs))
+    print "Target: %s" % oauth_util.consts.SERVER_URL
     if raw_input("Proceed to upload? [Y/n]: ").lower() in ['', 'y', 'yes']:
         upload_to_gae(video_infos)
 
@@ -143,9 +142,9 @@ if __name__ == '__main__':
 
     hive_masternode = args[0]
     table_name = args[1]
-    
+
     hive_mysql_connector.configure(hive_masternode, options.ssh_keyfile)
-    
+
     print "Fetching table info..."
     table_location = hive_mysql_connector.get_table_location(table_name)
 
