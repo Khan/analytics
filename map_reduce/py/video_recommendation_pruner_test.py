@@ -1,4 +1,5 @@
 import StringIO
+import math
 import unittest
 
 import video_recommendation_pruner
@@ -9,7 +10,7 @@ class PrunerTest(unittest.TestCase):
     def setUp(self):
         self.orig_in = video_recommendation_pruner._IN
         self.orig_out = video_recommendation_pruner._OUT
-        
+
         video_recommendation_pruner._IN = []
         video_recommendation_pruner._OUT = StringIO.StringIO()
 
@@ -23,7 +24,7 @@ class PrunerTest(unittest.TestCase):
     def fake_input(self, lines_in_parts):
         for line in lines_in_parts:
             video_recommendation_pruner._IN.append('\t'.join(line))
-            
+
     def get_output_in_lists(self):
         return video_recommendation_pruner._OUT.getvalue().rstrip().split("\n")
 
@@ -31,19 +32,19 @@ class PrunerTest(unittest.TestCase):
         expected_output = map(lambda t: '\t'.join(t),
                               expected_output_in_parts)
         actual_output = self.get_output_in_lists()
-        
+
         # Order doesn't strictly matter, as long as it clusters by the first
         # video key
         self.assertEquals(set(expected_output),
                           set(actual_output))
-    
+
     def scored_parts(self, parts):
         """Given an input line in an exploded list, generate the expected
         output in an exploded list."""
         score = video_recommendation_pruner.compute_score(
             parts[2], parts[3], parts[4], parts[5])
         return [parts[0], parts[1], str(score)]
-        
+
     def test_single_pair(self):
         line = ["vid1", "vid2", "0", "1", "1", "1"]
         self.fake_input([line])
@@ -70,9 +71,9 @@ class PrunerTest(unittest.TestCase):
                 expected.append([
                     "vid1",
                     "othervid%s" % i,
-                    str(float(i)),
+                    str(float(i) / 10),
                 ])
-                
+
         self.fake_input(input)
         self.run_reducer()
         self.assertOutput(expected)
@@ -85,11 +86,12 @@ class PrunerTest(unittest.TestCase):
                 ]
         self.fake_input(input)
         self.run_reducer()
-        
-        expected = [["vid1", "othervid3", "1.0"],
-                    ["vid1", "othervid4", "1.0"],
-                    ["vid2", "othervid3", "1.0"],
-                    ["vid2", "othervid4", "1.0"],
+
+        score = str(1 / math.sqrt(2))
+        expected = [["vid1", "othervid3", score],
+                    ["vid1", "othervid4", score],
+                    ["vid2", "othervid3", score],
+                    ["vid2", "othervid4", score],
                     ]
         self.assertOutput(expected)
 
