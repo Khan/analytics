@@ -4,7 +4,7 @@ $(function() {
 var IP_INFO_API_URL = "http://api.ipinfodb.com/v3/ip-city/?callback=?";
 var IP_INFO_API_KEY =
         "ea615758ce2f4b49b9ab4242b2159fcfc72860859bbce72749f75bfe1df98242";
-var MAX_MARKERS_ON_SCREEN = 200;
+var MAX_MARKERS_ON_SCREEN = 1200;
 var POLL_INTERVAL_MS = 1000;
 
 
