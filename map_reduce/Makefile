@@ -1,5 +1,5 @@
 HIVE_USER := hadoop
-HIVE_MASTER := 107.23.8.57
+HIVE_MASTER := 23.23.92.49
 PRIVATE_KEY := ~/.ssh/analytics.pem
 
 
