@@ -49,3 +49,15 @@ ALTER TABLE VideoP RECOVER PARTITIONS;
 INSERT OVERWRITE TABLE Video
 SELECT key, json FROM VideoP 
 WHERE dt = '${dt}';
+
+-- Populating topic_mapping table
+-- Use DISTRIBUTE BY to make sure the code is run at reducing step
+SET mapred.reduce.tasks=1;
+FROM (
+  SELECT key, json FROM Topic
+  DISTRIBUTE BY key
+) map_out 
+INSERT OVERWRITE TABLE topic_mapping
+SELECT TRANSFORM(map_out.key, map_out.json) 
+USING 's3://ka-mapreduce/code/py/topic_mapping_reducer.py'
+AS topic_key, topic_title, ancestor_keys_json, ancestor_titles_json;
