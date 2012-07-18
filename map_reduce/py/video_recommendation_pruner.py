@@ -60,8 +60,9 @@ def emit_best_pairs(video_key, scored_pairs):
 
 
 def compute_score(preceed_count, succeed_count, video1_count, video2_count):
-    return (preceed_count + succeed_count) / math.sqrt(video2_count)
-    
+    return ((preceed_count + succeed_count) /
+            (math.sqrt(video1_count) * math.sqrt(video2_count)))
+
 
 def main():
     last_video = None
@@ -82,7 +83,7 @@ def main():
          preceed_count, succeed_count,
          video1_count, video2_count) = parts
 
-        try: 
+        try:
             preceed_count = int(preceed_count)
             succeed_count = int(succeed_count)
             video1_count = int(video1_count)
