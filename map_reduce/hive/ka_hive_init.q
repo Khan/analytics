@@ -155,10 +155,19 @@ CREATE EXTERNAL TABLE IF NOT EXISTS userdata_info(
   )
 LOCATION 's3://ka-mapreduce/summary_tables/userdata_info';
 
+
 CREATE EXTERNAL TABLE IF NOT EXISTS video_topic(
   vid_key STRING, vid_title STRING, topic_key STRING,
   topic_title STRING, topic_desc STRING)
 LOCATION 's3://ka-mapreduce/summary_tables/video_topic';
+
+-- More user friendly topic mapping 
+-- the keys and titles are sorted from generic to specific
+CREATE EXTERNAL TABLE IF NOT EXISTS topic_mapping(
+  topic_key STRING, topic_title STRING,
+  ancestor_keys_json STRING, ancestor_titles_json STRING) 
+  ROW FORMAT DELIMITED FIELDS TERMINATED BY '\t'
+  LOCATION 's3://ka-mapreduce/summary_tables/topic_mapping/';
 
 -- TODO(benkomalo): when using ADD FILE with s3 paths, it downloads it to a
 --    local cache, which we have to reference from directly. Figure out
