@@ -1,6 +1,8 @@
 $(function() {
 
 
+// TODO(david): @spicyj's (or eater?) idea: display last GitHub issue somewhere
+// TODO(david): Use maxmind database
 var IP_INFO_API_URL = "http://api.ipinfodb.com/v3/ip-city/?callback=?";
 var IP_INFO_API_KEY =
         "ea615758ce2f4b49b9ab4242b2159fcfc72860859bbce72749f75bfe1df98242";
@@ -90,30 +92,50 @@ window.setInterval(function() {
 
         $.getJSON(IP_INFO_API_URL, params, function(data) {
 
-            if (data.latitude === "0" && data.longitude === "0") {
-                // Probably an invalid IP address... skip
-                return;
+            var color = problemlog.correct ? "79A94E" : "FE7569";
+
+            // Only draw map marker if we got back lat lng and it's not (0, 0)
+            if (+data.latitude || +data.longitude) {
+
+                markers.push(makeMarker(color, {
+                    position: new google.maps.LatLng(data.latitude,
+                        data.longitude),
+                    map: map,
+                    animation: google.maps.Animation.DROP
+                }));
+
+                if (markers.length > MAX_MARKERS_ON_SCREEN) {
+                    var marker = markers.shift();
+                    marker.setMap(null);  // Remove this marker from map
+                }
+
             }
 
-            var color = problemlog.correct ? "79A94E" : "FE7569";
-            markers.push(makeMarker(color, {
-                position: new google.maps.LatLng(data.latitude, data.longitude),
-                map: map,
-                animation: google.maps.Animation.DROP
-            }));
+            var answer = problemlog.attempts[0];
+            if (problemlog.countAttempts > 0 && problemlog.countHints === 0) {
+                try {
+                    // Try to parse out text from attempt contents, which may be
+                    // a number as a string, HTML, an array, or who knows what
+                    // TODO(david): Parse MathJax
+                    answer = JSON.parse(answer);
+                    answer = $(answer).text() || answer;
+                } catch (e) {}
+            } else {
+                if (problemlog.countHints > 0) {
+                    answer = "using hints";
+                } else {
+                    answer = "[see console]";
+                    console.log(problemlog);
+                }
+            }
 
             $("#stats-text")
                 .append(attemptTemplate(_.extend(problemlog, {
                     color: color,
-                    answer: problemlog.attempts[0],
+                    answer: answer,
                     exerciseDisplayName: getExerciseName(problemlog.exercise)
                 })))
                 .scrollTop($("#stats-text")[0].scrollHeight);
-
-            if (markers.length > MAX_MARKERS_ON_SCREEN) {
-                var marker = markers.shift();
-                marker.setMap(null);  // Remove this marker from map
-            }
 
         });
 
