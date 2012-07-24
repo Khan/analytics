@@ -10,16 +10,33 @@ var MAX_MARKERS_ON_SCREEN = 1200;
 var POLL_INTERVAL_MS = 1000;
 
 
+var localStorage = window.localStorage || {};
+
 var mapOptions = {
-    center: new google.maps.LatLng(0, 0),
-    zoom: 2,
-    mapTypeId: google.maps.MapTypeId.ROADMAP
+    center: new google.maps.LatLng(localStorage['gmapsCenterLat'] || 0,
+                                   localStorage['gmapsCenterLng'] || 0),
+    zoom: +localStorage['gmapsZoom'] || 2,
+    mapTypeId: localStorage['gmapsMapTypeId'] || google.maps.MapTypeId.ROADMAP
 };
 
 var attemptTemplate = Handlebars.compile($("#attempt-entry").html());
 var map = new google.maps.Map($("#map")[0], mapOptions);
 var prevFloat = null;
 var markers = [];
+
+
+google.maps.event.addListener(map, 'center_changed', function() {
+    localStorage['gmapsCenterLat'] = map.getCenter().lat();
+    localStorage['gmapsCenterLng'] = map.getCenter().lng();
+});
+
+google.maps.event.addListener(map, 'zoom_changed', function() {
+    localStorage['gmapsZoom'] = map.getZoom();
+});
+
+google.maps.event.addListener(map, 'maptypeid_changed', function() {
+    localStorage['gmapsMapTypeId'] = map.getMapTypeId();
+});
 
 
 /**
@@ -111,7 +128,10 @@ window.setInterval(function() {
 
             }
 
-            var answer = problemlog.attempts[0];
+            var rawAttempt = problemlog.attempts[0],
+                answer = rawAttempt,
+                useMathjax = (rawAttempt && rawAttempt.substr(0, 6) ===
+                        '"<code' && window.MathJax);
             if (problemlog.countAttempts > 0 && problemlog.countHints === 0) {
                 try {
                     // Try to parse out text from attempt contents, which may be
@@ -119,6 +139,9 @@ window.setInterval(function() {
                     // TODO(david): Parse MathJax
                     answer = JSON.parse(answer);
                     answer = $(answer).text() || answer;
+                    if (useMathjax) {
+                        answer = "\\(" + answer + "\\)";
+                    }
                 } catch (e) {}
             } else {
                 if (problemlog.countHints > 0) {
@@ -129,13 +152,19 @@ window.setInterval(function() {
                 }
             }
 
+            var $attempt = $(attemptTemplate(_.extend(problemlog, {
+                color: color,
+                answer: String(answer),
+                exerciseDisplayName: getExerciseName(problemlog.exercise)
+            })));
+
             $("#stats-text")
-                .append(attemptTemplate(_.extend(problemlog, {
-                    color: color,
-                    answer: answer,
-                    exerciseDisplayName: getExerciseName(problemlog.exercise)
-                })))
+                .append($attempt)
                 .scrollTop($("#stats-text")[0].scrollHeight);
+
+            if (useMathjax) {
+                MathJax.Hub.Queue(["Typeset", MathJax.Hub, $attempt[0]]);
+            }
 
         });
 
