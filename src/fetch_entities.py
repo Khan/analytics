@@ -1,7 +1,7 @@
 #! /usr/bin/env python
 """Fetching data GAE with protocol buffer calls. It uses
-a timestamp field to query for time ranges.  By default, 
-that property is the "backup_timestamp" property used 
+a timestamp field to query for time ranges.  By default,
+that property is the "backup_timestamp" property used
 by backup_model.BackupModel.
 """
 
@@ -24,12 +24,13 @@ import oauth_util.fetch_url
 
 
 # TODO(benkomalo): rename "max_logs" to max_results or something.
-def fetch_entities(entity_type, start_date=None, end_date=None,
+def fetch_entities(entity_type, is_ndb, start_date=None, end_date=None,
                    max_logs=None, index_name=None):
     """Makes a request to the main Khan Academy server to download entities.
 
     Arguments:
         entity_type: The appengine "Kind" for the entity to download.
+        is_ndb: Whether or not the entity is an NDB model.
         start_date: A datetime object for the inclusive start time of when
             entities should have been modified to be included in the result.
         end_date: A datetime object for the exclusive end time of when
@@ -46,6 +47,7 @@ def fetch_entities(entity_type, start_date=None, end_date=None,
     # errors or deserializing of sorts.
 
     qs_map = filter(lambda x: x[1], [
+        ('is_ndb', int(is_ndb)),
         ('dt_start', date_util.to_date_iso(start_date)),
         ('dt_end', date_util.to_date_iso(end_date)),
         ('max', max_logs),
@@ -60,6 +62,7 @@ def fetch_entities(entity_type, start_date=None, end_date=None,
 
 
 def attempt_fetch_entities(kind,
+                           is_ndb,
                            start_dt, end_dt,
                            max_logs,
                            max_attempts,
@@ -78,7 +81,7 @@ def attempt_fetch_entities(kind,
         sleep_secs = 2 ** tries
 
         try:
-            response = fetch_entities(kind, start_dt, end_dt, 
+            response = fetch_entities(kind, is_ndb, start_dt, end_dt,
                                       max_logs, index_name)
         except urllib2.HTTPError as e:
             if e.code == 401:
@@ -97,6 +100,7 @@ def attempt_fetch_entities(kind,
 
 
 def download_entities(kind,
+                      is_ndb,
                       start_dt, end_dt,
                       fetch_interval_seconds,
                       max_entities_per_fetch,
@@ -112,7 +116,7 @@ def download_entities(kind,
     this, function may return some duplicates in its result.  The caller should
     de-dupe by .key() of the entities if needed.
 
-    Returns a list of Entities.
+    Returns a list of Entities in protocol buffer format.
     """
 
     entity_list = []
@@ -121,6 +125,7 @@ def download_entities(kind,
     while interval_start < end_dt:
         interval_end = min(interval_start + time_delta, end_dt)
         response = attempt_fetch_entities(kind,
+                                          is_ndb,
                                           interval_start, interval_end,
                                           max_entities_per_fetch,
                                           max_attempts_per_fetch,
@@ -134,6 +139,12 @@ def download_entities(kind,
             # might still be more so query again from the last timestamp
             # WARNING: this depends on the implementation of the API call
             # returning the protobuffs in sorted order
+            #
+            # This works for both db and ndb models. To convert protobufs to
+            # ndb models you'd need to import the model and use a ndb
+            # ModelAdapter. But here we just need access to the
+            # backup_timestamp property (index_name), so deserializing the
+            # protobuf into the lower-level Entity will suffice.
             pb = response_list[-1]
             entity = datastore.Entity._FromPb(entity_pb.EntityProto(pb))
             if index_name in entity:
@@ -168,6 +179,8 @@ def get_cmd_line_args():
         help="Name of the file to output.")
     parser.add_option("-t", "--type",
         help="Entity type to back up")
+    parser.add_option("-n", "--ndb", help="Entity is an NDB model",
+        action="store_true", dest="is_ndb", default=False)
     parser.add_option("-k", "--key", default="backup_timestamp",
         help="Name of entity property to use in a date range query.")
 
@@ -188,6 +201,7 @@ def main():
     start_dt = date_util.from_date_iso(options.start_date)
 
     entity_list = download_entities(options.type,
+                                    options.is_ndb,
                                     start_dt, end_dt,
                                     int(options.interval),
                                     int(options.max_logs),
