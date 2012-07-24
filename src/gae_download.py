@@ -145,8 +145,10 @@ def fetch_and_process_data(kind, start_dt_arg, end_dt_arg,
     # fetch
     g_logger.info("Downloading data for %s from %s to %s starts" % (
         kind, start_dt_arg, end_dt_arg))
+    is_ndb = bool(config['kinds'][kind][3])
     entity_list = fetch_entities.download_entities(
                       kind,
+                      is_ndb,
                       start_dt_arg, end_dt_arg,
                       fetch_interval,
                       config['max_logs'], config['max_tries'],
@@ -174,7 +176,7 @@ def fetch_and_process_data(kind, start_dt_arg, end_dt_arg,
     #jsonize the entities
     json_filename = get_archive_file_name(config, kind,
         start_dt_arg, end_dt_arg, 'json')
-    json_key = config['kinds'][kind][3]
+    json_key = config['kinds'][kind][4]
     f = open(json_filename, 'wb')
     for pb in entity_list:
         doc = load_pbufs_to_hive.pb_to_dict(pb)
