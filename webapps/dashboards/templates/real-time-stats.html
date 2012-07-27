@@ -8,6 +8,7 @@
     <link rel="stylesheet" type="text/css" href="http://reset5.googlecode.com/hg/reset.min.css">
     <link rel="stylesheet" type="text/css" href="static/css/real-time.css">
     <link href='http://fonts.googleapis.com/css?family=Merienda+One' rel='stylesheet' type='text/css'>
+
 </head>
 
 <body>
@@ -28,8 +29,8 @@
             <img src="/static/img/cross-icon.png" height="20" width="20">
         {{/if}}
         {{userIdScrubbed}} answered
-        <strong class="highlight">{{substr answer len="20"}}</strong> to
-        <strong>{{substr exerciseDisplayName len="40"}}</strong> in
+        <strong class="answer highlight">{{answer}}</strong> to
+        <strong>{{exerciseDisplayName}}</strong> in
         {{timeTaken}} s.
     </p>
     </script>
@@ -44,7 +45,18 @@
     <script src="static/js/third_party/bootstrap-dropdown.js"></script>
     <script src="http://maps.googleapis.com/maps/api/js?key=AIzaSyBPu8dK_TyZhPG-QcqHvEVNgKq8ACH3yaA&sensor=true"></script>
 
+    <script src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <script type="text/x-mathjax-config">
+        // TODO(david): Take parts of Kathjax
+        // TODO(david): Better font styling (smaller)
+        MathJax.Hub.Config({
+            showProcessingMessages: false,
+            "HTML-CSS": { availableFonts: ["TeX"] }
+        });
+    </script>
+
     <script src="static/js/handlebars-helpers.js"></script>
+
     <script src="static/js/real-time-stats.js"></script>
 
 </body>
