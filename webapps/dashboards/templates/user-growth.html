@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+<!--
+A simple dashboard showing time series of inflow and ouflow of active user 
+accounts.
+-->
+
+<head>
+<link rel="shortcut icon" href="http://www.khanacademy.org/favicon.ico?leaf">
+<link rel="stylesheet" type="text/css" href="static/css/third_party/bootstrap.css">
+<link rel="stylesheet" type="text/css" href="static/css/third_party/jquery/flick/jquery-ui-1.8.20.custom.css">
+</head>
+
+<body>
+
+<div class="growth-summary" style="width:800px; margin: 40px auto;">
+    <h2>User Growth Summary</h2>
+
+    <div class="input-variables" style="margin: 10px 0;">
+        Start Date: <input title="Start Datestamp" id="growth-summary-startdate" size="20"></input>
+        End Date: <input title="End Datestamp" id="growth-summary-enddate" size="20"></input>
+        <br />
+        Scale type: <select id="growth-summary-timescale">
+                    <option value="monthly" selected>monthly</option>
+                    <option value="weekly">weekly</option>
+                    <option value="daily">daily</option>
+                    </select>
+    </div>
+    <div id="growth-summary-graph-container">
+    </div>
+    <h3>Series Totals</h3>
+    <table class="table table-bordered">
+        <thead>
+            <th>Joins</th>
+            <th>Deactivations</th>
+            <th>Reactivations</th>
+            <th>NET</th>
+        </thead>
+        <tr>
+            <td id="growth-table-joins"></td>
+            <td id="growth-table-deactivations"></td>
+            <td id="growth-table-reactivations"></td>
+            <td id="growth-table-NET"></td>
+        </tr>
+    </table>
+</div>
+
+<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.6.1/jquery.min.js"></script>
+<script src="static/js/third_party/jquery-ui-1.8.20.custom.min.js"></script>
+<script src="static/js/third_party/underscore-min.js"></script>
+<script src="static/js/third_party/highcharts.js"></script>
+<script src="static/js/user-growth.js"></script>
+
+</body>
+</html>
+
+

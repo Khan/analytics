@@ -37,6 +37,11 @@ def exercises_dashboard():
     return flask.render_template('daily-ex-stats.html')
 
 
+@app.route('/growth')
+def growth_dashboard():
+    return flask.render_template('user-growth.html')
+
+
 @app.route('/learning')
 def learning_dashboard():
     return flask.render_template('learning-stats.html')
