@@ -144,6 +144,33 @@ LOCATION 's3://ka-mapreduce/summary_tables/user_feedback_summary';
 ALTER TABLE user_feedback_summary RECOVER PARTITIONS;
 
 
+-- Consolidated view a user's activity on a given day.  
+-- See user_daily_activity.q for details.
+CREATE EXTERNAL TABLE IF NOT EXISTS user_daily_activity(
+  user STRING,
+  joined BOOLEAN,
+  feedback_items INT,
+  videos_started INT, videos_completed INT, videos_seconds INT,
+  exercises_started INT, exercises_completed INT, 
+  exercises_problems_done INT, exercises_seconds INT)
+PARTITIONED BY (dt STRING)
+LOCATION 's3://ka-mapreduce/summary_tables/user_daily_activity';
+ALTER TABLE user_daily_activity RECOVER PARTITIONS;
+
+
+-- Based on user_daily_activity, holds time series of total account status 
+-- changes (e.g, activation, deactivation, ...) on daily, weekly, and 
+-- monthly timescales.  
+-- See user_growth.[q|py] for more details.
+CREATE EXTERNAL TABLE IF NOT EXISTS user_growth(
+  dt STRING,
+  series STRING,
+  value INT)
+PARTITIONED BY (timescale STRING)
+LOCATION 's3://ka-mapreduce/summary_tables/user_growth';
+ALTER TABLE user_growth RECOVER PARTITIONS;
+
+
 -- Defined in userdata_info.q
 CREATE EXTERNAL TABLE IF NOT EXISTS userdata_info(
   user STRING,
