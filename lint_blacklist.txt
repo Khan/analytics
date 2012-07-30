@@ -18,4 +18,5 @@ src/mongo_examples.py
 src/oauth_util/get_access_token.py
 src/oauth_util/oauth.py
 src/oauth_util/test_oauth_client.py
+webapps/dashboards/oauth.py
 webapps/dashboards/static/js/daily-video-stats.js
