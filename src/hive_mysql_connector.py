@@ -126,7 +126,7 @@ def run_hive_init(remote_command=None):
 
     base_command = ['ssh', _hive_hostname]
     if _ssh_keyfile:
-        base_command + ['-i', _ssh_keyfile]
+        base_command += ['-i', _ssh_keyfile]
     
     subprocess.call(base_command + [remote_command])
 
