@@ -432,16 +432,21 @@ var AccuracyGainSeriesView = SeriesView.extend({
 
     events: function() {
         return _.extend({}, SeriesView.prototype.events, {
-            "change .stacks-select": "changeNumStacks",
+            "change .stacks-select": "onFiltersChange",
             "click .comparison-op": "changeComparison"
         });
     },
 
-    changeNumStacks: function() {
+    /** @override */
+    onFiltersChange: function() {
         var numStacks = this.$(".stacks-select").val();
         this.$(".comparison-op").toggle(numStacks !== "any");
         this.seriesFilters.set("numStacks", numStacks);
-        this.refresh();
+
+        var operator = this.$(".comparison-op").text();
+        this.seriesFilters.set("comparisonOp", operator);
+
+        SeriesView.prototype.onFiltersChange.call(this);
     },
 
     changeComparison: function() {

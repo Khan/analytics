@@ -61,7 +61,7 @@ def _run_mysql_query_over_ssh(query):
 
     base_command = ['ssh', _hive_hostname]
     if _ssh_keyfile:
-        base_command + ['-i', _ssh_keyfile]
+        base_command = base_command + ['-i', _ssh_keyfile]
 
     # Encase the query in quotes.
     query = "'%s'" % query
@@ -112,6 +112,23 @@ def get_table_columns(table_name):
         ORDER BY c.INTEGER_IDX;
         """ % args
     return _run_mysql_query_over_ssh(query)
+
+
+def run_hive_init(remote_command=None):
+    """Issues a command over ssh on the hive cluster.  Can be used to 
+    ensure that the metadata on the cluster is up to date.
+    """
+    if not remote_command:
+        remote_command = (
+            'hive '
+            '-d INPATH=s3://ka-mapreduce/entity_store '
+            '-f s3://ka-mapreduce/code/hive/ka_hive_init.q')
+
+    base_command = ['ssh', _hive_hostname]
+    if _ssh_keyfile:
+        base_command += ['-i', _ssh_keyfile]
+    
+    subprocess.call(base_command + [remote_command])
 
 
 command_map = {
