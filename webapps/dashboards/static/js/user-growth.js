@@ -81,6 +81,10 @@ var init = function() {
     $("#growth-summary-timescale").change(refreshGrowthSummary);
 
     refreshGrowthSummary();
+
+    $('#def-and-faq-header').click(function() {
+        $('#def-and-faq-body').toggle();
+    });
 };
 
 
