@@ -43,8 +43,15 @@ def exercises_dashboard():
 
 
 @app.route('/growth')
+@auth.login_required
 def growth_dashboard():
     return flask.render_template('user-growth.html')
+
+
+@app.route('/goals')
+@auth.login_required
+def goals_dashboard():
+    return flask.render_template('company-goals.html')
 
 
 @app.route('/learning')
