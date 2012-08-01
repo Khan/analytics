@@ -85,6 +85,7 @@ var init = function() {
     $('#def-and-faq-header').click(function() {
         $('#def-and-faq-body').toggle();
     });
+    $('#def-and-faq-body').toggle(); // initialize as hidden
 };
 
 
