@@ -66,6 +66,7 @@ def configure_app(app, required=True):
 
 
 def login():
+    # TODO(benkomalo): pass along continue url.
     callback = flask.url_for('authorized', _external=True)
     return google.authorize(callback=callback)
 
@@ -88,18 +89,27 @@ def login_required(func):
         if FAKED_SECRETS:
             return func(*args, **kwargs)
 
+        # TODO(benkomalo): pass along continue url.
         access_token = flask.session.get('access_token')
         if access_token is None:
+            # TODO(benkomalo): add in a flag here just in case something is
+            # wrong with cookie setting and we get into an infinite redirect.
             return flask.redirect(flask.url_for('login'))
 
         access_token = access_token[0]
-        if _get_verified_auth(access_token):
+        email = _get_verified_user(access_token)
+        if not email:
+            # Couldn't get user info - the access_token must have expired
+            # or is invalid.
+            return flask.redirect(flask.url_for('login'))
+        elif email.lower().endswith('@khanacademy.org'):
             return func(*args, **kwargs)
         else:
-            return ("Unauthorized. Requires @khanacademy.org account. \n"
+            return ("Unauthorized. Logged in as %s, but this requires "
+                    "a @khanacademy.org account.\n"
                     "TODO(benkomalo): provide option to retry. Right now you "
                     "probably have to clear your cookies and try again if "
-                    "you accidentally used the wrong account.")
+                    "you accidentally used the wrong account." % email)
     return auth_wrapper
 
 
@@ -109,7 +119,7 @@ _TOKEN_CACHE = {}
 _CACHE_EXPIRY = datetime.timedelta(minutes=5)
 
 
-def _get_verified_auth(access_token):
+def _get_verified_user(access_token):
     if access_token in _TOKEN_CACHE:
         email, expiry = _TOKEN_CACHE[access_token]
         if expiry <= datetime.datetime.utcnow():
@@ -131,7 +141,7 @@ def _get_verified_auth(access_token):
     resp = json.loads(res.read())
     email = resp.get('email', '')
     verified = resp.get('verified_email', False)
-    if verified and email.lower().endswith('@khanacademy.org'):
+    if verified:
         expiry = datetime.datetime.utcnow() + _CACHE_EXPIRY
         _TOKEN_CACHE[access_token] = (email, expiry)
         return email
