@@ -13,10 +13,10 @@ var POLL_INTERVAL_MS = 1000;
 var localStorage = window.localStorage || {};
 
 var mapOptions = {
-    center: new google.maps.LatLng(localStorage['gmapsCenterLat'] || 0,
-                                   localStorage['gmapsCenterLng'] || 0),
-    zoom: +localStorage['gmapsZoom'] || 2,
-    mapTypeId: localStorage['gmapsMapTypeId'] || google.maps.MapTypeId.ROADMAP
+    center: new google.maps.LatLng(localStorage["gmapsCenterLat"] || 0,
+                                   localStorage["gmapsCenterLng"] || 0),
+    zoom: +localStorage["gmapsZoom"] || 2,
+    mapTypeId: localStorage["gmapsMapTypeId"] || google.maps.MapTypeId.ROADMAP
 };
 
 var attemptTemplate = Handlebars.compile($("#attempt-entry").html());
@@ -25,17 +25,17 @@ var prevFloat = null;
 var markers = [];
 
 
-google.maps.event.addListener(map, 'center_changed', function() {
-    localStorage['gmapsCenterLat'] = map.getCenter().lat();
-    localStorage['gmapsCenterLng'] = map.getCenter().lng();
+google.maps.event.addListener(map, "center_changed", function() {
+    localStorage["gmapsCenterLat"] = map.getCenter().lat();
+    localStorage["gmapsCenterLng"] = map.getCenter().lng();
 });
 
-google.maps.event.addListener(map, 'zoom_changed', function() {
-    localStorage['gmapsZoom'] = map.getZoom();
+google.maps.event.addListener(map, "zoom_changed", function() {
+    localStorage["gmapsZoom"] = map.getZoom();
 });
 
-google.maps.event.addListener(map, 'maptypeid_changed', function() {
-    localStorage['gmapsMapTypeId'] = map.getMapTypeId();
+google.maps.event.addListener(map, "maptypeid_changed", function() {
+    localStorage["gmapsMapTypeId"] = map.getMapTypeId();
 });
 
 
@@ -74,7 +74,7 @@ var makeMarker = function(pinColor, options) {
     var pinImage = new google.maps.MarkerImage("http://chart.apis.google.com/" +
             "chart?chst=d_map_pin_letter&chld=%E2%80%A2|" + pinColor,
         new google.maps.Size(21, 34),
-        new google.maps.Point(0,0),
+        new google.maps.Point(0, 0),
         new google.maps.Point(10, 34));
     var pinShadow = new google.maps.MarkerImage(
             "http://chart.apis.google.com/chart?chst=d_map_pin_shadow",

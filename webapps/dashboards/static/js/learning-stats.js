@@ -479,7 +479,7 @@ var AccuracyGainSeriesView = SeriesView.extend({
 
         var numDoneVal = {};
         if (numStacks === "any") {
-            numDoneVal['$lte'] = 160;
+            numDoneVal["$lte"] = 160;
         } else {
             var numCards = numStacks * 8;  // TODO(david): Not always true
             numDoneVal = {
@@ -558,7 +558,7 @@ var UsersSeriesView = SeriesView.extend({
 
     events: function() {
         return _.extend({}, SeriesView.prototype.events, {
-            "change .users-select": "updateSeries",
+            "change .users-select": "updateSeries"
         });
     },
 
@@ -685,7 +685,7 @@ var PercentCorrectSeriesView = SeriesView.extend({
 
     seriesOptions: {
         type: "spline",
-        pointStart: 1,
+        pointStart: 1
     },
 
     yAxis: {
@@ -870,7 +870,7 @@ var DashboardView = Backbone.View.extend({
         var seriesName = "Series " + (seriesNum + 1) + " - " +
             seriesViewConstructor.seriesName;
 
-        var yAxisIndex =_.indexOf(DashboardView.yAxesNames,
+        var yAxisIndex = _.indexOf(DashboardView.yAxesNames,
             seriesViewConstructor.seriesName);
         if (yAxisIndex === -1) {
             yAxisIndex = DashboardView.yAxesNames.length;
@@ -896,7 +896,7 @@ var DashboardView = Backbone.View.extend({
             // again will not erase the old one.
             yAxis.setTitle(axisOptions.title);
         }
-        if (_.has(axisOptions, 'min') || _.has(axisOptions, 'max')) {
+        if (_.has(axisOptions, "min") || _.has(axisOptions, "max")) {
             yAxis.setExtremes(axisOptions.min, axisOptions.max);
         }
 
