@@ -18,7 +18,7 @@ var chart = null;
 
 
 /**
- * Holds the data for the time series in a format accepted by Highcharts.  
+ * Holds the data for the time series in a format accepted by Highcharts.
  * There should be one series for each key of seriesSigns (below), plus
  * one NET series which adds up the signed sum of all other series.
  */
@@ -31,13 +31,13 @@ var growthTotals_ = {};
 
 /**
  * These are the series names expected to be in the database and their
- * associated sign.  E.g., a joins represents the gain (positive) of a user, 
+ * associated sign.  E.g., a joins represents the gain (positive) of a user,
  * while a reactivations represents a loss (negative) of a user.
  */
 var seriesSigns = {
-    'joins': 1,
-    'deactivations': -1,
-    'reactivations': 1
+    "joins": 1,
+    "deactivations": -1,
+    "reactivations": 1
 };
 var seriesTypes = _.keys(seriesSigns);
 
@@ -48,7 +48,7 @@ var seriesTypes = _.keys(seriesSigns);
  */
 var strToDate = function(strDate) {
     dateParts = strDate.split("-");
-    return Date.UTC(dateParts[0], (dateParts[1]-1), dateParts[2]);
+    return Date.UTC(dateParts[0], (dateParts[1] - 1), dateParts[2]);
 };
 
 
@@ -82,10 +82,10 @@ var init = function() {
 
     refreshGrowthSummary();
 
-    $('#def-and-faq-header').click(function() {
-        $('#def-and-faq-body').toggle();
+    $("#def-and-faq-header").click(function() {
+        $("#def-and-faq-body").toggle();
     });
-    $('#def-and-faq-body').toggle(); // initialize as hidden
+    $("#def-and-faq-body").toggle(); // initialize as hidden
 };
 
 
@@ -133,7 +133,7 @@ var fetchGrowthData = function(postFetchCallback) {
             "series": series,
             "dt": {
                 "$gte": $("#growth-summary-startdate").val(),
-                "$lt": $("#growth-summary-enddate").val(),
+                "$lt": $("#growth-summary-enddate").val()
             }
         });
         var params = {
@@ -174,17 +174,17 @@ var netGrowthSeries = function() {
     var rows = [];
 
     var maxLength = 0;
-    _.each(growthSeries_, function(series) { 
+    _.each(growthSeries_, function(series) {
         maxLength = Math.max(maxLength, series.data.length);
     });
 
     for (var d = 0; d < maxLength; d++) {
         var netDelta = 0;
-        var netDate = null;    
+        var netDate = null;
         for (var s = 0; s < growthSeries_.length; s++) {
             if (d + growthSeries_[s].data.length >= maxLength) {
-                // The growth series are not necessarily the same length 
-                // because, e.g., deactivations can only start occuring 28 days 
+                // The growth series are not necessarily the same length
+                // because, e.g., deactivations can only start occuring 28 days
                 // aftera join. The series should all "align" on the ending
                 // date interval, not the beginning interval.  The offset
                 // below is a non-positive number that keeps the index
@@ -192,12 +192,12 @@ var netGrowthSeries = function() {
                 var offset = growthSeries_[s].data.length - maxLength;
                 var delta = growthSeries_[s].data[d + offset][1];
                 delta = delta * seriesSigns[growthSeries_[s].name];
-                netDelta += delta; 
+                netDelta += delta;
 
-                netDate = growthSeries_[s].data[d + offset][0]
+                netDate = growthSeries_[s].data[d + offset][0];
             }
         }
-        rows.push([netDate, netDelta])
+        rows.push([netDate, netDelta]);
     }
 
     growthSeries_.push({"name": "NET", "data": rows});
@@ -209,10 +209,10 @@ var netGrowthSeries = function() {
  */
 var totalGrowth = function() {
 
-    _.each(growthSeries_, function(series) { 
+    _.each(growthSeries_, function(series) {
         var seriesTotal = 0;
         _.each(series.data, function(row) {
-            seriesTotal += row[1]
+            seriesTotal += row[1];
         });
         growthTotals_[series.name] = seriesTotal;
     });
@@ -221,7 +221,7 @@ var totalGrowth = function() {
 
 
 /**
- * Retrieve the data requested from the UI, and refresh the chart with the 
+ * Retrieve the data requested from the UI, and refresh the chart with the
  * new data.
  */
 var refreshGrowthSummary = function() {
@@ -234,22 +234,22 @@ var refreshGrowthSummary = function() {
     chart.showLoading();
 
     fetchGrowthData(function() {
-        
+
         netGrowthSeries();
-        
+
         _.each(growthSeries_, function(series) {
             chart.addSeries(series, /* redraw */ false);
         });
-        
+
         chart.hideLoading();
         chart.redraw();
 
         totalGrowth();
 
         _.each(growthTotals_, function(total, seriesName) {
-            $("#growth-table-" + seriesName ).text(numberWithCommas(total));
+            $("#growth-table-" + seriesName).text(numberWithCommas(total));
         });
-        
+
     });
 };
 

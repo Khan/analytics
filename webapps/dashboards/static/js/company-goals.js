@@ -21,7 +21,7 @@ var chart = null;
  */
 var monthStringToDate = function(strDate) {
     dateParts = strDate.split("-");
-    return Date.UTC(dateParts[0], (dateParts[1]-1), 1);
+    return Date.UTC(dateParts[0], (dateParts[1] - 1), 1);
 };
 
 /**
@@ -68,7 +68,7 @@ var fetchGrowthData = function() {
 
 /**
  * Process the response for a query of the mongo REST API.  The response
- * contains the data for multiple time series.  We convert to the format 
+ * contains the data for multiple time series.  We convert to the format
  * expected by Highcharts and recreate the graph.
  */
 var handleGrowthData = function(data) {
@@ -82,7 +82,7 @@ var handleGrowthData = function(data) {
                 "name": curr_series,
                 "data": []
             };
-        };
+        }
         series[curr_series]["data"].push(
             [monthStringToDate(record["month"]), record["total"]]
         );
