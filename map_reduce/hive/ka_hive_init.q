@@ -137,6 +137,7 @@ ALTER TABLE user_exercise_summary RECOVER PARTITIONS;
 
 
 -- Describes feedbacks on a per-video basis for users on a given day
+-- Available since 6/1/2012
 CREATE EXTERNAL TABLE IF NOT EXISTS user_feedback_summary(
   user STRING, video_key STRING, record_cnt INT,
   question_cnt INT, answer_cnt INT) PARTITIONED BY (dt STRING)
@@ -195,6 +196,10 @@ CREATE EXTERNAL TABLE IF NOT EXISTS topic_mapping(
   ancestor_keys_json STRING, ancestor_titles_json STRING) 
   ROW FORMAT DELIMITED FIELDS TERMINATED BY '\t'
   LOCATION 's3://ka-mapreduce/summary_tables/topic_mapping/';
+
+CREATE EXTERNAL TABLE IF NOT EXISTS video_topic_category(
+  vid_key STRING, top_category STRING, second_category STRING) 
+  LOCATION 's3://ka-mapreduce/summary_tables/video_topic_category/';
 
 -- TODO(benkomalo): when using ADD FILE with s3 paths, it downloads it to a
 --    local cache, which we have to reference from directly. Figure out
