@@ -62,5 +62,22 @@
             "-i", "s3://ka-mapreduce/code/hive/ka_hive_init.q"
             ]
     }
+},
+{
+    "Name": "Generating coach_summary",
+    "ActionOnFailure": "CONTINUE",
+    "HadoopJarStep": {
+        "Jar": "s3://us-east-1.elasticmapreduce/libs/script-runner/script-runner.jar",
+        "Args": [
+            "s3://us-east-1.elasticmapreduce/libs/hive/hive-script",
+            "--base-path", "s3://us-east-1.elasticmapreduce/libs/hive/",
+            "--hive-versions", "latest",
+            "--run-hive-script",
+            "--args",
+            "-f", "s3://ka-mapreduce/code/hive/coach_summary.q",
+            "-d", "INPATH=s3://ka-mapreduce/entity_store",
+            "-i", "s3://ka-mapreduce/code/hive/ka_hive_init.q"
+            ]
+    }
 }
 ] 

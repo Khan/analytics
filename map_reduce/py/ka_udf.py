@@ -43,6 +43,38 @@ def split(split_field, delimiter, selected, output_json=False):
             sys.stdout.write(output)
 
 
+def explode(key_fields, explode_field):
+    """Running the explode function on the explode field.
+       Example: key_fields='a,b' explode_field = 'c'
+       input: {"a":"def", "b":"ghi", "c": [1,2,3]}
+       output: 
+            def\tghi\t1
+            def\tghi\t2
+            def\tghi\t3
+    """
+    for line in sys.stdin:
+        line = line.strip()
+        doc = json.loads(line)
+        exploded = None
+        if explode_field in doc:
+            exploded = doc[explode_field]
+        selected_keys = key_fields.split(",")
+        selected_fields = []
+        for key in selected_keys:
+            if key in doc:
+                data = str(doc[key])
+                selected_fields.append(data)
+            else:
+                selected_fields.append("")
+        f_delim = '\t'
+        selected_str = f_delim.join(selected_fields)
+        if not exploded:
+            continue
+        for value in exploded:
+            output = "%s\t%s\n" % (selected_str, value)
+            sys.stdout.write(output)
+
+
 def main():
     if len(sys.argv) <= 1:
         print >> sys.stderr, "Usage: ka_udf.py <func_name> <extra args>"
@@ -55,6 +87,13 @@ def main():
             print >> sys.stderr, split_usage_str
             exit(1)
         split(sys.argv[2], sys.argv[3], sys.argv[4], int(sys.argv[5]))
+    if sys.argv[1] == "explode":
+        explode_usage_str = ("Usage: ka_udf.py  exploded" +
+            "<output_fields_seprated_by_comma> <explode_field>")
+        if len(sys.argv) != 4:
+            print >> sys.stderr, explode_usage_str
+            exit(1)
+        explode(sys.argv[2], sys.argv[3])
     else:
         print >> sys.stderr, "Unknown function %s. Exiting!" % sys.argv[1]
         exit(1)
