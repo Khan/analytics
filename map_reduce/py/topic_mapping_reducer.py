@@ -33,8 +33,9 @@ def main():
             ancestor_titles = []
             for ancestor_key in ancestors:
                 ancestor_titles.append(topics_map[ancestor_key]['title'])
-            ancestor_keys_str = json.dumps(ancestors)
-            ancestor_title_str = json.dumps(ancestor_titles)
+            ancestor_titles.append(topic_title)
+            ancestor_keys_str = json.dumps({'keys':ancestors})
+            ancestor_title_str = json.dumps({'titles':ancestors_titles})
             print "%s\t%s\t%s\t%s" % (topic_key, topic_title, 
                                       ancestor_keys_str, ancestor_title_str) 
 
