@@ -5,6 +5,7 @@
 <head>
     <title>Real Time Khan Academy</title>
     <link rel="shortcut icon" href="http://www.khanacademy.org/favicon.ico?leaf">
+    <link rel="stylesheet" type="text/css" href="static/css/third_party/bootstrap.css">
     <link rel="stylesheet" type="text/css" href="http://reset5.googlecode.com/hg/reset.min.css">
     <link rel="stylesheet" type="text/css" href="static/css/real-time.css">
     <link href='http://fonts.googleapis.com/css?family=Merienda+One' rel='stylesheet' type='text/css'>
@@ -12,6 +13,8 @@
 </head>
 
 <body>
+
+    {% include 'navbar.html' %}
 
     <div id="map" style="width: 100%; height: 100%; position: absolute"></div>
 
