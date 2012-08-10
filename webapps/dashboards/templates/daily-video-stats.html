@@ -12,6 +12,8 @@ A simple dashboard showing aggregate video data for a particular day.
 
 <body>
 
+{% include 'navbar.html' %}
+
 <!-- TODO(benkomalo): stop with this inline CSS silliness and use a real file -->
 <div class="engagement-summary" style="width:800px; margin: 40px auto;">
     <h2>Video Engagement Summary (registered users)</h2>
@@ -47,12 +49,13 @@ A simple dashboard showing aggregate video data for a particular day.
     </div>
 </div>
 
-<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.6.1/jquery.min.js"></script>
+<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
 <script src="static/js/third_party/jquery-ui-1.8.20.custom.min.js"></script>
 <script src="static/js/third_party/underscore-min.js"></script>
 <script src="static/js/third_party/handlebars.js"></script>
 <script src="static/js/third_party/highcharts.js"></script>
 <script src="static/js/third_party/backbone-min.js"></script>
+<script src="static/js/third_party/bootstrap-dropdown.js"></script>
 <script src="static/js/handlebars-helpers.js"></script>
 <script src="static/js/ajax-cache.js"></script>
 <script src="static/js/daily-video-stats.js"></script>

@@ -1,25 +1,40 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.6.1/jquery.min.js" type="text/javascript"></script>
+	<link rel="shortcut icon" href="http://www.khanacademy.org/favicon.ico?leaf">
+    <link rel="stylesheet" type="text/css" href="static/css/third_party/bootstrap.css">
+    <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js" type="text/javascript"></script>
     <script src="static/js/third_party/highcharts.js" type="text/javascript"></script>
 </head>
 
 <body>
-<div id="ex_chart_container"></div>
-<select title="Exercise" id="exerciselist" size="20"></select>
-<select title="Statistic" id="statlist" size="20"></select>
-<select title="Normalizer" id="normlist" size="20"></select>
-<select title="Super Mode" id="superlist" size="20"></select>
-<select title="Filter Mode" id="filterlist" size="20" multiple="multiple"></select>
-<select title="" id="colbreak" size="20"></select>
-<select title="Composition Mode" id="compositionlist" size="20"></select>
-<select title="Composition Format" id="formatlist" size="20"></select>
-<br><br>
-<input type="button" id="togglebutton"></button>
-<div id="mode_chart_container"></div>
+
+{% include 'navbar.html' %}
+
+<!-- TODO(jace): Avoid the repeated use of inline style -->
+<div id="page-header" style="width:1600px; margin: 40px auto;">
+	<h1>Daily Exercise Stats</h1>
+</div>
+
+<div id="ex_chart_container" style="width:1600px; margin: 40px auto;"></div>
+
+<div id="ex_input_container" style="width:1600px; margin: 40px auto;">
+	<select title="Exercise" id="exerciselist" size="20"></select>
+	<select title="Statistic" id="statlist" size="20"></select>
+	<select title="Normalizer" id="normlist" size="20"></select>
+	<select title="Super Mode" id="superlist" size="20"></select>
+	<select title="Filter Mode" id="filterlist" size="20" multiple="multiple"></select>
+	<select title="" id="colbreak" size="20"></select>
+	<select title="Composition Mode" id="compositionlist" size="20"></select>
+	<select title="Composition Format" id="formatlist" size="20"></select>
+	<br><br>
+	<input type="button" id="togglebutton"></button>
+</div>
+
+<div id="mode_chart_container" style="width:1600px; margin: 40px auto;"></div>
 
 <script src="static/js/daily-ex-stats.js"></script>
+<script src="static/js/third_party/bootstrap-dropdown.js"></script>
 </body>
 </html>
 
