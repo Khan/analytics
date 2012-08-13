@@ -71,13 +71,36 @@ def apply_transform(doc):
 def pb_to_dict(pb, parent=None):
     """Convert a protocol buffer to a json-serializable dictionary"""
     entity = datastore.Entity._FromPb(entity_pb.EntityProto(pb))
-    # create a json serializable dictionary from entity
+
+    # Create a json serializable dictionary from entity
     document = dict(entity)
+
+    pre_process_entity_dict(entity.kind(), document)
+
     document['key'] = str(entity.key())
     if parent and entity.parent():
         document['parent'] = str(entity.parent())
     document = apply_transform(document)
     return document
+
+
+def pre_process_entity_dict(kind, document):
+    """Perform additional pre-processing on the given entity dict, if needed.
+
+    This is useful in cases where the Entity has properties that are
+    stored in a compact form and need to be processed first to be useful.
+    """
+    if kind == "_GAEBingoIdentityRecord":
+        # HACK(benkomalo):
+        # A _GAEBingoIdentityRecord stores a BingoIdentityCache object in
+        # a serialized form, which is not that useful for us unless we expand
+        # it first.
+        deserialized = pickle.loads(document["pickled"])
+
+        # To preserve the "shape" of _GAEBingoIdentityRecord", we stuff
+        # the massaged BingoIdentityCache (now a dict) back to the property
+        # so it can be serialized back to a JSON in Hive.
+        document["pickled"] = deserialized.__dict__
 
 
 def main():
