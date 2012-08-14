@@ -5,6 +5,9 @@ webapps/dashboards/static/js/third_party/
 # Config files
 src/oauth_util/access_token.py
 
+# Subrepos
+src/gae_bingo/
+
 # Legacy - needs to be fixed.
 map_reduce/load_pbufs_to_hive.py
 src/back_populate.py
