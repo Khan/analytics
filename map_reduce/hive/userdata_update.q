@@ -10,7 +10,7 @@ SET mapred.output.compression.codec=org.apache.hadoop.io.compress.GzipCodec;
 SET io.compression.codecs=org.apache.hadoop.io.compress.GzipCodec;
 
 
-ADD FILE s3://ka-mapreduce/code/py/update_userdata.py; 
+ADD FILE s3://ka-mapreduce/code/py/find_latest_record.py;
 FROM (
   FROM (
     SELECT key, json FROM UserDataP
@@ -22,7 +22,7 @@ FROM (
   SELECT key, json CLUSTER BY key  
 )  red_out
 INSERT OVERWRITE TABLE UserDataP PARTITION(dt='${end_dt}')
-SELECT TRANSFORM(json) USING 'update_userdata.py' 
+SELECT TRANSFORM(json) USING 'find_latest_record.py'
 AS key, json;
 
 ADD FILE s3://ka-mapreduce/code/shell/set_userdata_partition.sh;

@@ -1,9 +1,17 @@
 #!/usr/bin/env python
-"""Reducer script to pick the latest records from UserData updates """
+"""Reducer script to pick the latest records among a set of snapshots.
+
+This expects two columns: a key and json blob.
+This looks at a 'backup_timestamp' property in each record, and emits the
+record with the latest timestamp for all records that match a given key.
+"""
+
 import codecs
 import json
 import sys
-"""The following is needed for printing out char var > 128"""
+
+
+# The following is needed for printing out char var > 128
 sys.stdout = codecs.getwriter('utf8')(sys.stdout)
 
 
@@ -11,10 +19,11 @@ def main():
     key = None
     timestamp = None
     json_str = None
+
     for line in sys.stdin:
         json_object = json.loads(line)
         current_key = json_object['key']
-        if current_key != key: 
+        if current_key != key:
             if json_str:
                 print "%s\t%s" % (key, json_str)
             key = current_key
