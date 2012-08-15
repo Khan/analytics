@@ -31,7 +31,6 @@ CREATE EXTERNAL TABLE IF NOT EXISTS Feedback (
   LOCATION '${INPATH}/Feedback';
 ALTER TABLE Feedback RECOVER PARTITIONS;
 
-
 CREATE EXTERNAL TABLE IF NOT EXISTS FeedbackVote (
     key string, json string
   )
@@ -40,6 +39,20 @@ CREATE EXTERNAL TABLE IF NOT EXISTS FeedbackVote (
   LOCATION '${INPATH}/FeedbackVote';
 ALTER TABLE FeedbackVote RECOVER PARTITIONS;
 
+-- Mirror of _GAEBingoAlternative and _GAEBingoExperiment entities on
+-- prod (denormalized so that experiment info is in each alternative).
+-- NOTE: the ordering of these alternatives in the table is important, and it's
+-- implicitly used for determining which alternative a user belongs to.
+CREATE EXTERNAL TABLE IF NOT EXISTS GAEBingoAlternative (
+    canonical_name string,  -- Canonical name of the experiment
+    name string,  -- Name of the alternative
+    hashable_name string,  -- Family or canonical name
+    weight INT,
+    dt_start string,
+    live BOOLEAN
+  )
+  ROW FORMAT DELIMITED FIELDS TERMINATED BY '\t'
+  LOCATION '${INPATH}/GAEBingoAlternative';
 
 CREATE EXTERNAL TABLE IF NOT EXISTS ProblemLog (
     user string, json string
@@ -49,7 +62,6 @@ CREATE EXTERNAL TABLE IF NOT EXISTS ProblemLog (
   LOCATION '${INPATH}/ProblemLog';
 ALTER TABLE ProblemLog RECOVER PARTITIONS;
 
-
 CREATE EXTERNAL TABLE IF NOT EXISTS StackLog (
     user string, json string
   )
@@ -58,13 +70,11 @@ CREATE EXTERNAL TABLE IF NOT EXISTS StackLog (
   LOCATION '${INPATH}/StackLog';
 ALTER TABLE StackLog RECOVER PARTITIONS;
 
-
 CREATE EXTERNAL TABLE IF NOT EXISTS Topic (
     key string, json string
   )
   ROW FORMAT DELIMITED FIELDS TERMINATED BY '\t'
   LOCATION '${INPATH}/Topic';
-
 
 CREATE EXTERNAL TABLE IF NOT EXISTS UserBadge (
     user string, json string
@@ -74,9 +84,26 @@ CREATE EXTERNAL TABLE IF NOT EXISTS UserBadge (
   LOCATION '${INPATH}/UserBadge';
 ALTER TABLE UserBadge RECOVER PARTITIONS;
 
--- UserData entities are downloaded daily in incremental updates, and collected
--- periodically into snapshots. The latest snapshot version is defined in the
--- following file.
+CREATE EXTERNAL TABLE IF NOT EXISTS Video (
+    key string, json string
+  )
+  ROW FORMAT DELIMITED FIELDS TERMINATED BY '\t'
+  LOCATION '${INPATH}/Video';
+
+CREATE EXTERNAL TABLE IF NOT EXISTS VideoLog (
+    user string, json string
+  )
+  PARTITIONED BY (dt string)
+  ROW FORMAT DELIMITED FIELDS TERMINATED BY '\t'
+  LOCATION '${INPATH}/VideoLog';
+ALTER TABLE VideoLog RECOVER PARTITIONS;
+
+--------------------------------------------------------------------------------
+-- Incrementally fetched entities
+
+-- UserData and _GAEBingoIdentityRecord entities are downloaded daily in
+-- incremental updates, and collected periodically into snapshots. The latest
+-- snapshot version is defined in the following file:
 -- (see userdata_update.q for generation of these partitions)
 ADD FILE s3://ka-mapreduce/conf/userdata_ver.q;
 SOURCE /mnt/var/lib/hive_081/downloaded_resources/userdata_ver.q;
@@ -111,19 +138,29 @@ CREATE VIEW UserData
 AS SELECT * FROM UserDataP
 WHERE dt = '${userdata_partition}';
 
-CREATE EXTERNAL TABLE IF NOT EXISTS Video (
-    key string, json string
-  )
-  ROW FORMAT DELIMITED FIELDS TERMINATED BY '\t'
-  LOCATION '${INPATH}/Video';
+-- Same things as UserData has above, but for GAEBingoIdentityRecord
+CREATE EXTERNAL TABLE IF NOT EXISTS GAEBingoIdentityRecordP (
+    key string, json string)
+COMMENT 'GAEBingoIdentityRecord snapshots (created from multiple GAEBingoIdentityRecordIncr partitions)'
+PARTITIONED BY (dt string)
+CLUSTERED BY (key) INTO 128 BUCKETS
+LOCATION '${INPATH}/GAEBingoIdentityRecordP';
+ALTER TABLE GAEBingoIdentityRecordP RECOVER PARTITIONS;
 
-CREATE EXTERNAL TABLE IF NOT EXISTS VideoLog (
-    user string, json string
-  )
-  PARTITIONED BY (dt string)
-  ROW FORMAT DELIMITED FIELDS TERMINATED BY '\t'
-  LOCATION '${INPATH}/VideoLog';
-ALTER TABLE VideoLog RECOVER PARTITIONS;
+CREATE EXTERNAL TABLE IF NOT EXISTS GAEBingoIdentityRecordIncr (
+    key string, json string)
+COMMENT 'Daily incremental GAEBingoIdentityRecord updates'
+PARTITIONED BY (dt string)
+CLUSTERED BY (key) INTO 16 BUCKETS
+ROW FORMAT DELIMITED FIELDS TERMINATED BY '\t'
+LOCATION 's3://ka-mapreduce/entity_store_incr/GAEBingoIdentityRecord';
+ALTER TABLE GAEBingoIdentityRecordIncr RECOVER PARTITIONS;
+
+DROP TABLE IF EXISTS GAEBingoIdentityRecord;
+DROP VIEW IF EXISTS GAEBingoIdentityRecord;
+CREATE VIEW GAEBingoIdentityRecord
+AS SELECT * FROM GAEBingoIdentityRecordP
+WHERE dt = '${userdata_partition}';
 
 
 --------------------------------------------------------------------------------
