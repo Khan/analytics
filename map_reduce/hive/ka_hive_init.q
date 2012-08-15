@@ -74,32 +74,42 @@ CREATE EXTERNAL TABLE IF NOT EXISTS UserBadge (
   LOCATION '${INPATH}/UserBadge';
 ALTER TABLE UserBadge RECOVER PARTITIONS;
 
---Getting the latest partition
+-- UserData entities are downloaded daily in incremental updates, and collected
+-- periodically into snapshots. The latest snapshot version is defined in the
+-- following file.
+-- (see userdata_update.q for generation of these partitions)
 ADD FILE s3://ka-mapreduce/conf/userdata_ver.q;
 SOURCE /mnt/var/lib/hive_081/downloaded_resources/userdata_ver.q;
 
+-- A snapshot of updated UserData info, built by collecting UserDataIncr data
+-- across multiple days and creating a collective snapshot.
+-- The partition date dictates up to which date that snapshot has
+-- been computed for (inclusive).
 CREATE EXTERNAL TABLE IF NOT EXISTS UserDataP (
     key string, json string)
-COMMENT 'UserData snapshots'
-PARTITIONED BY (dt string) 
+COMMENT 'UserData snapshots (created from multiple UserDataIncr partitions)'
+PARTITIONED BY (dt string)
 CLUSTERED BY (key) INTO 128 BUCKETS
 LOCATION '${INPATH}/UserDataP';
 ALTER TABLE UserDataP RECOVER PARTITIONS;
 
+-- This stores daily subsets of UserData entities (ones that have been
+-- modified on the partition date, and therefore needs updating).
 CREATE EXTERNAL TABLE IF NOT EXISTS UserDataIncr (
     key string, json string)
-COMMENT 'Daily incremental user data updates'
-PARTITIONED BY (dt string) 
+COMMENT 'Daily incremental UserData updates'
+PARTITIONED BY (dt string)
 CLUSTERED BY (key) INTO 16 BUCKETS
 ROW FORMAT DELIMITED FIELDS TERMINATED BY '\t'
 LOCATION 's3://ka-mapreduce/entity_store_incr/UserData';
-ALTER TABLE UserDataIncr RECOVER PARTITIONS; 
+ALTER TABLE UserDataIncr RECOVER PARTITIONS;
 
+-- A view of the latest UserDataP snapshot.
 DROP TABLE IF EXISTS UserData;
 DROP VIEW IF EXISTS UserData;
-CREATE VIEW UserData 
-AS SELECT * FROM UserDataP 
-WHERE dt = '${userdata_partition}'; 
+CREATE VIEW UserData
+AS SELECT * FROM UserDataP
+WHERE dt = '${userdata_partition}';
 
 CREATE EXTERNAL TABLE IF NOT EXISTS Video (
     key string, json string
@@ -145,23 +155,23 @@ LOCATION 's3://ka-mapreduce/summary_tables/user_feedback_summary';
 ALTER TABLE user_feedback_summary RECOVER PARTITIONS;
 
 
--- Consolidated view a user's activity on a given day.  
+-- Consolidated view a user's activity on a given day.
 -- See user_daily_activity.q for details.
 CREATE EXTERNAL TABLE IF NOT EXISTS user_daily_activity(
   user STRING,
   joined BOOLEAN,
   feedback_items INT,
   videos_started INT, videos_completed INT, videos_seconds INT,
-  exercises_started INT, exercises_completed INT, 
+  exercises_started INT, exercises_completed INT,
   exercises_problems_done INT, exercises_seconds INT)
 PARTITIONED BY (dt STRING)
 LOCATION 's3://ka-mapreduce/summary_tables/user_daily_activity';
 ALTER TABLE user_daily_activity RECOVER PARTITIONS;
 
 
--- Based on user_daily_activity, holds time series of total account status 
--- changes (e.g, activation, deactivation, ...) on daily, weekly, and 
--- monthly timescales.  
+-- Based on user_daily_activity, holds time series of total account status
+-- changes (e.g, activation, deactivation, ...) on daily, weekly, and
+-- monthly timescales.
 -- See user_growth.[q|py] for more details.
 CREATE EXTERNAL TABLE IF NOT EXISTS user_growth(
   dt STRING,
@@ -201,16 +211,16 @@ CREATE EXTERNAL TABLE IF NOT EXISTS video_topic(
   topic_title STRING, topic_desc STRING)
 LOCATION 's3://ka-mapreduce/summary_tables/video_topic';
 
--- More user friendly topic mapping 
+-- More user friendly topic mapping
 -- the keys and titles are sorted from generic to specific
 CREATE EXTERNAL TABLE IF NOT EXISTS topic_mapping(
   topic_key STRING, topic_title STRING,
-  ancestor_keys_json STRING, ancestor_titles_json STRING) 
+  ancestor_keys_json STRING, ancestor_titles_json STRING)
   ROW FORMAT DELIMITED FIELDS TERMINATED BY '\t'
   LOCATION 's3://ka-mapreduce/summary_tables/topic_mapping/';
 
 CREATE EXTERNAL TABLE IF NOT EXISTS video_topic_category(
-  vid_key STRING, top_category STRING, second_category STRING) 
+  vid_key STRING, top_category STRING, second_category STRING)
   LOCATION 's3://ka-mapreduce/summary_tables/video_topic_category/';
 
 -- TODO(benkomalo): when using ADD FILE with s3 paths, it downloads it to a

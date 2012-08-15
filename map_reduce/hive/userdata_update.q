@@ -1,7 +1,10 @@
--- Taking a partition of full UserData, merge it with incremental updates,
--- and create a new partition
--- start_dt: start_date. exclusing of UserDataIncr
--- end_dt: end_dt
+-- Takes a partition of full UserData (in a UserDataP table), merge it with
+-- incremental updates in a UserDataIncr table, and create a new UserDataP.
+-- Arguments:
+--     start_dt: start_date exclusive of UserDataIncr (note that the date
+--         is exclusive since these partition dates indicate the inclusive
+--         date up to which the data is valid for)
+--     end_dt: end_dt inclusive of UserDataIncr
 
 SET mapred.reduce.tasks=128;
 SET mapred.output.compress=true;
@@ -15,11 +18,11 @@ FROM (
   FROM (
     SELECT key, json FROM UserDataP
     WHERE dt = '${start_dt}'
-    UNION ALL 
-    SELECT key, json FROM UserDataIncr 
-    WHERE dt > '${start_dt}' AND dt <= '${end_dt}' 
-  ) map_out  
-  SELECT key, json CLUSTER BY key  
+    UNION ALL
+    SELECT key, json FROM UserDataIncr
+    WHERE dt > '${start_dt}' AND dt <= '${end_dt}'
+  ) map_out
+  SELECT key, json CLUSTER BY key
 )  red_out
 INSERT OVERWRITE TABLE UserDataP PARTITION(dt='${end_dt}')
 SELECT TRANSFORM(json) USING 'find_latest_record.py'
