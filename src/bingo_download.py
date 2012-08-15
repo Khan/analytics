@@ -9,6 +9,7 @@ somewhat massaged and not quite in a raw entity format, like the other data.
 import datetime
 import json
 from optparse import OptionParser
+import os
 import subprocess
 import sys
 import time
@@ -72,7 +73,7 @@ def dump_alternatives(experiment, fout=sys.stdout):
     for alternative in experiment['alternatives']:
         fout.write("\t".join([
                 canonical_name,
-                alternative['content'],
+                str(alternative['content']),
                 hashable_name,
                 str(alternative['weight']),
                 dt_started,
@@ -94,6 +95,9 @@ def fetch_and_process_data(options):
     today = datetime.date.today()
     json_filename = "%s/%s/GAEBingoAlternative.json" % (options.archive_dir,
                                                         today)
+
+    if not os.path.exists(os.path.dirname(json_filename)):
+        os.mkdir(os.path.dirname(json_filename))
 
     with open(json_filename, 'wb+') as f:
         for experiment in experiments:
