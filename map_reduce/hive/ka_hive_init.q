@@ -241,7 +241,7 @@ CREATE EXTERNAL TABLE IF NOT EXISTS user_coach_summary(
   user STRING,
   num_coaches INT,
   max_coach_students INT
-) LOCATION 's3://ka-mapteduce/summary_tables/user_coach_summary';
+) LOCATION 's3://ka-mapreduce/summary_tables/user_coach_summary';
 
 CREATE EXTERNAL TABLE IF NOT EXISTS video_topic(
   vid_key STRING, vid_title STRING, topic_key STRING,
