@@ -14,16 +14,21 @@ fi
 day_before=$(date --date=${day}-1day '+%Y-%m-%d')
 
 current_dir=`dirname $0`
+archive_dir="$HOME/kabackup/daily_new"
 
-# Bulk download small factual tables 
+# Bulk download small factual tables.
 # TODO(yunfang): Revisit if this is the best place to do the download
 ${current_dir}/../src/bulk_download.py \
   -c ${current_dir}/../cfg/bulk_download.json -d $day 2>&1
 
+# TODO(benkomalo): make command line flags consistent. "-d" is used for dir
+# in gae_download.py and bingo_download.py but day in bulk_download :(
+${current_dir}/../src/bingo_download.py -d ${archive_dir}
+
 
 # Upload to s3.
 echo "Upload to S3"
-/usr/local/bin/s3cmd sync ~/kabackup/daily_new/${day}/ \
+/usr/local/bin/s3cmd sync ${archive_dir}/${day}/ \
   s3://ka-mapreduce/rawdata/${day}/ 2>&1
 /usr/local/bin/s3cmd sync ~/kabackup/bulkdownload/${day}/ \
   s3://ka-mapreduce/rawdata/bulk/${day}/ 2>&1
