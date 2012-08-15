@@ -92,7 +92,7 @@ def fetch_and_process_data(options):
 
     # JSONify the entities
     today = datetime.date.today()
-    json_filename = "%s/%s/GAEBingoExperiments.json" % (options.archive_dir,
+    json_filename = "%s/%s/GAEBingoAlternative.json" % (options.archive_dir,
                                                         today)
 
     with open(json_filename, 'wb+') as f:
