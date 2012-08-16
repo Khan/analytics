@@ -19,7 +19,8 @@
             "ExerciseVideo": [1800, 1800, 1, 0, "key"],
             "Topic": [1800, 1800, 1, 0, "key"],
             "TopicVersion": [1800, 1800, 1, 0, "key"],
-            "Video" : [1800, 1800, 1, 0, "key"]
+            "Video" : [1800, 1800, 1, 0, "key"],
+            "_GAEBingoIdentityRecord": [600, 150, 1, 0, "identity"]
            },
   "default_db": "kadb",
   # these tables have their own db because they are big
