@@ -111,7 +111,7 @@ def get_archive_file_name(config, kind, start_dt, end_dt, ftype='pickle'):
 
 
 def load_pbufs_to_db(config, mongo, entity_list, start_dt, end_dt, kind=None):
-    """load protocol buffers to mongo"""
+    """Load protocol buffers into mongo."""
     if not kind:
         if len(entity_list) > 0:
             pb = entity_list[0]
@@ -251,6 +251,13 @@ def put_document(entity, config, mongo):
     """Put the GAE entity into mongodb"""
     def _put_document(entity, config, mongo):
         kind = entity.key().kind()
+
+        # TODO(benkomalo): HACK HACK HACK - don't care about
+        # _GAEBingoIdentityRecord in Mongo right now and it has pickled data,
+        # which doesn't encode well when put into Mongo, so it explodes.
+        if kind == '_GAEBingoIdentityRecord':
+            return
+
         document = {}
         document.update(entity)
         mutable = int(config['kinds'][kind][2])
