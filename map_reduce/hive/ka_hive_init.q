@@ -140,9 +140,7 @@ WHERE dt = '${userdata_partition}';
 
 -- Same things as UserData has above, but for GAEBingoIdentityRecord
 CREATE EXTERNAL TABLE IF NOT EXISTS GAEBingoIdentityRecordP (
-    key string,  -- Bingo identity string
-    json string  -- JSONified form of BingoIdentityCache
-  )
+    key string, json string)
 COMMENT 'GAEBingoIdentityRecord snapshots (created from multiple GAEBingoIdentityRecordIncr partitions)'
 PARTITIONED BY (dt string)
 CLUSTERED BY (key) INTO 128 BUCKETS
@@ -150,9 +148,7 @@ LOCATION '${INPATH}/GAEBingoIdentityRecordP';
 ALTER TABLE GAEBingoIdentityRecordP RECOVER PARTITIONS;
 
 CREATE EXTERNAL TABLE IF NOT EXISTS GAEBingoIdentityRecordIncr (
-    key string,  -- Bingo identity string
-    json string  -- JSONified form of BingoIdentityCache
-  )
+    key string, json string)
 COMMENT 'Daily incremental GAEBingoIdentityRecord updates'
 PARTITIONED BY (dt string)
 CLUSTERED BY (key) INTO 16 BUCKETS
