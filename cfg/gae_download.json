@@ -15,12 +15,17 @@
             "UserData": [600, 15, 1, 0, "key"],
             "UserVideo" : [1200, 100, 1, 0, "user"],
             "Feedback": [1800, 1800, 1, 1, "author_user_id"],
+            "TopicVersion": [1800, 1800, 1, 0, "key"],
+            "_GAEBingoIdentityRecord": [600, 150, 1, 0, "identity"],
+
+            # The following are also duplicated in the bulk download process.
+            # We include them here for posterity; if one is interested in the
+            # changes from these models between days, this gae_download process
+            # will track that.
             "Exercise": [1800, 1800, 1, 0, "key"],
             "ExerciseVideo": [1800, 1800, 1, 0, "key"],
             "Topic": [1800, 1800, 1, 0, "key"],
-            "TopicVersion": [1800, 1800, 1, 0, "key"],
-            "Video" : [1800, 1800, 1, 0, "key"],
-            "_GAEBingoIdentityRecord": [600, 150, 1, 0, "identity"]
+            "Video" : [1800, 1800, 1, 0, "key"]
            },
   "default_db": "kadb",
   # these tables have their own db because they are big
