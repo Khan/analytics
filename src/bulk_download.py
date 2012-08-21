@@ -1,6 +1,10 @@
 #!/usr/bin/env python
-""" This script connects to appengine to download backups on the datastore."""
+"""This script connects to appengine to download backups on the datastore.
 
+This is only currently used for smaller "factual" tables, such as Exercise or
+Video entities. Entities that are created in much higher volume are downloaded
+through a separate mechanism (see gae_download.py).
+"""
 
 import datetime
 import filecmp
@@ -12,6 +16,9 @@ import sqlite3
 import sys
 import time
 import traceback
+
+import gae_util
+gae_util.fix_sys_path()
 
 sys.path.append(os.path.dirname(__file__) + "/../map_reduce/py")
 import load_pbufs_to_hive

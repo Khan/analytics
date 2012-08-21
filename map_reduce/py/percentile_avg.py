@@ -5,7 +5,7 @@ percentile_avg.py -l [lower percentile bound] -u [upper percentile bound]
 
 This script calculates the mean of those entries in a column which fall
 between a lower and upper percentile bound in the data (trimmed average).
-This is particularly useful for outlier removal.  By default 
+This is particularly useful for outlier removal.  By default
 [lower percentile bound] = 0.1 and [upper percentile bound] = 0.9.
 
 Input:
@@ -17,7 +17,7 @@ Input:
 Output:
   Column 1:  Trimmed average
   Column 2+: The key value the average was taken over.  If there were no
-    Additional Columns as input, this will be set to an empty string. 
+    Additional Columns as input, this will be set to an empty string.
     Otherwise, this will be the value of the additional columns.
 
 Examples:
@@ -30,7 +30,7 @@ Take the trimmed average of a single column:
      AS avg, key
    FROM exercise) t;
 
- In this use case, the mean is taken over the 25th percentile through 75th 
+ In this use case, the mean is taken over the 25th percentile through 75th
  percentile entries in the column, rather than over all the entries.
 
 Use an additional column as a key:
@@ -42,8 +42,8 @@ Use an additional column as a key:
      USING 'python percentile_avg.py -l 0.1 -u 0.9'
      AS avg, key
  FROM
-   (SELECT exercise.json as json 
-    FROM exercise 
+   (SELECT exercise.json as json
+    FROM exercise
     DISTRIBUTE BY get_json_object(json, '$.author_name' )
    ) t;
 
@@ -58,19 +58,18 @@ Use two additional columns as a key:
      USING 'python percentile_avg.py -l 0.1 -u 0.9'
      AS avg, key1, key2
  FROM
-   (SELECT exercise.json as json 
-    FROM exercise 
+   (SELECT exercise.json as json
+    FROM exercise
     DISTRIBUTE BY get_json_object(json, '$.author_name' ),
                   get_json_object(json, '$.live' )
    ) t;
 
-
 """
 
 import numpy as np
-import sys
 import optparse
 import re
+import sys
 
 
 def get_cmd_line_options():
@@ -81,11 +80,11 @@ def get_cmd_line_options():
     return options.lower_bound, options.upper_bound
 
 
-# Load in a row of input, separating the value and any key columns.
-# make regular expression a global variable, so it doesn't have to be
-# recompiled for each line
-regex = re.compile(r'(^$|\\N)')
+NAN_REGEX = re.compile(r'(^$|\\N)')
+
+
 def decompose_line(line):
+    """Load in a row of input, separating the value and any key columns."""
     line = line.strip('\f\n\r')
     # split on tabs.  only split the first column.  Any remaining
     # columns will be left glommed together as a joint key.
@@ -98,7 +97,7 @@ def decompose_line(line):
         # additional columns
         key = line_split[1]
     # turn empty lines and Hive NaNs into "nan"
-    val = regex.sub('nan', val)
+    val = NAN_REGEX.sub('nan', val)
     return val, key
 
 
@@ -160,11 +159,11 @@ def main():
         x = vals[start_ind:end_ind]
         # sort it
         x = np.sort(x)
-        
-        # average the data only between the appropriate percentiles.  the 
-        # "if" statements deal with insufficient data.  The behavior if 
-        # there are only one or two valid rows is inconsistent with that 
-        # if there's more data, but I think it's better than returning 
+
+        # average the data only between the appropriate percentiles.  the
+        # "if" statements deal with insufficient data.  The behavior if
+        # there are only one or two valid rows is inconsistent with that
+        # if there's more data, but I think it's better than returning
         # NaNs if there's not enough data
         percentiles = np.arange(x.shape[0], dtype=float)
         if x.shape[0] > 2:
@@ -183,7 +182,7 @@ def main():
             avg = np.mean(x_gd)
         else:
             avg = np.nan
-            
+
         if not np.isfinite(avg):
             # use Hive's NaN string
             print r'\N',

@@ -39,21 +39,6 @@ CREATE EXTERNAL TABLE IF NOT EXISTS FeedbackVote (
   LOCATION '${INPATH}/FeedbackVote';
 ALTER TABLE FeedbackVote RECOVER PARTITIONS;
 
--- Mirror of _GAEBingoAlternative and _GAEBingoExperiment entities on
--- prod (denormalized so that experiment info is in each alternative).
--- NOTE: the ordering of these alternatives in the table is important, and it's
--- implicitly used for determining which alternative a user belongs to.
-CREATE EXTERNAL TABLE IF NOT EXISTS GAEBingoAlternative (
-    canonical_name string,  -- Canonical name of the experiment
-    name string,  -- Name of the alternative
-    hashable_name string,  -- Family or canonical name
-    weight INT,
-    dt_start string,
-    live BOOLEAN
-  )
-  ROW FORMAT DELIMITED FIELDS TERMINATED BY '\t'
-  LOCATION '${INPATH}/GAEBingoAlternative';
-
 CREATE EXTERNAL TABLE IF NOT EXISTS ProblemLog (
     user string, json string
   )
@@ -169,6 +154,30 @@ WHERE dt = '${userdata_partition}';
 
 --------------------------------------------------------------------------------
 -- Summary Tables
+
+-- Mirror of _GAEBingoAlternative and _GAEBingoExperiment entities on
+-- prod (denormalized so that experiment info is in each alternative).
+-- NOTE: the ordering of these alternatives in the table is important, and it's
+-- implicitly used for determining which alternative a user belongs to.
+CREATE EXTERNAL TABLE IF NOT EXISTS bingo_alternative_infoP (
+    canonical_name string,  -- Canonical name of the experiment
+    name string,  -- Name of the alternative
+    hashable_name string,  -- Family or canonical name
+    weight INT,
+    dt_start string,
+    live BOOLEAN
+  )
+  PARTITIONED BY (dt string)
+  ROW FORMAT DELIMITED FIELDS TERMINATED BY '\t'
+  LOCATION '${INPATH}/bingo_alternative_infoP';
+
+-- The entire set is snapshotted each day, and a VIEW is created for the
+-- latest one (synced with UserData partition snapshots).
+DROP TABLE IF EXISTS bingo_alternative_info;
+DROP VIEW IF EXISTS bingo_alternative_info;
+CREATE VIEW bingo_alternative_info
+AS SELECT * FROM bingo_alternative_infoP
+WHERE dt = '${userdata_partition}';
 
 -- Describes activity on a per-video basis for users on a given day
 CREATE EXTERNAL TABLE IF NOT EXISTS user_video_summary(
