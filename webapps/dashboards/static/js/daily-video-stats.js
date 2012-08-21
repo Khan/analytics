@@ -408,7 +408,7 @@ var refreshDailyActivity = function() {
     // TODO(benkomalo): consolidate this with the server info in
     // daily-ex-stats.js (maybe abstract to a data fetcher)
 
-    var url = BASE_DB_URL + "daily_video_stats/_find?callback=?";
+    var url = BASE_DB_URL + "daily_video_stats_old/_find?callback=?";
     var datestamp = $("#daily-video-date").val();
     var userCategory = $("#user-category").val();
     var criteria = JSON.stringify({

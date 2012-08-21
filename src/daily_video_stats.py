@@ -148,7 +148,7 @@ def populate(summary, day_str):
     """Populate the data to the report db"""
     # TODO(yunfang): parameterize this thing
     report_db = pymongo.Connection('107.21.23.204')['report']
-    report_collection = report_db['daily_video_stats']
+    report_collection = report_db['daily_video_stats_old']
     g_logger.info("Populating data")
     iso_str = "%sT00:00:00Z" % day_str
     day = date_util.from_date_iso(iso_str)
