@@ -93,23 +93,23 @@ def fetch_and_process_data(options):
 
     # JSONify the entities
     today = datetime.date.today()
-    json_filename = "%s/%s/GAEBingoAlternative.json" % (options.archive_dir,
-                                                        today)
+    json_path = "%s/%s/bingo_alternative_info/bingo_alternative_info.json" % (
+            options.archive_dir, today)
 
-    if not os.path.exists(os.path.dirname(json_filename)):
-        os.mkdir(os.path.dirname(json_filename))
+    if not os.path.exists(os.path.dirname(json_path)):
+        os.makedirs(os.path.dirname(json_path))
 
-    with open(json_filename, 'wb+') as f:
+    with open(json_path, 'wb+') as f:
         for experiment in experiments:
             dump_alternatives(experiment, f)
 
-    ret = subprocess.call(["gzip", "-f", json_filename])
+    ret = subprocess.call(["gzip", "-f", json_path])
     if ret == 0:
         logger.info(
                 "%s experiments saved to %s.gz" % (len(experiments),
-                json_filename))
+                json_path))
     else:
-        logger.error("Cannot gzip %s" % (json_filename))
+        logger.error("Cannot gzip %s" % (json_path))
 
 
 def main():
