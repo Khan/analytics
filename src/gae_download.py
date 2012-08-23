@@ -15,6 +15,7 @@ import datetime as dt
 import json
 import os
 import pickle
+import re
 import subprocess
 import sys
 import time
@@ -98,9 +99,15 @@ def get_cmd_line_args():
 
 
 def get_archive_file_name(config, kind, start_dt, end_dt, ftype='pickle'):
-    """get the archive file name. has the format of
-       {ARCHIVE_DIR}/YY-mm-dd/{kind}/kind-start_dt-end_dt.pickle
+    """Get the archive file name. has the format of
+    {ARCHIVE_DIR}/YY-mm-dd/{kind}/kind-start_dt-end_dt.pickle
+
     """
+
+    # Note that Hadoop does not like leading underscores in files, so we strip
+    # out leading underscores (as may be used in the case of private classes)
+    kind = re.sub(r'^_*', '', kind)
+
     datestr = str(start_dt.date())
     dirname = "%s/%s/%s" % (config['archive_dir'], datestr, kind)
     mkdir_p(dirname)
