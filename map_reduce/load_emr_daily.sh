@@ -41,9 +41,6 @@ elastic-mapreduce --create --name "${day} GAE Upload" \
   --json ${current_dir}/load_gae_to_hive.json \
   --param "<dt>=${day}" 2>&1
 
-echo "Run report importer for daily_video_stats"
-${current_dir}/../src/report_importer.py ka-hive daily_video_stats \
-  report daily_video_stats dt=${day}
 
 # UserData update
 echo "Updating the UserData"
