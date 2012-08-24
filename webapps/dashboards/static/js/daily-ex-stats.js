@@ -3,6 +3,17 @@
  * statistics dashboard.
  */
 
+
+/**
+ * This function converts a string such as '2012-08-21' and returns
+ * the corresponding Date object.
+ */
+var strToDate = function(strDate) {
+    dateParts = strDate.split("-");
+    return Date.UTC(dateParts[0], (dateParts[1] - 1), dateParts[2]);
+};
+
+
 var exChartOptions = {
     chart: {
         renderTo: "ex_chart_container",
@@ -72,7 +83,7 @@ $(document).ready(function() {
         $.each(tmodes, function(ix, tmode) {
             var criteria = JSON.stringify({
                 "exercise": exName,
-                "filter_mode": tmode,
+                "sub_mode": tmode,
                 "super_mode": superMode
             });
             var params = {
@@ -82,11 +93,10 @@ $(document).ready(function() {
 
             // jQuery uses "jsonp=?" as a special indicator to use an
             // auto-generated JSONP callback.
-            var url = URL_BASE + "daily_ex_stats" + URL_SUFFIX;
+            var url = URL_BASE + "daily_exercise_stats" + URL_SUFFIX;
             deferreds[deferreds.length] = $.getJSON(url, params, function(sdata) {
 
                 series = sdata;
-
                 // this function takes the result of the mongodb simple REST api
                 // and extracts data in the format expected by highcharts, specifically
                 // [[date1,val1], [date2, val2], ...]
@@ -99,14 +109,14 @@ $(document).ready(function() {
                             denom = row[normName];
                         }
                         if (dateField in row && statName in row) {
-                            data.push([row[dateField]["$date"], row[statName] / denom]);
+                            data.push([strToDate(row[dateField]), row[statName] / denom]);
                         }
                     });
                     return data;
                 };
 
                 var seriesName = statName + " (filter mode: " + tmode + ")";
-                chartSeries[chartSeries.length] = { name: seriesName, data: getData(series, "date", statName) };
+                chartSeries[chartSeries.length] = { name: seriesName, data: getData(series, "dt", statName) };
                 chartTitles[chartTitles.length] = exName + ": " + statDesc + " over time";
 
             });
@@ -114,7 +124,6 @@ $(document).ready(function() {
         });
 
         $.when.apply(null, deferreds).done(function() {
-
             exChartOptions.series = chartSeries;
             exChartOptions.title.text = chartTitles[0];
 
@@ -148,7 +157,7 @@ $(document).ready(function() {
         var deferreds = [];
         $.each(tmodes, function(ix, tmode) {
             var criteria = JSON.stringify({
-                "filter_mode": tmode,
+                "sub_mode": tmode,
                 "super_mode": superMode
             });
             var params = {
@@ -160,7 +169,6 @@ $(document).ready(function() {
 
             deferreds[deferreds.length] = $.getJSON(url, params, function(sdata) {
                 series = sdata;
-                console.log(series);
                 // this function takes the result of the mongodb simple REST api
                 // and extracts data in the format expected by highcharts, specifically
                 // [[date1,val1], [date2, val2], ...]
@@ -212,7 +220,7 @@ $(document).ready(function() {
 
         var criteria = JSON.stringify({
             "exercise": exName,
-            "filter_mode": tmode,
+            "sub_mode": tmode,
             "super_mode": superMode
         });
         var params = {
@@ -304,10 +312,14 @@ $(document).ready(function() {
 
     var showOrHideElements = function(show) {
         $("#superlist").toggle();
-        $("#compositionlist").toggle();
-        $("#formatlist").toggle();
-        $("#colbreak").toggle();
-        $("#mode_chart_container").toggle();
+
+        // TODO(jace):  change these back from hide() to toggle() once the 
+        // backend support has been ported over from Mongo to Hive
+        $("#compositionlist").hide();
+        $("#formatlist").hide();
+        $("#colbreak").hide();
+        $("#mode_chart_container").hide();
+
         // swap the button text
         var temp = $("#togglebutton").attr("value");
         $("#togglebutton").attr("value", $("#togglebutton").attr("data-desc"));

@@ -408,12 +408,12 @@ var refreshDailyActivity = function() {
     // TODO(benkomalo): consolidate this with the server info in
     // daily-ex-stats.js (maybe abstract to a data fetcher)
 
-    var url = BASE_DB_URL + "daily_video_stats_old/_find?callback=?";
+    var url = BASE_DB_URL + "daily_video_stats/_find?callback=?";
     var datestamp = $("#daily-video-date").val();
     var userCategory = $("#user-category").val();
     var criteria = JSON.stringify({
-        "date_str": datestamp,
-        "ucat": userCategory
+        "dt": datestamp,
+        "user_category": userCategory
     });
     var sort = JSON.stringify({
         "-seconds_watched": 1
@@ -441,11 +441,11 @@ var handleDataLoadForDay = function(data) {
     var results = data["results"];
     for (var i = 0; i < results.length; i += 1) {
         var row = results[i];
-        if (row["vid"] === "total") {
+        if (row["vid"] === "Total") {
             row["link"] = "<b>Total Across All Videos</b>";
         } else {
             row["link"] = '<a href="http://youtube.com/watch?v=' +
-                row["vid"] + '">' + row["vtitle"] + "</a>";
+                row["vid"] + '">' + row["title"] + "</a>";
         }
         row["hours_watched"] = Math.floor(row["seconds_watched"] / 3600);
         row["percent_completed"] = (row["completed"] / row["watched"]) || 0;

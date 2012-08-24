@@ -33,7 +33,7 @@ echo "Upload to S3"
 /usr/local/bin/s3cmd sync ~/kabackup/bulkdownload/${day}/ \
   s3://ka-mapreduce/rawdata/bulk/${day}/ 2>&1
 
-# Convert pbuf to json
+# Convert pbuf to json + additional daily aggregation jobs
 echo "Convert pbuf to json and load into the datastore"
 elastic-mapreduce --create --name "${day} GAE Upload" \
   --num-instances 3 --master-instance-type m1.small \

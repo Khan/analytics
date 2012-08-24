@@ -297,6 +297,33 @@ PARTITIONED BY (start_dt STRING, end_dt STRING)
 LOCATION 's3://ka-mapreduce/summary_tables/accuracy_deltas_summary';
 ALTER TABLE accuracy_deltas_summary RECOVER PARTITIONS;
 
+CREATE EXTERNAL TABLE IF NOT EXISTS daily_video_stats (
+  title STRING,
+  vid STRING,
+  watched INT, 
+  completed INT, 
+  seconds_watched INT
+) PARTITIONED BY (dt STRING, user_category STRING, aggregation STRING) 
+LOCATION 's3://ka-mapreduce/summary_tables/daily_video_stats';
+ALTER TABLE daily_video_stats RECOVER PARTITIONS;
+
+CREATE EXTERNAL TABLE IF NOT EXISTS daily_exercise_stats (
+    super_mode STRING,
+    sub_mode STRING,
+    exercise STRING,
+    users INT,
+    user_exercises INT,
+    problems INT,
+    correct INT,
+    profs INT,
+    prof_prob_count INT,
+    first_attempts INT,
+    hint_probs INT,
+    time_taken INT)
+COMMENT 'Contains daily time series data for daily ex stats dashboard'
+PARTITIONED BY (dt STRING)
+LOCATION 's3://ka-mapreduce/summary_tables/daily_exercise_stats';
+ALTER TABLE daily_exercise_stats RECOVER PARTITIONS;
 
 --------------------------------------------------------------------------------
 -- Utility files that custom Python mapper/reducer scripts can import.
