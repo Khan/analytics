@@ -21,7 +21,7 @@
       "Jar": "/home/hadoop/contrib/streaming/hadoop-streaming.jar",
       "Args": [
          "-D", "mapred.output.compress=true",
-         "-input",    "s3n://ka-mapreduce/rawdata/<end_dt>/_GAEBingoIdentityRecord/*.json.gz",
+         "-input",    "s3n://ka-mapreduce/rawdata/<end_dt>/GAEBingoIdentityRecord/*.json.gz",
          "-output",   "s3n://ka-mapreduce/entity_store_incr/GAEBingoIdentityRecord/dt=<end_dt>/",
          "-mapper",   "/bin/cat",
          "-reducer",  "/bin/cat",
