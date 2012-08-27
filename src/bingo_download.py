@@ -62,7 +62,7 @@ def fetch_experiments(archived=False):
 
 
 def dump_alternatives(experiment, fout=sys.stdout):
-    """Emits experiment alternatives JSON rows given a single experiment
+    """Emits experiment alternative rows given a single experiment
     JSON from the server."""
 
     hashable_name = experiment['family_name'] or experiment['canonical_name']
@@ -78,7 +78,7 @@ def dump_alternatives(experiment, fout=sys.stdout):
                 str(alternative['weight']),
                 dt_started,
                 str(live),
-            ]))
+            ]) + "\n")
     fout.flush()
 
 
@@ -91,25 +91,26 @@ def fetch_and_process_data(options):
                    fetch_experiments(archived=True))
     logger.info("Downloaded %s experiments" % len(experiments))
 
-    # JSONify the entities
+    # Named ".json" to be consistent with the other data files that have
+    # JSON in them. They're just raw tab-delimited text files, though.
     today = datetime.date.today()
-    json_path = "%s/%s/bingo_alternative_info/bingo_alternative_info.json" % (
+    out_path = "%s/%s/bingo_alternative_info/bingo_alternative_info.json" % (
             options.archive_dir, today)
 
-    if not os.path.exists(os.path.dirname(json_path)):
-        os.makedirs(os.path.dirname(json_path))
+    if not os.path.exists(os.path.dirname(out_path)):
+        os.makedirs(os.path.dirname(out_path))
 
-    with open(json_path, 'wb+') as f:
+    with open(out_path, 'wb+') as f:
         for experiment in experiments:
             dump_alternatives(experiment, f)
 
-    ret = subprocess.call(["gzip", "-f", json_path])
+    ret = subprocess.call(["gzip", "-f", out_path])
     if ret == 0:
         logger.info(
                 "%s experiments saved to %s.gz" % (len(experiments),
-                json_path))
+                out_path))
     else:
-        logger.error("Cannot gzip %s" % (json_path))
+        logger.error("Cannot gzip %s" % (out_path))
 
 
 def main():
