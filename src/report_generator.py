@@ -138,7 +138,7 @@ def run_report_importer(hive_masternode, steps):
             options += ' --drop'
         command = ('python /home/analytics/analytics/src/report_importer.py'
                    ' %s %s %s report %s %s') % (
-                   options, hivemaster_node, step['hive_table'],
+                   options, hive_masternode, step['hive_table'],
                    step['mongo_collection'], step['importer_args'])
         g_logger.info("Running command: \n%s" % (command))
         proc = subprocess.Popen(command.split(),
@@ -167,7 +167,7 @@ def main():
     run_hive_jobs(config['name'], config['steps'])
 
     g_logger.info("Step 3: Load data from hive to mongo with report importer.")
-    run_report_importer(config['steps'])
+    run_report_importer(options.hive_masternode, config['steps'])
 
     g_logger.info("Report generation finished.")
 
