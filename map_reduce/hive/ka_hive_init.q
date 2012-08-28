@@ -123,6 +123,13 @@ CREATE VIEW UserData
 AS SELECT * FROM UserDataP
 WHERE dt = '${userdata_partition}';
 
+-- Samples for easy testing
+DROP VIEW IF EXISTS UserDataSample;
+CREATE VIEW UserDataSample
+AS SELECT * FROM UserDataP
+TABLESAMPLE(BUCKET 1 OUT OF 128 ON key)
+WHERE dt = '${userdata_partition}';
+
 -- Same things as UserData has above, but for GAEBingoIdentityRecord
 CREATE EXTERNAL TABLE IF NOT EXISTS GAEBingoIdentityRecordP (
     key string,  -- Bingo identity string
@@ -151,6 +158,11 @@ CREATE VIEW GAEBingoIdentityRecord
 AS SELECT * FROM GAEBingoIdentityRecordP
 WHERE dt = '${userdata_partition}';
 
+DROP VIEW IF EXISTS GAEBingoIdentityRecordSample;
+CREATE VIEW GAEBingoIdentityRecordSample
+AS SELECT * FROM GAEBingoIdentityRecordP
+TABLESAMPLE(BUCKET 1 OUT OF 128 ON key)
+WHERE dt = '${userdata_partition}';
 
 --------------------------------------------------------------------------------
 -- Summary Tables
