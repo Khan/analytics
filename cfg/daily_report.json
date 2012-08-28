@@ -13,6 +13,15 @@
       "hive_table": "daily_video_stats",
       "importer_args": "dt=<dt>",
       "mongo_collection":  "daily_video_stats"
+    },
+
+
+    { "hive_script": "s3://ka-mapreduce/code/hive/daily_ex_stats.q",
+      "hive_args": {"dt": "<dt>"},
+
+      "hive_table": "daily_exercise_stats",
+      "importer_args": "dt=<dt>",
+      "mongo_collection":  "daily_exercise_stats"
     }
   ]
 
