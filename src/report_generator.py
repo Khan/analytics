@@ -63,19 +63,21 @@ def parse_command_line_args():
 
 def partition_available(s3bucket, partition_location):
     """Check if the data partition is available"""
-    time_delta = datetime.timedelta(minutes=3)
-    path_prefix = partition_location[len('s3://ka-mapreduce/'):] + '/'
+    time_delta = datetime.timedelta(seconds=60)
+    path_prefix = partition_location[len('s3://ka-mapreduce/'):] 
+    if path_prefix[-1] != '/':
+        path_prefix += '/'
     now = datetime.datetime.now()
     s3keys = s3bucket.list(prefix=path_prefix)
-    s3key_arr = []
+    empty = True
     for key in s3keys:
         key_modified = datetime.datetime.strptime(key.last_modified,
              "%Y-%m-%dT%H:%M:%S.%fZ")
         if (now - key_modified) < time_delta:
             # Data is still generating
             return False
-        s3key_arr.append(key)
-    if len(s3key_arr) == 0:
+        empty = False
+    if empty:
         # Data is not available yet
         return False
     return True
@@ -100,6 +102,8 @@ def wait_for_data(wait_for_config, options):
         table_location = hive_mysql_connector.get_table_location(table)
         for p in d['partitions']:
             partition_location = table_location + '/' + p
+            #TODO(yunfang): abstract the following to wait_for_partition 
+            #               for boto_util
             while True:
                 if partition_available(s3bucket, partition_location):
                     g_logger.info("%s is available" % (partition_location))
@@ -134,8 +138,9 @@ def run_report_importer(hive_masternode, steps):
     """Import hive results to mongo"""
     for step in steps:
         options = ''
-        if step.get('drop', 0):
+        if step.get('drop', False):
             options += ' --drop'
+        #TODO(benkomalo): Make the report_importer callable
         command = ('python /home/analytics/analytics/src/report_importer.py'
                    ' %s %s %s report %s %s') % (
                    options, hive_masternode, step['hive_table'],
