@@ -50,3 +50,9 @@ elastic-mapreduce --create --name "${day} UserDataP" \
   --json ${current_dir}/userdata.json \
   --param "<start_dt>=${day_before}" \
   --param "<end_dt>=${day}" 2>&1
+
+
+# Daily reports 
+echo "Generating daily reports"
+${current_dir}/../src/report_generator.py \
+  -c ${current_dir}/../cfg/daily_report.json "<dt>=${day}" 2>&1
