@@ -6,6 +6,7 @@ This looks at a 'backup_timestamp' property in each record, and emits the
 record with the latest timestamp for all records that match a given key.
 """
 
+import argparse
 import codecs
 import json
 import sys
@@ -15,14 +16,14 @@ import sys
 sys.stdout = codecs.getwriter('utf8')(sys.stdout)
 
 
-def main():
+def main(key_prop='key'):
     key = None
     timestamp = None
     json_str = None
 
     for line in sys.stdin:
         json_object = json.loads(line)
-        current_key = json_object['key']
+        current_key = json_object[key_prop]
         if current_key != key:
             if json_str:
                 print "%s\t%s" % (key, json_str)
@@ -39,4 +40,9 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+            '--key', dest='key', default='key',
+            help="The property name in the JSON to use as the key")
+    args = parser.parse_args()
+    main(args.key)

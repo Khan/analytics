@@ -40,8 +40,9 @@ SELECT user, user_id, user_email, alternative FROM (
         alt.weight AS alternative_weight
     FROM UserData ud
     INNER JOIN GAEBingoIdentityRecord bir
-      -- TODO(benkomalo): for some reason, GAEBingoIdentityRecord.key is not
-      -- being correctly set - peek into the JSON for now.
+      -- TODO(benkomalo): GAEBingoIdentityRecord.key is not
+      -- being correctly set due to a bug in find_latest_record.py.
+      -- Peek into the JSON until a backfill is done to address this.
       ON get_json_object(ud.json, '$.gae_bingo_identity') = get_json_object(bir.json, '$.identity')
     INNER JOIN bingo_alternative_info alt
       ON True   -- Simulate a CROSS JOIN (only available on Hive v0.10+)
