@@ -136,11 +136,20 @@ def user_day_matches_mode(plog_stats, user_info, mode):
             return ('coaches' not in user_info or
                     len(user_info['coaches']) <= 0)
         elif mode == 'heavy':
-            return ('proficient_exercises' in user_info and
-                    len(user_info['proficient_exercises'].split("\t")) > 10)
+            return ('proficient_exercises' in user_info 
+                    and
+                    # TODO(jace) - WTF is this necessary?  sometimes, the
+                    # user_info['proficient_exercises'] is list, and I don't
+                    # now why... hack for now and bail if type is not string.
+                    (isinstance(user_info['proficient_exercises'], basestring) 
+                    and
+                    len(user_info['proficient_exercises'].split("\t")) > 10))
         elif mode == 'light':
-            return ('proficient_exercises' not in user_info or
-                    len(user_info['proficient_exercises'].split("\t")) <= 10)
+            return ('proficient_exercises' not in user_info 
+                    or
+                    (isinstance(user_info['proficient_exercises'], basestring) 
+                    and 
+                    len(user_info['proficient_exercises'].split("\t")) <= 10))
         elif mode == 'registered':
             return ('user_id' in user_info and
                     'nouserid' not in user_info['user_id'])
