@@ -6,9 +6,9 @@ This looks at a 'backup_timestamp' property in each record, and emits the
 record with the latest timestamp for all records that match a given key.
 """
 
-import argparse
 import codecs
 import json
+import optparse
 import sys
 
 
@@ -40,9 +40,9 @@ def main(key_prop='key'):
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
-    parser.add_argument(
-            '--key', dest='key', default='key',
+    parser = optparse.OptionParser()
+    parser.add_option(
+            '--k', '--key', dest='key', default='key',
             help="The property name in the JSON to use as the key")
-    args = parser.parse_args()
-    main(args.key)
+    options, _ = parser.parse_args()
+    main(options.key)
