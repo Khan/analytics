@@ -88,7 +88,8 @@ $(document).ready(function() {
             });
             var params = {
                 "criteria": criteria,
-                "sort": SORT_BY_DATE
+                "sort": SORT_BY_DATE,
+                "batch_size": 15000
             };
 
             // jQuery uses "jsonp=?" as a special indicator to use an

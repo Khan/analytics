@@ -21,8 +21,9 @@ def run_hive_jobs(start_dt, end_dt):
     day -= datetime.timedelta(days=1)  # end date is exclusive
     while day >= start_day:
         emr.add_hive_step(jobflow, {},
-            's3://ka-mapreduce/code/branch-jace/hive/daily_ex_stats.q',
-            script_args={"dt": day.strftime(DATE_FORMAT)})
+            's3://ka-mapreduce/code/hive/daily_ex_stats.q',
+            script_args={"dt": day.strftime(DATE_FORMAT),
+                         "branch": "/"})
         day -= datetime.timedelta(days=1)
 
     return jobflow, emr.wait_for_completion(jobflow)
