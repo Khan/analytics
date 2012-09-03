@@ -79,7 +79,9 @@ def main(table_location,
     # If drop flag was set, nuke any pre-existing data
     if options.drop:
         print "\nDropping existing data in collection %s." % target_collection
-        mongo_collection.drop()
+        # Even though the option is called 'drop', I am instead
+        # calling 'remove', because it leaves any indexes while deleting data.
+        mongo_collection.remove()
 
     # Open our input connections.
     s3conn = boto.connect_s3()
