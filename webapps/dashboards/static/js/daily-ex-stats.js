@@ -57,7 +57,7 @@ $(document).ready(function() {
     var URL_BASE = "http://107.21.23.204:27080/report/";
     var URL_SUFFIX = "/_find?callback=?";
 
-    var SORT_BY_DATE = JSON.stringify({"date": 1});
+    var SORT_BY_DATE = JSON.stringify({"dt": 1});
 
     var chart;
     var setExChart = function() {
@@ -88,7 +88,8 @@ $(document).ready(function() {
             });
             var params = {
                 "criteria": criteria,
-                "sort": SORT_BY_DATE
+                "sort": SORT_BY_DATE,
+                "batch_size": 15000
             };
 
             // jQuery uses "jsonp=?" as a special indicator to use an

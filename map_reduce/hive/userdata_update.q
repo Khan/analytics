@@ -45,7 +45,7 @@ FROM (
   SELECT key, json CLUSTER BY key
 )  red_out
 INSERT OVERWRITE TABLE GAEBingoIdentityRecordP PARTITION(dt='${end_dt}')
-SELECT TRANSFORM(json) USING 'find_latest_record.py'
+SELECT TRANSFORM(json) USING 'find_latest_record.py --key identity'
 AS key, json;
 
 ADD FILE s3://ka-mapreduce/code/shell/set_userdata_partition.sh;

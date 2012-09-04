@@ -17,15 +17,15 @@ import sys
 
 g_err_late_join = 0
 # start_dt and end_dt define the date range for which to output data.
-# end_dt defines the as-of date of the ouput, which is necessary to 
+# end_dt defines the as-of date of the ouput, which is necessary to
 # detect when a user history ends in deactivation.
 g_start_dt = None
 g_end_dt = None
 
 # The following constant parameterizes our definition of an "active" user.
 # We define an active user as a user with at least one active visit in the last
-# WINDOW_LEN days, where an active visit requires the user to have performed 
-# an action of watching a video, attempting a problem, or contributing 
+# WINDOW_LEN days, where an active visit requires the user to have performed
+# an action of watching a video, attempting a problem, or contributing
 # discussion or comment feedback.  Instead of calendar months, we use windows
 # of 28 days to avoid noise from differing month lengths and weekly seasonality
 WINDOW_LEN = 28
@@ -50,10 +50,10 @@ def emit_delta_series(activity):
     for act in activity:
         user, dt, joined = act
 
-        if bool(joined):
+        if joined == 'true':
             emit_data_point(dt, 'joins', 1)
             if last_date:
-                # I would not expect the join to be set on any but the 
+                # I would not expect the join to be set on any but the
                 # first day of activity.  Double check that.
                 g_err_late_join += 1
 
