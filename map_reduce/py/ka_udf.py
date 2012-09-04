@@ -80,6 +80,7 @@ def main():
         print >> sys.stderr, "Usage: ka_udf.py <func_name> <extra args>"
         print >> sys.stderr, "Please specify a function to use."
         exit(1)
+
     if sys.argv[1] == "split":
         split_usage_str = ("Usage: ka_udf.py split " +
             "<split_field> <delim> <extra_fields> <output_json>")
@@ -87,6 +88,8 @@ def main():
             print >> sys.stderr, split_usage_str
             exit(1)
         split(sys.argv[2], sys.argv[3], sys.argv[4], int(sys.argv[5]))
+        exit(0)
+
     if sys.argv[1] == "explode":
         explode_usage_str = ("Usage: ka_udf.py  exploded" +
             "<output_fields_seprated_by_comma> <explode_field>")
@@ -94,9 +97,11 @@ def main():
             print >> sys.stderr, explode_usage_str
             exit(1)
         explode(sys.argv[2], sys.argv[3])
-    else:
-        print >> sys.stderr, "Unknown function %s. Exiting!" % sys.argv[1]
-        exit(1)
+        exit(0)
+
+    #Unknown 
+    print >> sys.stderr, "Unknown function %s. Exiting!" % sys.argv[1]
+    exit(1)
 
 
 if __name__ == '__main__':
