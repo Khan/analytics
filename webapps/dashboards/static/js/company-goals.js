@@ -59,7 +59,10 @@ var createGoalGraph = function(dataSeries) {
 var fetchGrowthData = function() {
     var url = BASE_DB_URL + "company_metrics/_find?callback=?";
 
-    var params = {"batch_size": 15000};
+    var params = {
+        "batch_size": 15000,
+        "sort": JSON.stringify({"month": 1})
+    };
     $.getJSON(url, params, function(data) {
         handleGrowthData(data["results"] || []);
     });
