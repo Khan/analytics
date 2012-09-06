@@ -138,7 +138,8 @@ var fetchGrowthData = function(postFetchCallback) {
         });
         var params = {
             "criteria": criteria,
-            "batch_size": 15000
+            "batch_size": 15000,
+            "sort": JSON.stringify({"dt": 1})
         };
         deferreds.push($.getJSON(
             url, params, function(data) {
