@@ -1,3 +1,4 @@
+-- TODO(yunfang):Consolidate this with the video_stats
 -- Hive script for generating video usage metrics.
 -- Outputs will be written to tables partitioned by a string representing
 -- the date range specified.
@@ -6,13 +7,14 @@
 --   path_prefix: The S3 path, with trailing slash, of where the output
 --      table should live. Must be non-empty!
 --   start_dt: start date stamp YYYY-mm-dd
---   end_dt: exclusive end date stamp YYYY-mm-dd
+--   end_dt: exclusive end date stamp YYYY-mm-dd unless start_dt = end_dt
 --
 -- Example for running the metrics for April:
 -- hive -i s3://ka-mapreduce/code/hive/ka_hive_init.q \
 -- -d INPATH=s3://ka-mapreduce/entity_store \
 -- -d path_prefix=summary_tables/reports/videos/ \
 -- -d start_dt=2012-04-01 -d end_dt=2012-05-01 \
+-- end_dt: exclusive end date stamp YYYY-mm-dd
 -- -f s3://ka-mapreduce/code/hive/video_metrics.q
 
 
