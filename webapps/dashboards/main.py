@@ -16,6 +16,7 @@ import flask
 import pymongo
 
 import auth
+import data
 
 app = flask.Flask(__name__)
 
@@ -30,10 +31,22 @@ def list_dashboards():
     return flask.render_template('index.html')
 
 
+@app.route('/video-summary')
+@auth.login_required
+def videos_summary_dashboard():
+    return flask.render_template('video-summary.html')
+
+
 @app.route('/videos')
 @auth.login_required
 def videos_dashboard():
     return flask.render_template('daily-video-stats.html')
+
+
+@app.route('/video-topic-summary')
+@auth.login_required
+def video_topic_dashboard():
+    return flask.render_template('video-topic-summary.html')
 
 
 @app.route('/exercises')
@@ -60,10 +73,40 @@ def learning_dashboard():
     return flask.render_template('learning-stats.html')
 
 
+@app.route('/data/topic_summary')
+@auth.login_required
+def topic_summary_data():
+    dt = flask.request.args.get('start_date', '')
+    duration = flask.request.args.get('time_scale', '')
+    (top_results, second_results) = data.topic_summary(db, dt, duration)
+    return flask.jsonify({'top_results': top_results,
+                          'second_results': second_results})
+
+
+@app.route('/data/video_title_summary')
+@auth.login_required
+def video_title_summary_data():
+    start_dt = flask.request.args.get('start_date', '')
+    end_dt = flask.request.args.get('end_date', '')
+    title = flask.request.args.get('title', 'Total')
+    duration = flask.request.args.get('time_scale', 'month')
+    results = data.video_title_summary(db, title, duration, start_dt, end_dt)
+    return flask.jsonify({'results': results})
+
+
 # TODO(david): Add to analytics homepage after I get a nice screenshot
 @app.route('/real-time')
 def real_time_stats():
     return flask.render_template('real-time-stats.html')
+
+
+@app.route('/db/distinct_video_titles')
+@auth.login_required
+def video_titles():
+    video_titles = db.report.video_stats.distinct('title')
+    return flask.jsonify({
+        'video_titles': video_titles
+    })
 
 
 @app.route('/db/learning_stats_topics')

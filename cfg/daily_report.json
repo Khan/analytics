@@ -7,6 +7,13 @@
 
   ],
   "steps": [
+    { "hive_script": "s3://ka-mapreduce/code/hive/video_stats.q",
+      "hive_args": {"start_dt": "<dt>", "end_dt": "<dt>", "duration": "day"},
+      "hive_table": "video_stats",
+      "importer_args": "duration=day dt=<dt>",
+      "mongo_collection":  "video_stats"
+    },
+
     { "hive_script": "s3://ka-mapreduce/code/hive/daily_video_stats.q",
       "hive_args": {"dt": "<dt>"},
 
@@ -14,6 +21,7 @@
       "importer_args": "dt=<dt>",
       "mongo_collection":  "daily_video_stats"
     }
+
   ]
 
 }

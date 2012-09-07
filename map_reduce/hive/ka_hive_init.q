@@ -194,7 +194,7 @@ WHERE dt = '${userdata_partition}';
 -- Describes activity on a per-video basis for users on a given day
 CREATE EXTERNAL TABLE IF NOT EXISTS user_video_summary(
   user STRING, video_key STRING, video_title STRING,
-  num_seconds INT, completed BOOLEAN)
+  num_seconds BIGINT, completed BOOLEAN)
 PARTITIONED BY (dt STRING)
 LOCATION 's3://ka-mapreduce/summary_tables/user_video_summary';
 ALTER TABLE user_video_summary RECOVER PARTITIONS;
@@ -309,15 +309,36 @@ PARTITIONED BY (start_dt STRING, end_dt STRING)
 LOCATION 's3://ka-mapreduce/summary_tables/accuracy_deltas_summary';
 ALTER TABLE accuracy_deltas_summary RECOVER PARTITIONS;
 
+
+-- TODO(yunfang): deprecate the following table and move to video_stats
 CREATE EXTERNAL TABLE IF NOT EXISTS daily_video_stats (
   title STRING,
-  vid STRING,
+  youtube_id STRING,
   watched INT, 
   completed INT, 
-  seconds_watched INT
+  seconds_watched BIGINT
 ) PARTITIONED BY (dt STRING, user_category STRING, aggregation STRING) 
 LOCATION 's3://ka-mapreduce/summary_tables/daily_video_stats';
 ALTER TABLE daily_video_stats RECOVER PARTITIONS;
+
+
+-- Partition information
+-- duration: month|week|day. aka time_scale
+-- dt: beginning date of the period
+-- user_category: all|registered|phatom
+-- aggregation: video|topic|total
+CREATE EXTERNAL TABLE IF NOT EXISTS video_stats (
+  title STRING,
+  youtube_id STRING,
+  users INT, 
+  visits INT, 
+  completed INT, 
+  seconds_watched BIGINT
+) PARTITIONED BY (duration STRING, dt STRING, 
+                  user_category STRING, aggregation STRING) 
+LOCATION 's3://ka-mapreduce/summary_tables/video_stats';
+ALTER TABLE daily_video_stats RECOVER PARTITIONS;
+
 
 CREATE EXTERNAL TABLE IF NOT EXISTS daily_exercise_stats (
     super_mode STRING,
