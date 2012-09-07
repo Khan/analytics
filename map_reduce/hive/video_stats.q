@@ -3,7 +3,7 @@
 -- 3 parameters need to be supplied
 -- duration: day/week/month
 -- start_dt: beginning date inclusive
--- end_dt: exclusive end date stamp YYYY-mm-dd unless start_dt = end_dt
+-- end_dt: end date stamp YYYY-mm-dd exclusive unless start_dt = end_dt
 
 -- All users
 

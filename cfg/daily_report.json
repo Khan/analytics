@@ -14,7 +14,6 @@
       "mongo_collection":  "video_stats"
     },
 
-
     { "hive_script": "s3://ka-mapreduce/code/hive/daily_video_stats.q",
       "hive_args": {"dt": "<dt>"},
 
@@ -22,7 +21,6 @@
       "importer_args": "dt=<dt>",
       "mongo_collection":  "daily_video_stats"
     }
-
 
   ]
 

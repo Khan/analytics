@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html>
+<!--
+Dashboards showing time series of video watching and topic level aggregation
+-->
+
+<head>
+<link rel="shortcut icon" href="http://www.khanacademy.org/favicon.ico?leaf">
+<link rel="stylesheet" type="text/css" href="static/css/third_party/bootstrap.css">
+<link rel="stylesheet" type="text/css" href="static/css/third_party/jquery/flick/jquery-ui-1.8.20.custom.css">
+</head>
+
+<body>
+
+{% include 'navbar.html' %}
+
+<div class="video-summary" style="width:800px; margin: 40px auto;">
+    <div class="input-variables" style="margin: 10px 0;">
+        <br />
+        From: <input title="Start Date" id="video-start-date" size="20"/>
+        To: <input title="End Date" id="video-end-date" size="20"/>
+        Scale type: <select id="video-summary-timescale">
+                    <option value="month" selected>monthly</option>
+                    <option value="week">weekly</option>
+                    <option value="day">daily</option>
+                    </select>
+        Video or Topic: <input title="Video Title" id="video-title-typeahead" size="200"/>
+    <input type="hidden" id="video-title-selected" value="{{ request.args.get("title", "") }}" />
+    </div>
+    <h3 id="video-summary-title"></h3>
+    <table>
+    <tr><td> <div id="video-summary-users-graph-container"></div></td></tr> 
+    <tr><td> <div id="video-summary-visits-graph-container"></div></td></tr>
+    <tr><td> <div id="video-summary-hours-graph-container"></div></td> </tr>
+    </table>
+    <div id="video-summary-table-container"></div>
+</div> 
+
+<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
+<script src="static/js/third_party/jquery-ui-1.8.20.custom.min.js"></script>
+<script src="static/js/third_party/jquery-ui-1.8.23.custom.min.js"></script>
+<script src="static/js/third_party/underscore-min.js"></script>
+<script src="static/js/third_party/handlebars.js"></script>
+<script src="static/js/third_party/highcharts.js"></script>
+<script src="static/js/third_party/backbone-min.js"></script>
+<script src="static/js/third_party/bootstrap-dropdown.js"></script>
+<script src="static/js/handlebars-helpers.js"></script>
+<script src="static/js/ajax-cache.js"></script>
+<script src="static/js/video-summary.js"></script>
+
+{% raw %}
+<script type="text/x-handlebars-template" id="video-summary-table">
+<table class="table table-bordered table-striped">
+    <thead>
+        <th>Datestamp </th>
+        <th colspan="3">Users watched</th>
+        <th colspan="3">Total Visits</th>
+        <th colspan="3">Hours Watched</th>
+    </thead>
+    <thead>
+        <th>&nbsp;</th>
+        <th>All</th>
+        <th>Registered</th>
+        <th>Phantom</th>
+        <th>All</th>
+        <th>Registered</th>
+        <th>Phantom</th>
+        <th>All</th>
+        <th>Registered</th>
+        <th>Phantom</th>
+    </thead>
+</table>
+</script>
+<script type="text/x-handlebars-template" id="video-summary-row-template">
+<tr>
+    <td>{{{dt}}}</td>
+    <td>{{commafy watched_all}} </td>
+    <td>{{commafy watched_registered}} </td>
+    <td>{{commafy watched_phantom}} </td>
+
+    <td>{{commafy visits_all}} </td>
+    <td>{{commafy visits_registered}} </td>
+    <td>{{commafy visits_phantom}} </td>
+
+    <td>{{commafy hours_all }} </td>
+    <td>{{commafy hours_registered }} </td>
+    <td>{{commafy hours_phantom }} </td>
+</tr>
+</script>
+{% endraw %}
+
+</body>
+</html>

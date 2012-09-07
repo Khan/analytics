@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html>
+<!--
+Dashboards showing time series of video watching and topic level aggregation
+-->
+
+<head>
+<link rel="shortcut icon" href="http://www.khanacademy.org/favicon.ico?leaf">
+<link rel="stylesheet" type="text/css" href="static/css/third_party/bootstrap.css">
+<link rel="stylesheet" type="text/css" href="static/css/third_party/jquery/flick/jquery-ui-1.8.20.custom.css">
+</head>
+
+<body>
+
+{% include 'navbar.html' %}
+
+<div class="video-by-topic-summary" style="width:800px; margin: 40px auto;">
+    <div class="input-variables" style="margin: 10px 0;">
+        <br />
+        Date: <input title="Start Date" id="topic-summary-date" size="20"/>
+        Scale type: <select id="topic-summary-timescale">
+                    <option value="month" selected>monthly</option>
+                    <option value="week">weekly</option>
+                    <option value="day">daily</option>
+                    </select>
+    </div>
+    <h2> Video Summary by Top Topic</h2>
+    <div id="video-top-topic-table-container">
+    </div>
+    <h2> Video Summary by Secondary Topic</h2>
+    <div id="video-second-topic-table-container">
+    </div>
+</div> 
+
+<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
+<script src="static/js/third_party/jquery-ui-1.8.20.custom.min.js"></script>
+<script src="static/js/third_party/underscore-min.js"></script>
+<script src="static/js/third_party/handlebars.js"></script>
+<script src="static/js/third_party/highcharts.js"></script>
+<script src="static/js/third_party/backbone-min.js"></script>
+<script src="static/js/third_party/bootstrap-dropdown.js"></script>
+<script src="static/js/handlebars-helpers.js"></script>
+<script src="static/js/ajax-cache.js"></script>
+<script src="static/js/video-topic-summary.js"></script>
+
+{% raw %}
+<script type="text/x-handlebars-template" id="topic-table">
+<table class="table table-bordered table-striped">
+    <thead>
+        <th>Topic</th>
+        <th colspan="3">Users watched</th>
+        <th colspan="3">Total Visits</th>
+        <th colspan="3">Visits/User</th>
+        <th colspan="3">Hours Watched</th>
+    </thead>
+    <thead>
+        <th>&nbsp;</th>
+        <th>All</th>
+        <th>Registered</th>
+        <th>Phantom</th>
+        <th>All</th>
+        <th>Registered</th>
+        <th>Phantom</th>
+        <th>All</th>
+        <th>Registered</th>
+        <th>Phantom</th>
+        <th>All</th>
+        <th>Registered</th>
+        <th>Phantom</th>
+    </thead>
+</table>
+</script>
+<script type="text/x-handlebars-template" id="topic-row-template">
+<tr>
+    <td>{{{title}}}</td>
+    <td>{{commafy watched_all}} {{percentify watched_all_pct decimals=2}}</td>
+    <td>{{commafy watched_registered}} {{percentify watched_registered_pct decimals=2}}</td>
+    <td>{{commafy watched_phantom}} {{percentify watched_phantom_pct decimals=2}}</td>
+
+    <td>{{commafy visits_all}} {{percentify visits_all_pct decimals=2}}</td>
+    <td>{{commafy visits_registered}} {{percentify visits_registered_pct decimals=2}}</td>
+    <td>{{commafy visits_phantom}} {{percentify visits_phantom_pct decimals=2}}</td>
+
+    <td>{{commafy visits_per_user_all decimals=2}} </td>
+    <td>{{commafy visits_per_user_registered decimals=2}} </td>
+    <td>{{commafy visits_per_user_phantom decimals=2}} </td>
+
+    <td>{{commafy hours_all}} {{percentify hours_all_pct decimals=2}}</td>
+    <td>{{commafy hours_registered}} {{percentify hours_registered_pct decimals=2}}</td>
+    <td>{{commafy hours_phantom}} {{percentify hours_phantom_pct decimals=2}}</td>
+</tr>
+</script>
+{% endraw %}
+
+</body>
+</html>
