@@ -71,7 +71,7 @@ def update_row(row, db_row, total_info=None):
     row["visits" + suffix] = db_row["visits"]
     row["completed" + suffix] = db_row["completed"]
     row["hours" + suffix] = float("%.2f" % (
-        db_row["seconds_watched"] / 3600.0))
+        float(db_row["seconds_watched"]) / 3600))
     row["visits_per_user" + suffix] = float("%.2f" % (
         float(db_row["visits"]) / db_row["users"]))
     return row
