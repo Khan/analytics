@@ -28,6 +28,7 @@ import boto
 import boto_util
 import emr
 import hive_mysql_connector
+import notify
 import util
 
 
@@ -64,7 +65,7 @@ def parse_command_line_args():
 def partition_available(s3bucket, partition_location):
     """Check if the data partition is available"""
     time_delta = datetime.timedelta(seconds=60)
-    path_prefix = partition_location[len('s3://ka-mapreduce/'):] 
+    path_prefix = partition_location[len('s3://ka-mapreduce/'):]
     if path_prefix[-1] != '/':
         path_prefix += '/'
     now = datetime.datetime.now()
@@ -102,7 +103,7 @@ def wait_for_data(wait_for_config, options):
         table_location = hive_mysql_connector.get_table_location(table)
         for p in d['partitions']:
             partition_location = table_location + '/' + p
-            #TODO(yunfang): abstract the following to wait_for_partition 
+            #TODO(yunfang): abstract the following to wait_for_partition
             #               for boto_util
             while True:
                 if partition_available(s3bucket, partition_location):
@@ -128,6 +129,12 @@ def run_hive_jobs(jobname, steps):
             hive_script=step["hive_script"],
             script_args=step["hive_args"])
     status = emr.wait_for_completion(jobflow)
+    listing = emr.list_steps(jobflow)
+    failures = ["FAILED", "CANCELLED", "TERMINATED"]
+    if any(s in listing for s in failures):
+        subject = "Reporting jobflow FAILED: %s" % jobname
+        notify.send_email(subject, listing)
+        notify.send_hipchat(subject)
     if status != "COMPLETED":
         g_logger.fatal("Hive jobs failed")
         g_logger.fatal(emr.list_steps(jobflow))
@@ -154,12 +161,9 @@ def run_report_importer(hive_masternode, steps):
 def main():
     options, params = parse_command_line_args()
 
-    parameters = {}
-    job_str = ''
     with open(options.config) as f:
         config_str = f.read()
     for param in params:
-        job_str += param + ', '
         name, val = param.split('=')
         g_logger.info("Replace %s with %s" % (name, val))
         config_str = config_str.replace(name, val)

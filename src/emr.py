@@ -157,7 +157,8 @@ def wait_for_completion(jobflow_id, sleep=60):
         job_status = job_info.split()[1]
 
         if job_status not in ['STARTING', 'RUNNING', 'SHUTTING_DOWN']:
-            # job complete, probably with status 'COMPLETE' or 'FAILED'
+            # job complete, probably with the status
+            # 'COMPLETE', 'FAILED' or 'TERMINATED'
             complete = True
 
         time.sleep(sleep)

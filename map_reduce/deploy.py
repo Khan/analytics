@@ -10,26 +10,11 @@ import subprocess
 import sys
 
 import boto
-import hipchat.room
-import hipchat.config
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'src'))
 import boto_util
+import notify
 
-
-try:
-    hipchat.config.init_cfg('hipchat.cfg')
-except Exception, e:
-    # No hipchat.cfg file found - the token will be empty and handled below.
-    pass
-
-if not hipchat.config.token:
-    print >> sys.stderr, (
-        'Can\'t find HipChat token. Make a hipchat.cfg file ' +
-        'with a single line "token = <token_value>" ' +
-        '(don\'t forget to chmod 600) either in this directory ' +
-        'or in your $HOME directory')
-    sys.exit(-1)
 boto_util.initialize_creds_from_file()
 
 
@@ -48,28 +33,6 @@ def parse_git_message():
 
 def is_git_dirty():
     return len(popen_results(['git', 'status', '--short']).strip()) > 0
-
-
-def _hipchat_message(msg, rooms):
-    for room in hipchat.room.Room.list():
-        if room.name in rooms:
-            result = ""
-            msg_dict = {
-                "room_id": room.room_id,
-                "from": "Mr Monkey",
-                "message": msg,
-                "color": "purple",
-            }
-
-            try:
-                result = str(hipchat.room.Room.message(**msg_dict))
-            except:
-                pass
-
-            if "sent" in result:
-                print "Notified Hipchat room %s" % room.name
-            else:
-                print "Failed to send message to Hipchat: %s" % msg
 
 
 def files_in_tree():
@@ -205,7 +168,7 @@ def send_hipchat_deploy_message(
                "- %(git_msg)s<br>" +
                "%(summary)s") % args
 
-    _hipchat_message(message, ["analytics"])
+    notify.send_hipchat(message, ["analytics"])
 
 
 # TODO(benkomalo): wire up options for subdirectory to deploy to (for testing)
@@ -233,8 +196,11 @@ def do_deploy(verbose, branch=""):
 
     copy_files_to_prod(files_to_push, branch)
     print "Done!"
-    send_hipchat_deploy_message(
-            replaced_files, new_files, spurious_files, dest_path)
+    if not branch.startswith("branch-"):  
+        # we only notify if not pushing to a personal branch.
+        # "branch-" is the conventional prefix for a personal branch. 
+        send_hipchat_deploy_message(
+                replaced_files, new_files, spurious_files, dest_path)
 
 
 if __name__ == '__main__':

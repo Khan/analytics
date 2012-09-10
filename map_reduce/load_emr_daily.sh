@@ -35,21 +35,28 @@ echo "Upload to S3"
 
 # Convert pbuf to json + additional daily aggregation jobs
 echo "Convert pbuf to json and load into the datastore"
-elastic-mapreduce --create --name "${day} GAE Upload" \
+status=$(elastic-mapreduce --create --name "${day} GAE Upload" \
   --num-instances 3 --master-instance-type m1.small \
   --slave-instance-type c1.medium \
   --json ${current_dir}/load_gae_to_hive.json \
-  --param "<dt>=${day}" 2>&1
+  --param "<dt>=${day}" 2>&1 )
+echo "$status"
 
+jobid=$(echo "$status" | awk '{print $4}')
+${current_dir}/../src/monitor_jobflow.py $jobid &
 
 # UserData update
 echo "Updating the UserData"
-elastic-mapreduce --create --name "${day} UserDataP" \
+status=$(elastic-mapreduce --create --name "${day} UserDataP" \
   --num-instances 3 --master-instance-type m1.small \
   --slave-instance-type m1.large \
   --json ${current_dir}/userdata.json \
   --param "<start_dt>=${day_before}" \
-  --param "<end_dt>=${day}" 2>&1
+  --param "<end_dt>=${day}" 2>&1 )
+echo "$status"
+
+jobid=$(echo "$status" | awk '{print $4}')
+${current_dir}/../src/monitor_jobflow.py $jobid &
 
 
 # Daily reports 
