@@ -24,7 +24,7 @@ Dashboards showing time series of video watching and topic level aggregation
                     <option value="week">weekly</option>
                     <option value="day">daily</option>
                     </select>
-        Video or Topic: <input title="Video Title" id="video-title-typeahead" size="200"/>
+        Video or Topic: <input title="Video Title" id="video-title-typeahead" class="input-xxlarge" placeholder="Type something here..." />
     <input type="hidden" id="video-title-selected" value="{{ request.args.get("title", "") }}" />
     </div>
     <h3 id="video-summary-title"></h3>
@@ -54,11 +54,15 @@ Dashboards showing time series of video watching and topic level aggregation
     <thead>
         <th>Datestamp </th>
         <th colspan="3">Users watched</th>
+        <th colspan="3">Users completed</th>
         <th colspan="3">Total Visits</th>
         <th colspan="3">Hours Watched</th>
     </thead>
     <thead>
         <th>&nbsp;</th>
+        <th>All</th>
+        <th>Registered</th>
+        <th>Phantom</th>
         <th>All</th>
         <th>Registered</th>
         <th>Phantom</th>
@@ -77,6 +81,10 @@ Dashboards showing time series of video watching and topic level aggregation
     <td>{{commafy watched_all}} </td>
     <td>{{commafy watched_registered}} </td>
     <td>{{commafy watched_phantom}} </td>
+
+    <td>{{commafy completed_all}} </td>
+    <td>{{commafy completed_registered}} </td>
+    <td>{{commafy completed_phantom}} </td>
 
     <td>{{commafy visits_all}} </td>
     <td>{{commafy visits_registered}} </td>

@@ -23,6 +23,10 @@ Dashboards showing time series of video watching and topic level aggregation
                     <option value="week">weekly</option>
                     <option value="day">daily</option>
                     </select>
+       <ul id="input-date-instructions" style="color: blue;">
+       <li> For monthly data, pick 1sts of the month. i.e. 2012-06-01</li>
+       <li> For weekly data, pick Sundays. i.e. 2012-08-05</li>
+       </ul> 
     </div>
     <h2> Video Summary by Top Topic</h2>
     <div id="video-top-topic-table-container">
@@ -72,7 +76,7 @@ Dashboards showing time series of video watching and topic level aggregation
 </script>
 <script type="text/x-handlebars-template" id="topic-row-template">
 <tr>
-    <td>{{{title}}}</td>
+    <td>{{{link}}}</td>
     <td>{{commafy watched_all}} {{percentify watched_all_pct decimals=2}}</td>
     <td>{{commafy watched_registered}} {{percentify watched_registered_pct decimals=2}}</td>
     <td>{{commafy watched_phantom}} {{percentify watched_phantom_pct decimals=2}}</td>
