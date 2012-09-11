@@ -68,7 +68,10 @@ var renderTopicSummary = function(jsonRows, container) {
     var rowTemplate = Handlebars.compile($("#topic-row-template").text());
     _.chain(jsonRows)
         .sortBy(function(row) { return -row["hours_all"]; })
-        .each(function(row) { $(rowTemplate(row)).appendTo(table) });
+        .each(function(row) {
+            row["href"] = "/video-summary?title=" + encodeURIComponent(row["title"]);
+            $(rowTemplate(row)).appendTo(table);
+         });
 
     container.html("");
     container.append(table);
