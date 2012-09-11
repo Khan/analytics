@@ -33,6 +33,20 @@ FROM (
 INSERT OVERWRITE TABLE UserDataP PARTITION(dt='${end_dt}')
 SELECT TRANSFORM(json) USING 'find_latest_record.py'
 AS key, json;
+ 
+
+-- Creating the userdata_info_p table from UserDataP to include only user_id
+-- and other core identity values related mappings so that JOINs
+-- will be a lot faster.
+INSERT OVERWRITE TABLE userdata_info_p PARTITION(dt='${end_dt}')
+SELECT parsed.*, IF(user_id RLIKE 'nouserid', 0, 1) AS registered
+FROM (
+  SELECT json FROM 
+  UserDataP where dt = '${end_dt}'
+) a LATERAL VIEW JSON_TUPLE(a.json,
+  'user', 'user_id', 'user_email', 'user_nickname', 'joined') parsed
+AS user, user_id, user_email, user_nickname, joined;
+
 
 FROM (
   FROM (
