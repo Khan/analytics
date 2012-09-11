@@ -245,15 +245,22 @@ ALTER TABLE user_growth RECOVER PARTITIONS;
 
 
 -- Defined in userdata_info.q
-CREATE EXTERNAL TABLE IF NOT EXISTS userdata_info(
+CREATE EXTERNAL TABLE IF NOT EXISTS userdata_info_p(
   user STRING,
   user_id STRING,
   user_email STRING,
   user_nickname STRING,
   joined DOUBLE,
   registered BOOLEAN
-  )
-LOCATION 's3://ka-mapreduce/summary_tables/userdata_info';
+  ) 
+PARTITIONED BY (dt STRING)
+LOCATION 's3://ka-mapreduce/summary_tables/userdata_info_p';
+
+DROP TABLE IF EXISTS userdata_info;
+DROP VIEW IF EXISTS userdata_info;
+CREATE VIEW userdata_info
+AS SELECT * FROM userdata_info_p
+WHERE dt = '${userdata_partition}';
 
 -- Coach summary
 CREATE EXTERNAL TABLE IF NOT EXISTS coach_summary (
