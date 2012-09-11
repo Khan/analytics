@@ -69,8 +69,7 @@ var renderTopicSummary = function(jsonRows, container) {
     _.chain(jsonRows)
         .sortBy(function(row) { return -row["hours_all"]; })
         .each(function(row) { 
-            row["link"] = "<a href='/video-summary?title=" + 
-                encodeURIComponent(row["title"]) + "'>" + row["title"] + "</a>"; 
+            row["href"] = "/video-summary?title=" + encodeURIComponent(row["title"]) 
             $(rowTemplate(row)).appendTo(table); 
          });
 

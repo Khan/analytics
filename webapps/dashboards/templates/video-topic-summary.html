@@ -76,7 +76,7 @@ Dashboards showing time series of video watching and topic level aggregation
 </script>
 <script type="text/x-handlebars-template" id="topic-row-template">
 <tr>
-    <td>{{{link}}}</td>
+    <td><a href="{{href}}">{{title}}</a></td>
     <td>{{commafy watched_all}} {{percentify watched_all_pct decimals=2}}</td>
     <td>{{commafy watched_registered}} {{percentify watched_registered_pct decimals=2}}</td>
     <td>{{commafy watched_phantom}} {{percentify watched_phantom_pct decimals=2}}</td>
