@@ -6,13 +6,12 @@
 if [ "$1" = "month" ]; then 
   end_dt=$(date "+%Y-%m-01")
   start_dt=$(date --date=${end_dt}-1month "+%Y-%m-01")
-else if [ "$1" = "week" ]; then
+elif [ "$1" = "week" ]; then
   end_dt=$(date "+%Y-%m-%d")
   start_dt=$(date --date=${end_dt}-1week "+%Y-%m-%d")
 else
   echo "not a right duration '$1'"
   exit 1
-fi
 fi
 end_dt_inclusive=$(date --date=${end_dt}-1day "+%Y-%m-%d")
 
