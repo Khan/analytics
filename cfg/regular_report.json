@@ -1,5 +1,5 @@
 {
-  "name": "Regular report genration for <dt>",
+  "name": "<duration>ly report generation (start_dt=<start_dt>)",
   "wait_for": [ 
     { "table_name": "user_video_summary",
       "partitions": ["dt=<end_dt_inclusive>"]

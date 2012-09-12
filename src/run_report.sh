@@ -20,4 +20,4 @@ end_dt_inclusive=$(date --date=${end_dt}-1day "+%Y-%m-%d")
 current_dir=`dirname $0`
 command="${current_dir}/../src/report_generator.py -c ${current_dir}/../cfg/daily_report.json '<duration>=$1' '<start_dt>=${start_dt}' '<end_dt>=${end_dt}' '<end_dt_inclusive>=${end_dt_inclusive}'"
 echo $command
-#$command 
+$command 
