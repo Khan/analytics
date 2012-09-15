@@ -144,9 +144,14 @@ def run_hive_jobs(jobname, steps):
 def run_report_importer(hive_masternode, steps):
     """Import hive results to mongo"""
     for step in steps:
+        if ('hive_table' not in step) or ('mongo_collection' not in step):
+            continue
+
         options = ''
         if step.get('drop', False):
             options += ' --drop'
+        if step.get('hive_init', False):
+            options += ' --hive_init'
         #TODO(benkomalo): Make the report_importer callable
         command = ('python /home/analytics/analytics/src/report_importer.py'
                    ' %s %s %s report %s %s') % (
@@ -155,7 +160,7 @@ def run_report_importer(hive_masternode, steps):
         g_logger.info("Running command: \n%s" % (command))
         proc = subprocess.Popen(command.split(),
             stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    print proc.communicate()  # returns a tuple of (stdoutdata, stderrdata)
+        print proc.communicate()  # returns a tuple of (stdoutdata, stderrdata)
 
 
 def main():

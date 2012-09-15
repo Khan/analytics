@@ -12,6 +12,7 @@ else
 fi
 
 day_before=$(date --date=${day}-1day '+%Y-%m-%d')
+day_after=$(date --date=${day}+1day '+%Y-%m-%d')
 
 current_dir=`dirname $0`
 archive_dir="$HOME/kabackup/daily_new"
@@ -62,4 +63,5 @@ ${current_dir}/../src/monitor_jobflow.py $jobid &
 # Daily reports 
 echo "Generating daily reports"
 ${current_dir}/../src/report_generator.py \
-  -c ${current_dir}/../cfg/daily_report.json "<dt>=${day}" 2>&1
+  -c ${current_dir}/../cfg/daily_report.json \
+  "<day>=${day}" "<day_before>=${day_before}" "<day_after>=${day_after}" 2>&1

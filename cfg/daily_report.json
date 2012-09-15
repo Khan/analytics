@@ -1,10 +1,15 @@
 {
-  "name": "Daily report genration for <dt>",
+  "name": "Daily report generation for <day>",
   "wait_for": [ 
     { "table_name": "user_video_summary",
-      "partitions": [ "dt=<dt>" ]
+      "partitions": [ "dt=<day>" ]
+    },
+    { "table_name": "user_exercise_summary",
+      "partitions": [ "dt=<day>" ]
+    },
+    { "table_name": "user_feedback_summary",
+      "partitions": [ "dt=<day>" ]
     }
-
   ],
   "steps": [
     { "hive_script": "s3://ka-mapreduce/code/hive/video_stats.q",
@@ -15,11 +20,37 @@
     },
 
     { "hive_script": "s3://ka-mapreduce/code/hive/daily_video_stats.q",
-      "hive_args": {"dt": "<dt>"},
-
+      "hive_args": {"dt": "<day>"},
       "hive_table": "daily_video_stats",
-      "importer_args": "dt=<dt>",
+      "importer_args": "dt=<day>",
       "mongo_collection":  "daily_video_stats"
+    },
+    { "hive_script": "s3://ka-mapreduce/code/hive/daily_ex_stats.q",
+      "hive_args": {"dt": "<day>", "branch": "/"},
+      "hive_table": "daily_exercise_stats",
+      "mongo_collection":  "daily_exercise_stats",
+      "importer_args": "",
+      "drop": true,
+      "hive_init": true
+    },
+    { "hive_script": "s3://ka-mapreduce/code/hive/user_daily_activity.q",
+      "hive_args": {"start_dt": "<day>", "end_dt": "<day_after>"},
+    },
+    { "hive_script": "s3://ka-mapreduce/code/hive/user_growth.q",
+      "hive_args": {"start_dt": "2011-01-01", "end_dt": "<day_after>"},
+      "hive_table": "user_growth",
+      "mongo_collection":  "user_growth",
+      "importer_args": "",
+      "drop": true,
+      "hive_init": true
+    },
+    { "hive_script": "s3://ka-mapreduce/code/hive/company_metrics.q",
+      "hive_args": {"start_dt": "<day>", "end_dt": "<day_after>"},
+      "hive_table": "company_metrics",
+      "mongo_collection":  "company_metrics",
+      "importer_args": "",
+      "drop": true,
+      "hive_init": true
     }
 
   ]
