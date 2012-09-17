@@ -135,6 +135,9 @@ def run_hive_jobs(jobname, steps):
         subject = "Reporting jobflow FAILED: %s" % jobname
         notify.send_email(subject, listing)
         notify.send_hipchat(subject)
+    else:
+        subject = "Reporting jobflow SUCCEEDED: %s" % jobname
+        notify.send_email(subject, listing)
     if status != "COMPLETED":
         g_logger.fatal("Hive jobs failed")
         g_logger.fatal(emr.list_steps(jobflow))
