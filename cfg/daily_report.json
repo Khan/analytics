@@ -34,7 +34,7 @@
       "hive_init": true
     },
     { "hive_script": "s3://ka-mapreduce/code/hive/user_daily_activity.q",
-      "hive_args": {"start_dt": "<day>", "end_dt": "<day_after>"},
+      "hive_args": {"start_dt": "<day>", "end_dt": "<day_after>"}
     },
     { "hive_script": "s3://ka-mapreduce/code/hive/user_growth.q",
       "hive_args": {"start_dt": "2011-01-01", "end_dt": "<day_after>"},
