@@ -170,7 +170,7 @@ def get_option_parser():
     parser = optparse.OptionParser(USAGE)
     parser.add_option('--name', type='string', default=None,
         help='The name of the job flow being created')
-    parser.add_option('--num_instances', type='int', default=2,
+    parser.add_option('--num_instances', type='int', default=3,
         help='Number of instances (machines) to use (default: %default)')
     parser.add_option('--master_instance_type', type='string',
         default='m1.small',
