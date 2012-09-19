@@ -102,7 +102,9 @@ def create_hive_cluster(job_name, options, hive_script=None, script_args={}):
     return jobflow_id
 
 
-def add_hive_step(jobflow_id, options, hive_script, script_args={}):
+def add_hive_step(jobflow_id, options, 
+                  hive_script, script_args={},
+                  step_name=None):
     """Add a Hive jobflow step to the specififed jobflow.
 
     Arguments:
@@ -118,9 +120,15 @@ def add_hive_step(jobflow_id, options, hive_script, script_args={}):
     options, overrides = get_default_options(), options
     options.update(overrides)
 
+    if not step_name:
+        script_base_name = hive_script.split("/")[-1].split(".")[0] 
+        step_name = script_base_name + ": " + str(script_args)
+
     args = ['elastic-mapreduce',
             '--jobflow', jobflow_id,
-            '--hive-script', '--arg', hive_script,
+            '--hive-script', 
+            '--step-name', step_name,
+            '--arg', hive_script,
             '--args', '-i,"s3://ka-mapreduce/code/hive/ka_hive_init.q"'
             ]
 
