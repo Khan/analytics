@@ -56,6 +56,13 @@ def emit_accuracy_deltas(attempts, user_topic, user_segment):
         total_gain = float(curr_card[1]) - float(prev_card[1])
         incremental_gain = total_gain / (curr_card[0] - prev_card[0])
         topic = user_topic[1] if user_topic and len(user_topic) >= 2 else None
+        if topic is "any":
+            # it is not cool to analyze cards done from various stacks
+            # as if they were done with one big, generic stack.  for example,
+            # if a user moved from an easy to a difficult topic, you would 
+            # likely see accuracy drop on the randomized cards, even though
+            # this is very healthy user behavior.
+            return
         for i in range(prev_card[0], curr_card[0]):
             # TODO(david): Output and group by user segments (eg.
             #     experiments the user was in).
