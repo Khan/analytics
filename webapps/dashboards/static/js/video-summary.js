@@ -192,7 +192,9 @@ var refreshChartTitles = function(timeScale) {
 };
 
 var makeChartTitle = function(chartType, timeScale) {
-    var titleMap = {'users': 'Users', 'visits': 'Visits', 'hours': 'Hours Watched'};
+    var titleMap = {'users': 'Users', 
+        'visits': 'Visits', 
+        'hours': 'Hours Watched'};
     return titleMap[chartType] + ' by ' + timeScale;    
 };
 
