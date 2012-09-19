@@ -47,7 +47,7 @@ var strToDate = function(strDate) {
  */
 var initChart = function(containerName, dataType, duration) {
     
-    var chartTitle = dataType + ' by ' + duration;
+    var chartTitle = makeChartTitle(dataType, duration);
     return new Highcharts.Chart({
             chart: {
                 renderTo: containerName,
@@ -180,7 +180,22 @@ var refreshVideoSummary = function() {
     }
     $("#video-summary-title").html(display_title);
     $("#video-summary-table-container").text("Loading...");
+    refreshChartTitles(time_scale);
     AjaxCache.getJson(url, params, handleDataLoadForVideoSummary);
+};
+
+var refreshChartTitles = function(timeScale) {
+    for (key in charts) {
+        var title = makeChartTitle(key, timeScale);
+        charts[key].setTitle({"text": title});
+    }
+};
+
+var makeChartTitle = function(chartType, timeScale) {
+    var titleMap = {'users': 'Users', 
+        'visits': 'Visits', 
+        'hours': 'Hours Watched'};
+    return titleMap[chartType] + ' by ' + timeScale;    
 };
 
 /**

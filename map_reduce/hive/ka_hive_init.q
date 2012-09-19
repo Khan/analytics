@@ -255,6 +255,7 @@ CREATE EXTERNAL TABLE IF NOT EXISTS userdata_info_p(
   ) 
 PARTITIONED BY (dt STRING)
 LOCATION 's3://ka-mapreduce/summary_tables/userdata_info_p';
+ALTER TABLE userdata_info_p RECOVER PARTITIONS;
 
 DROP TABLE IF EXISTS userdata_info;
 DROP VIEW IF EXISTS userdata_info;
