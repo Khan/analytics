@@ -343,9 +343,8 @@ var SeriesView = Backbone.View.extend({
         var url = this.getCollectionUrl() + "/_find?callback=?";
 
         // TODO(david): Support date range selection
-        var criteria = _.extend({
-                topic: topic
-            },
+        var criteria = _.extend(
+            {topic: topic},  // NOTE: for AccuracyGains, this gets overridden
             startDate === "any" ? {} : { start_dt: startDate },
             segment === "any" ? {} : { user_segment: segment },
             this.getFindCriteria());
@@ -476,6 +475,7 @@ var AccuracyGainSeriesView = SeriesView.extend({
     getFindCriteria: function() {
         var numStacks = this.seriesFilters.get("numStacks");
         var operator = this.seriesFilters.get("comparisonOp");
+        var topic = this.seriesFilters.get("topic")
 
         var numDoneVal = {};
         if (numStacks === "any") {
@@ -489,8 +489,18 @@ var AccuracyGainSeriesView = SeriesView.extend({
             }[operator];
         }
 
+        if (topic === "any") {
+            // if the user wants to aggregate across all topics, we need
+            // to override the base-class-inherited default.  Note that there
+            // used to be a pseudeo-topic of "any".  Though it has now been 
+            // removed, it still provides a useful way to override the default 
+            // filter on the 'topic' property in a ways that returns all topics
+            topic = {"$ne": "any"};
+        }
+
         return {
-            num_problems_done: numDoneVal
+            num_problems_done: numDoneVal,
+            topic: topic
         };
     },
 
@@ -573,6 +583,13 @@ var UsersSeriesView = SeriesView.extend({
     },
 
     /** @override */
+    getFindCriteria: function() {
+        return {
+            is_randomized: false
+        };
+    },
+
+    /** @override */
     getCollectionName: function() {
         return "topic_retention_stats";
     },
@@ -646,6 +663,13 @@ var PercentCorrectSeriesView = SeriesView.extend({
     getChildContext: function() {
         return {
             sampleType: "total attempts"
+        };
+    },
+
+    /** @override */
+    getFindCriteria: function() {
+        return {
+            is_randomized: true
         };
     },
 
@@ -793,6 +817,7 @@ var DashboardView = Backbone.View.extend({
 
     initialize: function() {
         this.chart = this.createChart();
+        this.addSeries(AccuracyGainSeriesView);
         this.addSeries(UsersSeriesView);
     },
 
