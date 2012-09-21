@@ -22,6 +22,15 @@ def topic_summary(mongo, dt, duration):
     return (top_results, second_results)
 
 
+def top_videos(mongo, dt, duration):
+    """Get the top videos based on dt and duration"""
+    db_collection = mongo['report']['video_stats']
+    findCriteria = {"dt": dt, "duration": duration, "aggregation": "video"} 
+    sortCriteria = [("seconds_watched", -1)]
+    return get_keyed_results(db_collection, {}, 'title', findCriteria,
+                             sortCriteria)
+
+
 def video_title_summary(mongo, title, duration, start_dt, end_dt):
     """ Get the time series for a certain title"""
     if title == "":
@@ -38,10 +47,11 @@ def video_title_summary(mongo, title, duration, start_dt, end_dt):
     return get_keyed_results(db_collection, {}, 'dt', criteria)
 
 
-def get_keyed_results(db_collection, total_info, index_key, criteria):
+def get_keyed_results(db_collection, total_info, index_key, 
+                      findCriteria, sortCriteria=None):
     """Get the video statistics by index_key based on db criteria"""
     results = {}
-    db_results = db_collection.find(criteria)
+    db_results = db_collection.find(findCriteria, sort=sortCriteria)
     for db_row in db_results:
         title = db_row[index_key]
         results[title] = update_row(results.get(title, {}), db_row)

@@ -14,11 +14,11 @@ Dashboards showing time series of video watching and topic level aggregation
 
 {% include 'navbar.html' %}
 
-<div class="video-by-topic-summary" style="width:800px; margin: 40px auto;">
+<div class="top-video-summary" style="width:800px; margin: 40px auto;">
     <div class="input-variables" style="margin: 10px 0;">
         <br />
-        Date: <input title="Start Date" id="topic-summary-date" size="20"/>
-        Scale type: <select id="topic-summary-timescale">
+        Date: <input title="Start Date" id="top-video-date" size="20"/>
+        Scale type: <select id="top-video-timescale">
                     <option value="month" selected>monthly</option>
                     <option value="week">weekly</option>
                     <option value="day">daily</option>
@@ -28,11 +28,8 @@ Dashboards showing time series of video watching and topic level aggregation
        <li> For weekly data, pick Sundays. i.e. 2012-08-05</li>
        </ul>
     </div>
-    <h2> Video Summary by Top Topic</h2>
-    <div id="video-top-topic-table-container">
-    </div>
-    <h2> Video Summary by Secondary Topic</h2>
-    <div id="video-second-topic-table-container">
+    <h2 id="top-video-title">Top Videos</h2>
+    <div id="top-video-table-container">
     </div>
 </div> 
 
@@ -45,16 +42,16 @@ Dashboards showing time series of video watching and topic level aggregation
 <script src="static/js/third_party/bootstrap-dropdown.js"></script>
 <script src="static/js/handlebars-helpers.js"></script>
 <script src="static/js/ajax-cache.js"></script>
-<script src="static/js/video-topic-summary.js"></script>
+<script src="static/js/top-videos.js"></script>
 
 {% raw %}
-<script type="text/x-handlebars-template" id="topic-table">
+<script type="text/x-handlebars-template" id="top-video-table">
 <table class="table table-bordered table-striped">
     <thead>
-        <th>Topic</th>
+        <th>Video Title </th>
         <th colspan="3">Users watched</th>
+        <th colspan="3">Users completed</th>
         <th colspan="3">Total Visits</th>
-        <th colspan="3">Visits/User</th>
         <th colspan="3">Hours Watched</th>
     </thead>
     <thead>
@@ -74,24 +71,24 @@ Dashboards showing time series of video watching and topic level aggregation
     </thead>
 </table>
 </script>
-<script type="text/x-handlebars-template" id="topic-row-template">
+<script type="text/x-handlebars-template" id="top-video-row-template">
 <tr>
     <td><a href="{{href}}">{{title}}</a></td>
-    <td>{{commafy watched_all}} {{percentify watched_all_pct decimals=2}}</td>
-    <td>{{commafy watched_registered}} {{percentify watched_registered_pct decimals=2}}</td>
-    <td>{{commafy watched_phantom}} {{percentify watched_phantom_pct decimals=2}}</td>
+    <td>{{commafy watched_all}} </td>
+    <td>{{commafy watched_registered}} </td>
+    <td>{{commafy watched_phantom}} </td>
 
-    <td>{{commafy visits_all}} {{percentify visits_all_pct decimals=2}}</td>
-    <td>{{commafy visits_registered}} {{percentify visits_registered_pct decimals=2}}</td>
-    <td>{{commafy visits_phantom}} {{percentify visits_phantom_pct decimals=2}}</td>
+    <td>{{commafy completed_all}} </td>
+    <td>{{commafy completed_registered}} </td>
+    <td>{{commafy completed_phantom}} </td>
 
-    <td>{{commafy visits_per_user_all decimals=2}} </td>
-    <td>{{commafy visits_per_user_registered decimals=2}} </td>
-    <td>{{commafy visits_per_user_phantom decimals=2}} </td>
+    <td>{{commafy visits_all}} </td>
+    <td>{{commafy visits_registered}} </td>
+    <td>{{commafy visits_phantom}} </td>
 
-    <td>{{commafy hours_all}} {{percentify hours_all_pct decimals=2}}</td>
-    <td>{{commafy hours_registered}} {{percentify hours_registered_pct decimals=2}}</td>
-    <td>{{commafy hours_phantom}} {{percentify hours_phantom_pct decimals=2}}</td>
+    <td>{{commafy hours_all }} </td>
+    <td>{{commafy hours_registered }} </td>
+    <td>{{commafy hours_phantom }} </td>
 </tr>
 </script>
 {% endraw %}

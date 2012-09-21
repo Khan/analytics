@@ -37,10 +37,10 @@ def videos_summary_dashboard():
     return flask.render_template('video-summary.html')
 
 
-@app.route('/videos')
+@app.route('/top-videos')
 @auth.login_required
 def videos_dashboard():
-    return flask.render_template('daily-video-stats.html')
+    return flask.render_template('top-videos.html')
 
 
 @app.route('/video-topic-summary')
@@ -81,6 +81,15 @@ def topic_summary_data():
     (top_results, second_results) = data.topic_summary(db, dt, duration)
     return flask.jsonify({'top_results': top_results,
                           'second_results': second_results})
+
+
+@app.route('/data/top_videos')
+@auth.login_required
+def top_video_data():
+    dt = flask.request.args.get('start_date', '')
+    duration = flask.request.args.get('time_scale', '')
+    results = data.top_videos(db, dt, duration)
+    return flask.jsonify({'results': results})
 
 
 @app.route('/data/video_title_summary')
