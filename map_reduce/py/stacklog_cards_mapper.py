@@ -40,7 +40,12 @@ def main():
             if 'card' not in card:
                 continue
 
-            scheduler_info = json.dumps(card['card'].get('schedulerInfo', {}))
+            # the name was converted from camelCase 
+            # on 2012-07-15, so try both names...
+            scheduler_info = card['card'].get('schedulerInfo', {})
+            scheduler_info = card['card'].get('scheduler_info', scheduler_info)
+            scheduler_info = json.dumps(scheduler_info)  # convert to string
+
             user_segment = extra_data.get('segment', 'control')
 
             print '\t'.join([associated_log['ProblemLog'], user_id, topic_id,
