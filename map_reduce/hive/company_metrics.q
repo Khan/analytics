@@ -15,6 +15,11 @@ LOCATION 's3://ka-mapreduce/summary_tables/company_metrics';
 -- (but not from Hive) and thus is not computed here.
 
 
+-- Note: userdata_info is a view, and that can apparently cause 
+-- problems with "predicate pushdown" query optimization
+-- http://karmasphere.com/hive-queries-on-table-data#lateral_view_syntax
+set hive.optimize.ppd=false;
+
 -- Metric 2, Registrations
 INSERT OVERWRITE TABLE company_metrics PARTITION (series='registrations')
 SELECT month, count(distinct user) AS total
@@ -51,17 +56,19 @@ SELECT month, COUNT(distinct user) AS total
 FROM (
 
   SELECT 
-    substr(dt, 1, 7) AS month, 
+    substr(user_daily_activity.dt, 1, 7) AS month, 
     user_daily_activity.user AS user, 
     COUNT(1) AS active_visits
   FROM user_daily_activity
   JOIN userdata_info
   ON user_daily_activity.user = userdata_info.user
   WHERE userdata_info.registered
-  GROUP BY user_daily_activity.user, substr(dt, 1, 7)
+  GROUP BY user_daily_activity.user, substr(user_daily_activity.dt, 1, 7)
 
 ) monthly
 WHERE monthly.active_visits >= 4
 GROUP BY month
 ORDER BY month;
 
+-- Reset back to the usual value.  See Comments above.
+set hive.optimize.ppd=true;
