@@ -8,6 +8,7 @@
 --     attempts to reduce over as YYYY-MM-DD
 
 ADD FILE s3://ka-mapreduce/code/py/accuracy_deltas_reducer.py;
+ADD FILE s3://ka-mapreduce/code/py/table_parser.py;
 
 -- This table is defined in ka_hive_init.q
 INSERT OVERWRITE TABLE accuracy_deltas_summary

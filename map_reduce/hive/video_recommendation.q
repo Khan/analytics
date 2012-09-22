@@ -4,7 +4,6 @@
 --   suffix: table postfix for the output summary tables
 --   start_dt: start date stamp YYYY-mm-dd
 --   end_dt: exclusive end date stamp YYYY-mm-dd
---   branch: code branch to run the recommend reducer: 'dev' or 'prod'
 
 -- Getting (user, video, time_completed) tuples
 DROP TABLE user_vid_completion_${suffix};
@@ -41,7 +40,7 @@ CREATE EXTERNAL TABLE video_coocurrence_${suffix}(
   preceed_cnt INT, succeed_cnt INT)
 LOCATION 's3://ka-mapreduce/tmp/video_cooccurrence_${suffix}';
 
-ADD FILE s3://ka-mapreduce/code/${branch}/py/video_recommendation_reducer.py;
+ADD FILE s3://ka-mapreduce/code/py/video_recommendation_reducer.py;
 FROM (
   FROM (
     FROM user_vid_completion_${suffix}
@@ -93,7 +92,7 @@ CREATE EXTERNAL TABLE video_suggestions_pruned_${suffix}(
 COMMENT 'Pruned video "similarity" scores (not necessarily symmetric - each entry is a vid1->vid2 score)'
 LOCATION 's3://ka-mapreduce/tmp/video_suggestions_pruned_${suffix}';
 
-ADD FILE s3://ka-mapreduce/code/${branch}/py/video_recommendation_pruner.py;
+ADD FILE s3://ka-mapreduce/code/py/video_recommendation_pruner.py;
 
 -- Pre-filter out any video pairs that have low counts to reduce noise and
 -- speed up the actual reduce step.
