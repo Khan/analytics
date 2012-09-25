@@ -245,13 +245,18 @@ ALTER TABLE user_growth RECOVER PARTITIONS;
 
 
 -- Defined in userdata_info.q
+-- is_coached: if user is coached
+-- is_student: if user is coached by a coach who coached
+--             >= 10 people
 CREATE EXTERNAL TABLE IF NOT EXISTS userdata_info_p(
   user STRING,
   user_id STRING,
   user_email STRING,
   user_nickname STRING,
   joined DOUBLE,
-  registered BOOLEAN
+  registered BOOLEAN,
+  is_coached BOOLEAN,
+  is_student BOOLEAN
   ) 
 PARTITIONED BY (dt STRING)
 LOCATION 's3://ka-mapreduce/summary_tables/userdata_info_p';
