@@ -33,19 +33,30 @@ FROM (
 INSERT OVERWRITE TABLE UserDataP PARTITION(dt='${end_dt}')
 SELECT TRANSFORM(json) USING 'find_latest_record.py'
 AS key, json;
+
+
+-- Generating coach_summary
+ADD FILE s3://ka-mapreduce/code/hive/coach_summary.q; 
+SOURCE /mnt/var/lib/hive_081/downloaded_resources/coach_summary.q;
  
 
 -- Creating the userdata_info_p table from UserDataP to include only user_id
 -- and other core identity values related mappings so that JOINs
 -- will be a lot faster.
 INSERT OVERWRITE TABLE userdata_info_p PARTITION(dt='${end_dt}')
-SELECT parsed.*, IF(user_id RLIKE 'nouserid', 0, 1) AS registered
+SELECT parsed.*, IF(parsed.user_id RLIKE 'nouserid', 0, 1) AS registered, 
+  (uc.num_coaches IS NOT NULL AND uc.max_coach_students >=1) AS is_coached,
+  (uc.num_coaches IS NOT NULL AND uc.max_coach_students >=10) AS is_student
 FROM (
-  SELECT json FROM 
-  UserDataP where dt = '${end_dt}'
-) a LATERAL VIEW JSON_TUPLE(a.json,
-  'user', 'user_id', 'user_email', 'user_nickname', 'joined') parsed
-AS user, user_id, user_email, user_nickname, joined;
+  SELECT 
+    get_json_object(UserDataP.json, '$.user') AS user,
+    get_json_object(UserDataP.json, '$.user_id') AS user_id,
+    get_json_object(UserDataP.json, '$.user_email') AS user_email,
+    get_json_object(UserDataP.json, '$.user_nickname') AS user_nickname,
+    get_json_object(UserDataP.json, '$.joined') AS joined
+  FROM UserDataP WHERE dt = '${end_dt}'
+) parsed LEFT OUTER JOIN 
+user_coach_summary uc on (parsed.user = uc.user);
 
 
 FROM (

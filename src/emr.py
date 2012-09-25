@@ -81,8 +81,8 @@ def create_hive_cluster(job_name, options, hive_script=None, script_args={}):
 
     if hive_script:
         args.extend([
+            '--hive-script', '--arg', hive_script,
             '--args', '-i,"s3://ka-mapreduce/code/hive/ka_hive_init.q"',
-            '--hive-script', '--arg', hive_script
             ])
 
         args.extend(script_arg_list(script_args))

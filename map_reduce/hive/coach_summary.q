@@ -1,6 +1,5 @@
 -- Hive script to compute coach related info
 
-
 -- Temporary table for holding user_coach_mapping
 CREATE EXTERNAL TABLE user_coach_mapping(
   user STRING, 
