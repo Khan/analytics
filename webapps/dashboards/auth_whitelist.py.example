@@ -1,0 +1,8 @@
+# This is an additional list of e-mails of folks that can have access
+# to the dashboard. Make sure entries are all lower case, like so:
+
+auth_whitelist = [
+    "researcher@gmail.com",
+    "boardmember@somedomain.com",
+    "chunkylover53@aol.com",
+]
