@@ -35,6 +35,16 @@ except ImportError:
 
 REDIRECT_URI = '/oauth2callback'
 
+
+_auth_whitelist = set()
+try:
+    import auth_whitelist
+    _auth_whitelist = set(auth_whitelist.auth_whitelist)
+except ImportError:
+    # Auth whitelist is optional. No biggie if it's not there.
+    pass
+
+
 oauth = OAuth()
 google = oauth.remote_app(
         'google',
@@ -102,7 +112,8 @@ def login_required(func):
             # Couldn't get user info - the access_token must have expired
             # or is invalid.
             return flask.redirect(flask.url_for('login'))
-        elif email.lower().endswith('@khanacademy.org'):
+        elif (email in _auth_whitelist or
+              email.lower().endswith('@khanacademy.org')):
             return func(*args, **kwargs)
         else:
             return ("Unauthorized. Logged in as %s, but this requires "
