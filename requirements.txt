@@ -5,6 +5,11 @@ pymongo==2.2
 # For interacting with AWS via Python
 boto==2.4.1
 
+# numerical and machine learning python packages
+numpy==1.6.2
+scipy==0.10.1
+scikit-learn==0.12
+
 # Required by lint checking
 pep8==1.0.1
 pyflakes==0.5.0
