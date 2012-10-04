@@ -10,7 +10,12 @@ This hosts the following dashboards:
 It will house more dashboards for fundamental metrics we want to track.
 """
 
+import gzip
+import json
+import logging
 import optparse
+import os
+import re
 
 import flask
 import pymongo
@@ -139,6 +144,30 @@ def collection_start_dates(collection_name):
     return flask.jsonify({
         'start_dates': collection.distinct('start_dt')
     })
+
+
+@app.route('/gae_stats/instances')
+@auth.login_required
+def gae_stats_instances():
+    # tuple (('YYYY', 'MM', 'DD', 'HH', 'mm', 'SS'), num_instances)
+    instance_counts = []
+    for (root, _, files) in os.walk('/home/analytics/kadata/gae_dashboard'):
+        for basename in files:
+            filepath = os.path.join(root, basename)
+            timestamp_tuple = re.findall(
+                r'/(\d\d\d\d)/(\d\d)/(\d\d)/instances-(\d\d):(\d\d):(\d\d)',
+                filepath)
+            if timestamp_tuple:
+                with gzip.open(filepath) as f:
+                    try:
+                        report = json.load(f)
+                    except json.JSONError, e:
+                        logging.warn('skipping file %s: %s' % (filepath, e))
+                        continue
+                instance_counts.append((tuple(map(int, timestamp_tuple[0])),
+                                        len(report)))
+    return flask.render_template('gae-stats/instances.html',
+                                 instance_counts=instance_counts)
 
 
 def main():
