@@ -334,8 +334,16 @@ CREATE EXTERNAL TABLE IF NOT EXISTS website_request_logs (
   LOCATION 's3n://ka-mapreduce/rawdata_tables/request_logs/website/';
 ALTER TABLE website_request_logs RECOVER PARTITIONS;
 
-CREATE EXTERNAL TABLE IF NOT EXISTS daily_request_log_stats (
+CREATE EXTERNAL TABLE IF NOT EXISTS daily_request_log_url_stats (
+    count INT, url STRING, avg_response_bytes INT,
+    ms_pct5 INT, ms_pct50 INT, ms_pct95 INT,
+    cpu_ms_pct5 INT, cpu_ms_pct50 INT, cpu_ms_pct95 INT,
+    api_cpu_ms_pct5 INT, api_cpu_ms_pct50 INT, api_cpu_ms_pct95 INT,
+    cpm_microcents_pct5 INT, cpm_microcents_pct50 INT, cpm_microcents_pct95 INT
   )
+  PARTITIONED BY (dt STRING)
+  LOCATION 's3://ka-mapreduce/summary_tables/daily_request_log_url_stats';
+ALTER TABLE daily_request_log_url_stats RECOVER PARTITIONS;
 
 -- TODO(yunfang): deprecate the following table and move to video_stats
 CREATE EXTERNAL TABLE IF NOT EXISTS daily_video_stats (
