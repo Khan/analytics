@@ -13,7 +13,6 @@ The Google Appengine SDK must be installed in /usr/local/google_appengine,
 which is the location where it is installed on the analytics machine.
 """
 
-import getpass
 import sys
 
 sys.path.append('/usr/local/google_appengine')
@@ -25,20 +24,14 @@ AUTH_SOURCE = 'gae_dashboard_curl-1.0'
 USER_AGENT = 'gae_dashboard_curl.py/1.0'
 
 
-def fetch_contents(url, email, password):
-    """Fetch a URL from the AppEngine admin interface and write its
-    contents to standard output."""
+class UnsupportedUrlError(Exception):
+    """Raised when given an URL that is not an App Engine dashboard."""
+    pass
 
-    # Determine the request path. It's OK if this has a query string.
-    valid_host_prefix = 'https://%s' % APPENGINE_HOST
-    if url.startswith('/'):
-        # Treat input as a server-relative path on APPENGINE_HOST.
-        request_path = url
-    elif url.startswith(valid_host_prefix):
-        request_path = url[len(valid_host_prefix):]
-    else:
-        sys.exit('URL to fetch must start with / or %s/' % valid_host_prefix)
 
+def create_rpcserver(email, password):
+    """Create an instance of an RPC server to access GAE dashboard pages."""
+    
     # Executing "appcfg.py update ." results in the following
     # arguments to appengine_rpc.HttpRpcServer.__init__():
     #
@@ -63,13 +56,34 @@ def fetch_contents(url, email, password):
         account_type='HOSTED_OR_GOOGLE',
         secure=True,
         rpc_tries=3)
+    return rpcserver
+    
+
+def fetch_contents(rpcserver, url):
+    """Fetch a URL from the AppEngine admin interface."""
+
+    # Determine the request path. It's OK if this has a query string.
+    valid_host_prefix = 'https://%s' % APPENGINE_HOST
+    if url.startswith('/'):
+        # Treat input as a server-relative path on APPENGINE_HOST.
+        request_path = url
+    elif url.startswith(valid_host_prefix):
+        request_path = url[len(valid_host_prefix):]
+    else:
+        raise UnsupportedUrlError('URL to fetch must start with / or %s/' %
+                                  valid_host_prefix)
 
     return rpcserver.Send(request_path, None)
 
 
 if __name__ == '__main__':
     if len(sys.argv) != 3:
-        print >>sys.stderr, 'Usage: gaede_curl.py APPENGINE_URL GAE_USERNAME'
+        print >>sys.stderr, (
+            'Usage: echo GAE_PASSWORD | gae_dashboard_curl.py URL GAE_USER')
     _, url, email = sys.argv
     password = sys.stdin.read().rstrip('\n')
-    print fetch_contents(url, email, password)
+    rpcserver = create_rpcserver(email, password)
+    try:
+        print fetch_contents(rpcserver, url)
+    except UnsupportedUrlError, e:
+        sys.exit(str(e))
