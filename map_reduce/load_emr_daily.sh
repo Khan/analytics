@@ -11,6 +11,8 @@ else
     day=$(date --date='yesterday' '+%Y-%m-%d')
 fi
 
+day_as_path=$(date --date=${day} '+%Y/%m/%d')
+
 day_before=$(date --date=${day}-1day '+%Y-%m-%d')
 day_after=$(date --date=${day}+1day '+%Y-%m-%d')
 
@@ -33,6 +35,8 @@ echo "Upload to S3"
   s3://ka-mapreduce/rawdata/${day}/ 2>&1
 /usr/local/bin/s3cmd sync ~/kabackup/bulkdownload/${day}/ \
   s3://ka-mapreduce/rawdata/bulk/${day}/ 2>&1
+/usr/local/bin/s3cmd sync ~/kalogs/${day_as_path}/ \
+  s3://ka-mapreduce/rawdata/server_logs/website/${day}/ 2>&1
 
 # Convert pbuf to json + additional daily aggregation jobs
 echo "Convert pbuf to json and load into the datastore"
@@ -65,3 +69,11 @@ echo "Generating daily reports"
 ${current_dir}/../src/report_generator.py \
   -c ${current_dir}/../cfg/daily_report.json \
   "<day>=${day}" "<day_before>=${day_before}" "<day_after>=${day_after}" 2>&1
+
+
+echo "Convert raw logs to TSV request logs"
+elastic-mapreduce --create --name "${day} Request Logs Upload" \
+  --num-instance 3 --master-instance-type m1.small \
+  --slave-instance-type m1.large \
+  --json ${current_dir}/load_request_logs_to_hive.json \
+  --param "<dt>=${day}" 2>&1

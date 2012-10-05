@@ -1,0 +1,17 @@
+[
+{
+    "Name": "Loading <dt> Request Logs into EMR",
+    "ActionOnFailure": "CONTINUE",
+    "HadoopJarStep": {
+        "Jar": "/home/hadoop/contrib/streaming/hadoop-streaming.jar",
+        "Args": [
+            "-D", "mapred.output.compress=true",
+            "-input",    "s3n://ka-mapreduce/rawdata/server_logs/website/<dt>/*.log.gz",
+            "-output",   "s3n://ka-mapreduce/summary_tables/request_logs/dt=<dt>/",
+            "-mapper",   "s3n://ka-mapreduce/code/py/raw_log_to_request_log_mapper.py",
+            "-reducer",  "/bin/cat",
+            "-numReduceTasks", "64"
+            ]
+    }
+}
+]
