@@ -7,7 +7,7 @@
         "Args": [
             "-D", "mapred.output.compress=true",
             "-input",    "s3n://ka-mapreduce/rawdata/server_logs/website/<dt>/*.log.gz",
-            "-output",   "s3n://ka-mapreduce/summary_tables/request_logs/dt=<dt>/",
+            "-output",   "s3n://ka-mapreduce/rawdata_tables/request_logs/website/dt=<dt>/",
             "-mapper",   "s3n://ka-mapreduce/code/py/raw_log_to_request_log_mapper.py",
             "-reducer",  "/bin/cat",
             "-numReduceTasks", "64"

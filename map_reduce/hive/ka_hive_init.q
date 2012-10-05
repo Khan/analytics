@@ -323,7 +323,7 @@ LOCATION 's3://ka-mapreduce/summary_tables/accuracy_deltas_summary';
 ALTER TABLE accuracy_deltas_summary RECOVER PARTITIONS;
 
 -- Website request logs
-CREATE EXTERNAL TABLE IF NOT EXISTS request_logs (
+CREATE EXTERNAL TABLE IF NOT EXISTS website_request_logs (
     ip STRING, user STRING, timestamp STRING, method STRING, url STRING,
     protocol STRING, status INT, bytes INT, referer STRING, useragent STRING,
     host STRING, ms INT, cpu_ms INT, api_cpu_ms INT, cpm_usd DOUBLE,
@@ -331,9 +331,11 @@ CREATE EXTERNAL TABLE IF NOT EXISTS request_logs (
   )
   PARTITIONED BY (dt STRING)
   ROW FORMAT DELIMITED FIELDS TERMINATED BY '\t'
-  LOCATION 's3://ka-mapreduce/summary_tables/request_logs/';
-ALTER TABLE request_logs RECOVER PARTITIONS;
+  LOCATION 's3n://ka-mapreduce/rawdata_tables/request_logs/website/';
+ALTER TABLE website_request_logs RECOVER PARTITIONS;
 
+CREATE EXTERNAL TABLE IF NOT EXISTS daily_request_log_stats (
+  )
 
 -- TODO(yunfang): deprecate the following table and move to video_stats
 CREATE EXTERNAL TABLE IF NOT EXISTS daily_video_stats (
