@@ -35,6 +35,8 @@ values whose fields are, in order with examples from the above logs:
   cpm_usd         # 0.000001
   queue_name      # problem-log-queue (or the empty string if n/a)
   pending_ms      # 0
+  url_route       # (an identifier that rolls up multiple similar URLs,
+                  #  e.g., video page URLs)
 
 These fields could also be extracted from the logs but aren't because they're
 big and we can't figure out how they would be useful. If they do turn out to be
