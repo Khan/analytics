@@ -9,6 +9,9 @@
     },
     { "table_name": "user_feedback_summary",
       "partitions": [ "dt=<day>" ]
+    },
+    { "table_name": "website_request_logs",
+      "partitions": [ "dt=<day>" ]
     }
   ],
   "steps": [
@@ -31,6 +34,13 @@
       "mongo_collection":  "daily_exercise_stats",
       "importer_args": "",
       "drop": true,
+      "hive_init": true
+    },
+    { "hive_script": "s3://ka-mapreduce/code/hive/daily_request_log_url_stats.q",
+      "hive_args": {"dt": "<day>"},
+      "hive_table": "daily_request_log_url_stats",
+      "mongo_collection":  "daily_request_log_url_stats",
+      "importer_args": "dt=<day>",
       "hive_init": true
     },
     { "hive_script": "s3://ka-mapreduce/code/hive/user_daily_activity.q",

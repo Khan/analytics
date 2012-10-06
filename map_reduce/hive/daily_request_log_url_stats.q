@@ -1,6 +1,12 @@
+-- Required script arguments:
+--   dt: the day for which to compute stats in the format YYYY-MM-DD
 
 -- Performance statistics for an individual URL taken from the request logs.
--- TODO(chris): should we use the array syntax of PERCENTILE instead?
+--
+-- We limit to only 10,000 URLS because when we ran it on 20 July 2012 there
+-- were 1.6 million unique URLs, 90% of which were hit only once. The 10,000th
+-- URL had about 550 hits, which seemed reasonable. This cutoff was arbitrarily
+-- picked.
 INSERT OVERWRITE TABLE daily_request_log_url_stats
   PARTITION (dt = '${dt}')
 SELECT
@@ -31,4 +37,6 @@ FROM (
   FROM website_request_logs
   WHERE dt = '${dt}'
   GROUP BY url
+  ORDER BY count DESC
+  LIMIT 10000
 ) stats;
