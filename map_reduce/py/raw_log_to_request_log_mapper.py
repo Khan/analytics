@@ -29,15 +29,21 @@ values whose fields are, in order with examples from the above logs:
   status code     # 200
   bytes           # 572
   referer         # http://smarthistory.khanacademy.org
-  user agent      # Mozilla/5.0
-  host            # smarthistory.khanacademy.org
   ms              # 65
   cpu_ms          # 35
   api_cpu_ms      # 10
   cpm_usd         # 0.000001
   queue_name      # problem-log-queue (or the empty string if n/a)
-  task_name       # 131477025630677193 (or the empty string if n/a)
   pending_ms      # 0
+
+These fields could also be extracted from the logs but aren't because they're
+big and we can't figure out how they would be useful. If they do turn out to be
+useful, modify this script to capture and output them, and modify the Hive
+table definition to contain them:
+
+  user agent      # Mozilla/5.0
+  host            # smarthistory.khanacademy.org
+  task_name       # 131477025630677193 (or the empty string if n/a)
   instance        # 00c61b117c5f1f26699563074cdd44e841096e
 """
 
@@ -57,20 +63,25 @@ _LOG_MATCHER = re.compile(r"""
     (\S+)\s                       # status code
     (\S+)\s                       # bytes
     "([^"\\]*(?:\\.[^"\\]*)*)"\s  # referer
-    "([^"\\]*(?:\\.[^"\\]*)*)"\s  # user agent
+    "[^"\\]*(?:\\.[^"\\]*)*"\s    # user agent (ignored)
 
     # Apache combined log format is above, custom fields are below.
 
-    "([^"]+)"\s                   # host
+    "[^"]+"\s                     # host (ignored)
     ms=(\d+)\s
     cpu_ms=(\d+)\s
     api_cpu_ms=(\d+)\s
     cpm_usd=(\S+)\s
     (?:queue_name=(\S+)\s)?
-    (?:task_name=(\S+)\s)?
+    (?:task_name=\S+\s)?          # (ignored)
     pending_ms=(\d+)\s
-    instance=(\S+)$
+    instance=\S+$                 # (ignored)
 """, re.X)
+
+
+def url_route(url):
+    # TODO(chris): implement
+    return ''
 
 
 def main():
@@ -89,6 +100,7 @@ def main():
                 'contain tabs, but this log does: %s' % line)
 
         groups = [(g or "") for g in match.groups()]
+        groups.append(url_route(groups[4]))
         print '\t'.join(groups)
 
 
