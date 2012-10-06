@@ -63,6 +63,16 @@ echo "$status"
 jobid=$(echo "$status" | awk '{print $4}')
 ${current_dir}/../src/monitor_jobflow.py $jobid &
 
+echo "Convert raw logs to TSV request logs"
+status=$(elastic-mapreduce --create --name "${day} Request Logs Upload" \
+  --num-instance 3 --master-instance-type m1.small \
+  --slave-instance-type m1.large \
+  --json ${current_dir}/load_request_logs_to_hive.json \
+  --param "<dt>=${day}" 2>&1 )
+echo "$status"
+
+jobid=$(echo "$status" | awk '{print $4}')
+${current_dir}/../src/monitor_jobflow.py $jobid &
 
 # Daily reports 
 echo "Generating daily reports"
@@ -70,10 +80,3 @@ ${current_dir}/../src/report_generator.py \
   -c ${current_dir}/../cfg/daily_report.json \
   "<day>=${day}" "<day_before>=${day_before}" "<day_after>=${day_after}" 2>&1
 
-
-echo "Convert raw logs to TSV request logs"
-elastic-mapreduce --create --name "${day} Request Logs Upload" \
-  --num-instance 3 --master-instance-type m1.small \
-  --slave-instance-type m1.large \
-  --json ${current_dir}/load_request_logs_to_hive.json \
-  --param "<dt>=${day}" 2>&1
