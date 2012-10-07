@@ -324,7 +324,7 @@ ALTER TABLE accuracy_deltas_summary RECOVER PARTITIONS;
 
 -- Website request logs
 CREATE EXTERNAL TABLE IF NOT EXISTS website_request_logs (
-    ip STRING, user STRING, timestamp STRING, method STRING, url STRING,
+    ip STRING, user STRING, time_stamp STRING, method STRING, url STRING,
     protocol STRING, status INT, bytes INT, referer STRING, 
     ms INT, cpu_ms INT, api_cpu_ms INT, cpm_usd DOUBLE,
     queue_name STRING, pending_ms INT,
@@ -332,7 +332,7 @@ CREATE EXTERNAL TABLE IF NOT EXISTS website_request_logs (
   )
   PARTITIONED BY (dt STRING)
   ROW FORMAT DELIMITED FIELDS TERMINATED BY '\t'
-  LOCATION 's3n://ka-mapreduce/rawdata_tables/request_logs/website/';
+  LOCATION 's3://ka-mapreduce/rawdata_tables/request_logs/website/';
 ALTER TABLE website_request_logs RECOVER PARTITIONS;
 
 CREATE EXTERNAL TABLE IF NOT EXISTS daily_request_log_url_stats (
