@@ -16,6 +16,13 @@ A task queue request, initiated by App Engine:
 
 0.1.0.2 - - [31/Jul/2012:17:00:09 -0700] "POST /_ah/queue/deferred_problemlog HTTP/1.1" 200 84 "http://www.khanacademy.org/api/v1/user/exercises/converting_between_point_slope_and_slope_intercept/problems/1/attempt" "AppEngine-Google; (+http://code.google.com/appengine)" "www.khanacademy.org" ms=88 cpu_ms=300 api_cpu_ms=275 cpm_usd=0.000007 queue_name=problem-log-queue task_name=10459794276075119660 pending_ms=0 instance=00c61b117cca420ac067602b717789e7aec8ca
 
+Additional logs for testing. Note that api_cpu_ms and instance may be "None",
+and cpm_usd is occasionally, unexpectedly, 0.000000:
+
+122.11.36.130 - - [06/Oct/2012:16:00:09 -0700] "GET /api/v1/user/topic/precache/addition-subtraction/e/addition_1?casing=camel HTTP/1.1" 200 2421 "http://www.khanacademy.org/math/arithmetic/addition-subtraction/v/basic-addition" "Mozilla/5.0 (iPad; CPU OS 5_1_1 like Mac OS X) AppleWebKit/534.46 (KHTML, like Gecko) Version/5.1 Mobile/9B206 Safari/7534.48.3" "www.khanacademy.org" ms=263 cpu_ms=415 api_cpu_ms=None cpm_usd=0.000000 pending_ms=0 instance=00c61b117c29add96b8c86824f3be8d9b22d5537
+
+174.211.15.119 - - [06/Oct/2012:16:00:09 -0700] "GET /images/featured-actions/campbells-soup.png HTTP/1.1" 204 154518 "http://www.khanacademy.org/" "Mozilla/5.0 (iPhone; CPU iPhone OS 5_0_1 like Mac OS X) AppleWebKit/534.46 (KHTML, like Gecko) Version/5.1 Mobile/9A405 Safari/7534.48.3" "www.khanacademy.org" ms=19 cpu_ms=0 api_cpu_ms=None cpm_usd=0.000017 pending_ms=0 instance=None
+
 
 Output is one record per line. Each record contains tab-separated
 values whose fields are, in order with examples from the above logs:
@@ -72,7 +79,7 @@ _LOG_MATCHER = re.compile(r"""
     "[^"]+"\s                     # host (ignored)
     ms=(\d+)\s
     cpu_ms=(\d+)\s
-    api_cpu_ms=(\d+)\s
+    api_cpu_ms=(\d+|None)\s
     cpm_usd=(\S+)\s
     (?:queue_name=(\S+)\s)?
     (?:task_name=\S+\s)?          # (ignored)
@@ -101,8 +108,15 @@ def main():
                 'The output to Hive is tab-separated. Field values must not '
                 'contain tabs, but this log does: %s' % line)
 
-        groups = [(g or "") for g in match.groups()]
+        groups = [(g or '') for g in match.groups()]
+
+        # api_cpu_ms may be "None" if not provided by App Engine. The
+        # equivalent in Hive is an empty field.
+        groups[11] = '' if groups[11] == 'None' else groups[11]
+
+        # Map the URL to its route.
         groups.append(url_route(groups[4]))
+
         print '\t'.join(groups)
 
 
