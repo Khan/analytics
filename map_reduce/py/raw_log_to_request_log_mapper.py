@@ -56,36 +56,44 @@ table definition to contain them:
   instance        # 00c61b117c5f1f26699563074cdd44e841096e
 """
 
+import collections
 import re
 import sys
 
 # This regex matches the Apache combined log format, plus some special
-# fields that are specific to App Engine.
+# fields that are specific to App Engine.  The names used for the regexp
+# groups match the names used in the hive table in ../hive/ka_hive_init.q
 _LOG_MATCHER = re.compile(r"""
-    ^(\S+)\s                      # IP
-    \S+\s                         # remote logname (ignored)
-    (\S+)\s                       # remote user
-    \[([^]]+)\]\s                 # timestamp
-    "(\S+)\s                      # method
-     (\S+)\s                      # URL
-     ([^"]+)"\s                   # protocol
-    (\S+)\s                       # status code
-    (\S+)\s                       # bytes
-    "([^"\\]*(?:\\.[^"\\]*)*)"\s  # referer
-    "[^"\\]*(?:\\.[^"\\]*)*"\s    # user agent (ignored)
+    ^(?P<ip>\S+)\s
+    (?P<logname>\S+)\s
+    (?P<user>\S+)\s
+    \[(?P<time_stamp>[^]]+)\]\s
+    "(?P<method>\S+)\s
+     (?P<url>\S+)\s
+     (?P<protocol>[^"]+)"\s
+    (?P<status>\S+)\s
+    (?P<bytes>\S+)\s
+    "(?P<referer>[^"\\]*(?:\\.[^"\\]*)*)"\s
+    "(?P<user_agent>[^"\\]*(?:\\.[^"\\]*)*)"\s
 
     # Apache combined log format is above, custom fields are below.
 
-    "[^"]+"\s                     # host (ignored)
-    ms=(\d+)\s
-    cpu_ms=(\d+)\s
-    api_cpu_ms=(\d+|None)\s
-    cpm_usd=(\S+)\s
-    (?:queue_name=(\S+)\s)?
-    (?:task_name=\S+\s)?          # (ignored)
-    pending_ms=(\d+)\s
-    instance=\S+$                 # (ignored)
+    "(?P<host>[^"]+)"\s
+    ms=(?P<ms>\d+)\s
+    cpu_ms=(?P<cpu_ms>\d+)\s
+    api_cpu_ms=(?P<api_cpu_ms>\d+|None)\s
+    cpm_usd=(?P<cpm_usd>\S+)\s
+    (?:queue_name=(?P<queue_name>\S+)\s)?
+    (?:task_name=(?P<task_name>\S+)\s)?
+    pending_ms=(?P<pending_ms>\d+)\s
+    instance=(?P<instance>\S+)$
 """, re.X)
+
+
+_FIELDS_TO_KEEP = ('ip', 'user', 'time_stamp', 'method', 'url',
+                   'protocol', 'status', 'bytes', 'referer',
+                   'ms', 'cpu_ms', 'api_cpu_ms', 'cpm_usd', 'queue_name',
+                   'pending_ms')
 
 
 def url_route(url):
@@ -93,8 +101,8 @@ def url_route(url):
     return ''
 
 
-def main():
-    for line in sys.stdin:
+def main(input_file):
+    for line in input_file:
         match = _LOG_MATCHER.match(line)
         if not match:
             # Ignore non-request logs. It's possible, but unlikely,
@@ -108,22 +116,22 @@ def main():
                 'The output to Hive is tab-separated. Field values must not '
                 'contain tabs, but this log does: %s' % line)
 
-        groups = [(g or '') for g in match.groups()]
+        fields = collections.OrderedDict()
+        for f in _FIELDS_TO_KEEP:
+            fields[f] = match.group(f) or ''
 
         # api_cpu_ms may be "None" if not provided by App Engine. The
         # equivalent in Hive is an empty field.
-        groups[11] = '' if groups[11] == 'None' else groups[11]
+        if fields['api_cpu_ms'] == 'None':
+            fields['api_cpu_ms'] = ''
+
+        # Now we add derived fields.
 
         # Map the URL to its route.
-        groups.append(url_route(groups[4]))
+        fields['url_route'] = url_route(fields['url'])
 
-        print '\t'.join(groups)
+        print '\t'.join(fields.itervalues())
 
 
 if __name__ == '__main__':
-    run_tests = False
-    if run_tests:
-        import doctest
-        doctest.testmod()
-    else:
-        main()
+    main(sys.stdin)
