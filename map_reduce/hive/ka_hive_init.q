@@ -339,7 +339,6 @@ CREATE EXTERNAL TABLE IF NOT EXISTS daily_request_log_url_stats (
     count INT, url STRING, avg_response_bytes INT,
     ms_pct5 INT, ms_pct50 INT, ms_pct95 INT,
     cpu_ms_pct5 INT, cpu_ms_pct50 INT, cpu_ms_pct95 INT,
-    api_cpu_ms_pct5 INT, api_cpu_ms_pct50 INT, api_cpu_ms_pct95 INT,
     cpm_microcents_pct5 INT, cpm_microcents_pct50 INT, cpm_microcents_pct95 INT
   )
   PARTITIONED BY (dt STRING)
