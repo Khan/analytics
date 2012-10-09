@@ -182,6 +182,20 @@ def url_route(method, url, route_regexps):
         return matched_wsgi_regexp.pattern
 
 
+def convert_stats_route_map_to_route_regexps(route_map_json):
+    """Convert the output of ka.org/stats/route_map to url_route input."""
+    route_regexps = []
+    for app_yaml_info in route_map_json:
+        app_yaml_regexp = re.compile(app_yaml_info[0])
+        # We skip app_yaml_info[1], the wsgi app name.
+        for wsgi_info in app_yaml_info[2:]:
+            wsgi_regexp = re.compile(wsgi_info[0])
+            # We skip wsgi_info[1], the handler name
+            methods = wsgi_info[2:]
+            route_regexps.append((app_yaml_regexp, wsgi_regexp, methods))
+    return route_regexps
+
+
 def main(input_file, route_regexps):
     """Print a converted logline for each logline in input_file.
 
@@ -233,17 +247,6 @@ def main(input_file, route_regexps):
 
 if __name__ == '__main__':
     with open('route_map_file.json') as f:
-        route_map = json.load(f)
-    # We need to convert the route_map returned by /stats/route_map
-    # to the route_regexps form expected by main().
-    route_regexps = []
-    for app_yaml_info in route_map:
-        app_yaml_regexp = re.compile(app_yaml_info[0])
-        # We skip app_yaml_info[1], the wsgi app name.
-        for wsgi_info in app_yaml_info[2:]:
-            wsgi_regexp = re.compile(wsgi_info[0])
-            # We skip wsgi_info[1], the handler name
-            methods = wsgi_info[2:]
-            route_regexps.append((app_yaml_regexp, wsgi_regexp, methods))
+        route_regexps = convert_stats_route_map_to_route_regexps(json.load(f))
 
     main(sys.stdin, route_regexps)
