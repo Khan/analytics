@@ -62,7 +62,6 @@ table definition to contain them:
   instance        # 00c61b117c5f1f26699563074cdd44e841096e
 """
 
-import collections
 import json
 import re
 import sys
@@ -99,6 +98,7 @@ _LOG_MATCHER = re.compile(r"""
 """, re.X)
 
 
+# We emit just these fields, and in this order.
 _FIELDS_TO_KEEP = ('ip', 'user', 'time_stamp', 'method', 'url',
                    'protocol', 'status', 'bytes', 'referer',
                    'ms', 'cpu_ms', 'api_cpu_ms', 'cpm_usd', 'queue_name',
@@ -208,7 +208,7 @@ def main(input_file, route_regexps):
                 'The output to Hive is tab-separated. Field values must not '
                 'contain tabs, but this log does: %s' % line)
 
-        fields = collections.OrderedDict()
+        fields = {}
         for f in _FIELDS_TO_KEEP:
             fields[f] = match.group(f) or ''
 
@@ -217,13 +217,18 @@ def main(input_file, route_regexps):
         if fields['api_cpu_ms'] == 'None':
             fields['api_cpu_ms'] = ''
 
+        # Get a copy of the field-values in _FIELDS_TO_KEEP order.
+        sorted_fields = sorted(fields.items(),
+                               key=lambda kv: _FIELDS_TO_KEEP.index(kv[0]))
+
         # -- Now we add derived fields.
 
         # Map the URL to its route.
-        fields['url_route'] = url_route(fields['method'], fields['url'],
-                                        route_regexps)
+        sorted_fields.append(('url_route',
+                              url_route(fields['method'], fields['url'],
+                                        route_regexps)))
 
-        print '\t'.join(fields.itervalues())
+        print '\t'.join(v for (k, v) in sorted_fields)
 
 
 if __name__ == '__main__':
