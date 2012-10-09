@@ -38,6 +38,13 @@ echo "Upload to S3"
 /usr/local/bin/s3cmd sync ~/kalogs/${day_as_path}/ \
   s3://ka-mapreduce/rawdata/server_logs/website/${day}/ 2>&1
 
+# We need to get a route-map onto s3 for raw_log_to_request_log_mapper.py.
+# This requires the shared secret to be in the analytics homedir.
+route_map_path="s3://ka-mapreduce/rawdata/route_maps/route_map.${day}.json"
+curl "http://www.khanacademy.org/stats/route_map?key=`cat ~/sleep_secret | tr -d '\012'`" \
+    > /tmp/`basename $route_map_path`
+/usr/local/bin/s3cmd put /tmp/`basename $route_map_path` "$route_map_path"
+
 # Convert pbuf to json + additional daily aggregation jobs
 echo "Convert pbuf to json and load into the datastore"
 status=$(elastic-mapreduce --create --name "${day} GAE Upload" \
@@ -68,6 +75,7 @@ status=$(elastic-mapreduce --create --name "${day} Request Logs Upload" \
   --num-instance 3 --master-instance-type m1.small \
   --slave-instance-type m1.large \
   --json ${current_dir}/load_request_logs_to_hive.json \
+  --param "<route_map_path>=${route_map_path}" \
   --param "<dt>=${day}" 2>&1 )
 echo "$status"
 

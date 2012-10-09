@@ -5,8 +5,14 @@
 Raw logs are downloaded from the website handler api/v1_fetch_logs.py
 and then passed through this filter.
 
-Input is the raw logs, of which some lines may be request logs in the
-following format:
+This script requires a file called route_map_file.json exist in a
+place that Elastic Mapreduce can find it (specify the cacheFile
+argument as a commandline flag to EMR).  This file should hold the
+output of a call to
+  http://www.khanacademy.org/stats/route_map?key=<sleep_key_from_secrets.py>
+
+Stdin should hold the raw logs, of which some lines may be request
+logs in the following format:
 
 A user-facing request:
 
@@ -57,8 +63,11 @@ table definition to contain them:
 """
 
 import collections
+import json
 import re
 import sys
+import urlparse
+
 
 # This regex matches the Apache combined log format, plus some special
 # fields that are specific to App Engine.  The names used for the regexp
@@ -96,12 +105,95 @@ _FIELDS_TO_KEEP = ('ip', 'user', 'time_stamp', 'method', 'url',
                    'pending_ms')
 
 
-def url_route(url):
-    # TODO(chris): implement
-    return ''
+def url_route(method, url, route_regexps):
+    """Determine the regexp that would be matched to handle this url.
+
+    This looks at the wsgi apps (including the flask wsgi app) to
+    determine what pattern matches the url, which in turn can be used
+    to determine what handler will handle the url.
+
+    This is used to group urls together.  For instance, we want all
+    requests that look like /.*/e to be grouped together, since
+    they're all the 'same' request, in that they're handled by the
+    same handler.  (In fact, this method could return the handler, but
+    we decided returning the regexp is more human-readable.)
+
+    Arguments:
+        method: the method of the request: 'GET', 'POST', etc.
+        url: the full url of the request, including protocol, hostname,
+            query, etc.
+        route_regexps: An iterable that returns
+               (app_yaml_regexp, wsgi_regexp, list-of-methods)
+            tuples (one for each route in our app).  app_yaml_regexp
+            is the regexp in app.yaml that specifies the wsgi app,
+            and wsgi_regexp is the regexp in the wsgi app (main.py,
+            e.g.) that specifies the handler to run.  We return a
+            unique representation of the first regexp that matches
+            the given method + url, or the path-component of the url
+            itself if none does.  list-of-methods can be the empty
+            list to indicate that *all* methods match.
+
+    Returns:
+        A string representation of the matching regexp that is enough
+        to uniquely identify the regexp.  Normally this will be
+        wsgi_regexp (a regexp found in main.py or api/main.py).
+        However, if the same wsgi_regexp is found in two places
+        in route_regexps -- they'll have different app_yaml_regexps
+        -- we'll distinguish them by returning
+        '(<app_yaml_regexp>)(<wsgi_regexp>)'.
+
+        The 'matching regexp' is calculated as follows: find the
+        first app_yaml_regexp that matches the url, and then find
+        the first wsgi_regexp with that app_yaml_regexp that matches.
+
+        If no matching regexp is found, return the input url-path.
+    """
+    url_path = urlparse.urlparse(url).path
+    matched_app_yaml_regexp = None
+    for (app_yaml_regexp, wsgi_regexp, methods) in route_regexps:
+        if (matched_app_yaml_regexp is None
+            and app_yaml_regexp.search(url_path)):
+            matched_app_yaml_regexp = app_yaml_regexp
+
+        # Now check if the wsgi regexp is a match as well.
+        if ((not methods or method in methods) and  # method matches
+            app_yaml_regexp == matched_app_yaml_regexp and
+            wsgi_regexp.search(url_path)):          # wsgi regexp matches
+            matched_wsgi_regexp = wsgi_regexp
+            break
+    else:     # for/else: if we get here, no regexp matched
+        # This should never hit since we have catch-all urls in
+        # app.yaml and main.py.  It's just for safety.
+        return url_path
+
+    # Now check if wsgi_regexp is unique, and we can just return it,
+    # or we need to include app_yaml_regexp too.
+    is_duplicated = False
+    for (app_yaml_regexp, wsgi_regexp, methods) in route_regexps:
+        if (wsgi_regexp == matched_wsgi_regexp and
+            app_yaml_regexp != matched_app_yaml_regexp):
+            is_duplicated = True
+            break
+
+    if is_duplicated:
+        return '(%s)(%s)' % (matched_app_yaml_regexp.pattern,
+                             matched_wsgi_regexp.pattern)
+    else:
+        return matched_wsgi_regexp.pattern
 
 
-def main(input_file):
+def main(input_file, route_regexps):
+    """Print a converted logline for each logline in input_file.
+
+    Also adds a few derived fields, such as the url_route (the
+    wsgi route that this url tickled).
+
+    Arguments:
+        input_file: a file containing loglines as taken from appengine.
+        route_regexps: An iterable that returns
+            (app_yaml_regexp, wsgi_regexp, list-of-methods),
+            and is passed to url_route().
+    """
     for line in input_file:
         match = _LOG_MATCHER.match(line)
         if not match:
@@ -125,13 +217,28 @@ def main(input_file):
         if fields['api_cpu_ms'] == 'None':
             fields['api_cpu_ms'] = ''
 
-        # Now we add derived fields.
+        # -- Now we add derived fields.
 
         # Map the URL to its route.
-        fields['url_route'] = url_route(fields['url'])
+        fields['url_route'] = url_route(fields['method'], fields['url'],
+                                        route_regexps)
 
         print '\t'.join(fields.itervalues())
 
 
 if __name__ == '__main__':
-    main(sys.stdin)
+    with open('route_map_file.json') as f:
+        route_map = json.load(f)
+    # We need to convert the route_map returned by /stats/route_map
+    # to the route_regexps form expected by main().
+    route_regexps = []
+    for app_yaml_info in route_map:
+        app_yaml_regexp = re.compile(app_yaml_info[0])
+        # We skip app_yaml_info[1], the wsgi app name.
+        for wsgi_info in app_yaml_info[2:]:
+            wsgi_regexp = re.compile(wsgi_info[0])
+            # We skip wsgi_info[1], the handler name
+            methods = wsgi_info[2:]
+            route_regexps.append((app_yaml_regexp, wsgi_regexp, methods))
+
+    main(sys.stdin, route_regexps)

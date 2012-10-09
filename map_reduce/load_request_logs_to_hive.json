@@ -9,6 +9,7 @@
             "-input",    "s3n://ka-mapreduce/rawdata/server_logs/website/<dt>/*.log.gz",
             "-output",   "s3n://ka-mapreduce/rawdata_tables/request_logs/website/dt=<dt>/",
             "-mapper",   "s3n://ka-mapreduce/code/py/raw_log_to_request_log_mapper.py",
+	    "-cacheFile", "<route_map_path>#route_map_file.json",
             "-reducer",  "/bin/cat",
             "-numReduceTasks", "64"
             ]
