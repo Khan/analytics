@@ -142,7 +142,6 @@ def get_cmd_line_args():
                             "there is no file, then no versions will be "
                             "searched"))
 
-
     options, extra_args = parser.parse_args()
     if extra_args:
         sys.exit('Unknown arguments %s. See --help.' % extra_args)
