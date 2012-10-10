@@ -26,12 +26,22 @@ if [ -n "$2" ]; then
 else
     log_dir="$HOME/kalogs"
 fi
+
+if [ -n "$3" ]; then
+    backend_log_dir="$2"
+else
+    backend_log_dir="$HOME/kabackendlogs"
+fi
+
 mkdir -p "$log_dir"
+mkdir -p "$backend_log_dir"
 
 # We nest the directories, so 2012-05-07T08:00:00Z becomes
 # 2012/05/07/08:00:00Z
 outfile_prefix="$log_dir/`echo $hour | tr T- //`"
+backend_outfile_prefix="$backend_log_dir/`echo $hour | tr T- //`"
 mkdir -p "`dirname $outfile_prefix`"
+mkdir -p "`dirname $backend_outfile_prefix`"
 
 ROOT="$(dirname $0)"
 
@@ -54,6 +64,11 @@ prev_statusfile="$log_dir/`echo $hour_prev | tr T- //`-status.log"
     --file_for_alternate_appengine_versions="$prev_statusfile" \
     2> "${outfile_prefix}-status.log" \
     | gzip -c > "${outfile_prefix}.log.gz"
+
+"$ROOT/fetch_logs.py" --backend -s "$hour" -e "$hour_next" \
+    --file_for_alternate_appengine_versions="$prev_statusfile" \
+    2> "${backend_outfile_prefix}-status.log" \
+    | gzip -c > "${backend_outfile_prefix}.log.gz"
 
 # Use a bash-ism to return the exit-code of fetch_logs (not gzip).
 exit ${PIPESTATUS[0]}

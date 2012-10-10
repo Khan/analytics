@@ -132,11 +132,21 @@ def get_cmd_line_args():
                             "until one returns non-zero results.  The "
                             "file should have text like "
                             "appengine_versions=v1,v2,v3"))
+    #TODO: Figure out a better way to get the backend versions that were active
+    #during the time period.
+    parser.add_option("-b", "--backend", action="store_true", default=False,
+                      help=("If set will try and read the logs from the "
+                            "versions in the file designated by "
+                            "--file_for_alternate_appengine_versions with "
+                            "'mapreducebackends-' prefixed onto them. If "
+                            "there is no file, then no versions will be "
+                            "searched"))
+
 
     options, extra_args = parser.parse_args()
     if extra_args:
-        sys.exit('This script takes no arguments!')
-
+        sys.exit('Unknown arguments %s. See --help.' % extra_args)
+ 
     return options
 
 
@@ -196,6 +206,11 @@ def main():
     if options.file_for_alternate_appengine_versions:
         appengine_versions.extend(
             _read_versions(options.file_for_alternate_appengine_versions))
+
+    if options.backend:
+        appengine_versions = ["mapreducebackend-" + v 
+                              for v in appengine_versions if v]
+
     print >>sys.stderr, ('Looking at these appengine versions: %s'
                          % [v or '(default)' for v in appengine_versions])
 
