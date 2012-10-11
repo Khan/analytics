@@ -36,3 +36,42 @@ FROM (
   ORDER BY count DESC
   LIMIT 10000
 ) stats;
+
+
+-- Performance statistics for an 'grouped' URLs taken from the request
+-- logs.  We map each url to the wsgi handler that handles it
+-- (identified by the regexp that maps to that handler in the wsgi
+-- application), and collect information on a per-handler basis.
+--
+-- This is exactly the same as url_stats, except 'url' has been
+-- replaced by 'url_route'.  Also, we got rid of the limit of 10,000
+-- (not really necessary since we're doing all this grouping; there
+-- are only a few hundred handlers).
+INSERT OVERWRITE TABLE daily_request_log_urlroute_stats
+  PARTITION (dt = '${dt}')
+SELECT
+  stats.count,
+  stats.url_route,
+  ROUND(stats.avg_response_bytes),
+  ROUND(stats.ms_pct[0]) as ms_pct5,
+  ROUND(stats.ms_pct[1]) as ms_pct50,
+  ROUND(stats.ms_pct[2]) as ms_pct95,
+  ROUND(stats.cpu_ms_pct[0]) as cpu_ms_pct5,
+  ROUND(stats.cpu_ms_pct[1]) as cpu_ms_pct50,
+  ROUND(stats.cpu_ms_pct[2]) as cpu_ms_pct95,
+  ROUND(stats.cpm_microcents_pct[0]) as cpm_microcents_pct5,
+  ROUND(stats.cpm_microcents_pct[1]) as cpm_microcents_pct50,
+  ROUND(stats.cpm_microcents_pct[2]) as cpm_microcents_pct95
+FROM (
+  SELECT
+    COUNT(*) AS count,
+    url_route,
+    AVG(bytes) AS avg_response_bytes,
+    PERCENTILE(ms, array(0.05, 0.50, 0.95)) AS ms_pct,
+    PERCENTILE(cpu_ms, array(0.05, 0.50, 0.95)) AS cpu_ms_pct,
+    PERCENTILE(cpm_usd * 100000000, array(0.05, 0.50, 0.95)) AS cpm_microcents_pct
+  FROM website_request_logs
+  WHERE dt = '${dt}'
+  GROUP BY url_route
+  ORDER BY count DESC
+) stats;

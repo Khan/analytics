@@ -125,9 +125,15 @@ def run_hive_jobs(jobname, steps):
     """Run hive steps."""
     jobflow = emr.create_hive_cluster(jobname, {})
     for step in steps:
+        # It's possible to leave out hive_script and hive_args, for
+        # when the step just wants to move data from hive into mongo,
+        # and not run any hive script.
+        if 'hive_script' not in step:
+            continue
         emr.add_hive_step(jobflow, {},
-            hive_script=step["hive_script"],
-            script_args=step["hive_args"])
+                          hive_script=step["hive_script"],
+                          script_args=step["hive_args"])
+
     status = emr.wait_for_completion(jobflow)
     listing = emr.list_steps(jobflow)
     failures = ["FAILED", "CANCELLED", "TERMINATED"]
@@ -147,6 +153,9 @@ def run_hive_jobs(jobname, steps):
 def run_report_importer(hive_masternode, steps):
     """Import hive results to mongo"""
     for step in steps:
+        # It's possible to leave out hive_table and mongo_collection,
+        # for when the step just wants to run a hive script and not
+        # import the result into mongo.
         if ('hive_table' not in step) or ('mongo_collection' not in step):
             continue
 
