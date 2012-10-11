@@ -27,21 +27,13 @@ else
     log_dir="$HOME/kalogs"
 fi
 
-if [ -n "$3" ]; then
-    backend_log_dir="$2"
-else
-    backend_log_dir="$HOME/kabackendlogs"
-fi
-
 mkdir -p "$log_dir"
-mkdir -p "$backend_log_dir"
 
 # We nest the directories, so 2012-05-07T08:00:00Z becomes
 # 2012/05/07/08:00:00Z
 outfile_prefix="$log_dir/`echo $hour | tr T- //`"
-backend_outfile_prefix="$backend_log_dir/`echo $hour | tr T- //`"
+backend_outfile_prefix="`echo $outfile_prefix | sed 's,[^/]*$,backends-&,'`"
 mkdir -p "`dirname $outfile_prefix`"
-mkdir -p "`dirname $backend_outfile_prefix`"
 
 ROOT="$(dirname $0)"
 
