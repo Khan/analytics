@@ -326,8 +326,7 @@ ALTER TABLE accuracy_deltas_summary RECOVER PARTITIONS;
 CREATE EXTERNAL TABLE IF NOT EXISTS website_request_logs (
     ip STRING, user STRING, time_stamp STRING, method STRING, url STRING,
     protocol STRING, status INT, bytes INT, referer STRING, 
-    ms INT, cpu_ms INT, api_cpu_ms INT, cpm_usd DOUBLE,
-    queue_name STRING, pending_ms INT,
+    ms INT, cpu_ms INT, cpm_usd DOUBLE, queue_name STRING, pending_ms INT,
     url_route STRING
   )
   PARTITIONED BY (dt STRING)
