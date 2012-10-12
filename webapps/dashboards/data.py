@@ -1,5 +1,4 @@
 """ Library to massage data fetched from mongo report db"""
-import pymongo
 
 
 def topic_summary(mongo, dt, duration):
@@ -45,6 +44,48 @@ def video_title_summary(mongo, title, duration, start_dt, end_dt):
     if dt:
         criteria.update({'dt': dt})
     return get_keyed_results(db_collection, {}, 'dt', criteria)
+
+
+def daily_request_log_url_stats(mongo, dt=None, url=None, fields=None, limit=100):
+    """Fetch from the mongo collection daily_request_log_url_stats.
+
+    Arguments:
+      mongo: a pymongo connection.
+      dt (optional): a date string like 'YYYY-MM-DD'. If specified, fetch only
+        documents whose "dt" field matches.
+      url (optional): fetch only documents whose "url" field matches.
+      fields (optional): a list of field names to return in the result set.
+      limit (optional): the maximum size of the result set. Default is 100.
+
+    Returns:
+      A list of dicts, each containing the fields specified in the "fields"
+      argument, or all fields defined in the daily_request_log_url_stats table
+      in map_reduce/hive/ka_hive_init.q
+    """
+    collection = mongo['report']['daily_request_log_url_stats']
+    spec = {}
+    if dt is not None:
+        spec['dt'] = dt
+    if url is not None:
+        spec['url'] = url
+    return collection.find(spec, fields).limit(limit)
+
+
+def daily_request_log_urlroute_stats(mongo, dt, limit=100):
+    """Fetch from the mongo collection daily_request_log_urlroute_stats.
+
+    Arguments:
+      mongo: a pymongo connection.
+      dt: a date string like 'YYYY-MM-DD'. Fetch only documents whose "dt"
+        field matches.
+      limit (optional): the maximum size of the result set. Default is 100.
+
+    Returns:
+      A list of dicts, each containing the fields of the
+      daily_request_log_urlroute_stats table in map_reduce/hive/ka_hive_init.q
+    """
+    collection = mongo['report']['daily_request_log_urlroute_stats']
+    return collection.find({'dt': dt}).limit(limit)
 
 
 def get_keyed_results(db_collection, total_info, index_key, 

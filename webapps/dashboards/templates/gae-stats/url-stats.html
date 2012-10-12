@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html>
+<!--
+A dashboard of statistics about a URL.
+-->
+
+<head>
+<link rel="shortcut icon" href="http://www.khanacademy.org/favicon.ico?leaf">
+<link rel="stylesheet" type="text/css" href="/static/css/third_party/bootstrap.css">
+<link rel="stylesheet" type="text/css" href="/static/css/third_party/jquery/flick/jquery-ui-1.8.20.custom.css">
+<style type="text/css">
+    #url-selector select { width:40em; vertical-align:baseline }
+
+    #stat-selector input { display:inline; margin-right:0.3em; }
+    #stat-selector label { display:inline; margin-right:1em; white-space:nowrap; }
+</style>
+</head>
+
+<body>
+
+{% include 'navbar.html' %}
+
+<div class="growth-summary" style="width:800px; margin: 40px auto;">
+    <form id="url-selector">
+        <h2>URL Statistics for 
+        <!-- TODO(chris): SELECT should take all available width -->
+        <select name="url" onchange="this.form.submit();">
+            {% for url in urls %}
+            <option value="{{url}}" {% if url == current_url %}selected{% endif %}>{{url}}</option>
+            {% endfor %}
+        </select>
+        </h2>
+    </form>
+    <form id="stat-selector">
+        <!-- TODO(chris): mark proper checkboxes as "selected" -->
+        <label><input type="checkbox" value="count" data-col=1>Number of Calls</label>
+        <label><input type="checkbox" value="avg_response_bytes" data-col=2>Response Bytes</label>
+        <label><input type="checkbox" value="ms_pct50" data-col="4">ms (median)</label>
+        <label><input type="checkbox" value="ms_pct" data-col="3,4,5" checked=checked>ms (5/50/95 pctile)</label>
+        <label><input type="checkbox" value="cpu_ms_pct50" data-col="7">cpu_ms (median)</label>
+        <label><input type="checkbox" value="cpu_ms_pct" data-col="6,7,8">cpu_ms (5/50/95 pctile)</label>
+        <label><input type="checkbox" value="cpm_microcents_pct50" data-col="10">cpm in microcents (median)</label>
+        <label><input type="checkbox" value="cpm_microcents_pct" data-col="9,10,11">cpm in microcents (5/50/95 pctile)</label>
+    </form>
+    <div id='chart_div' style='width: 800px; height: 740px;'></div>
+</div>
+
+<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
+<script src="/static/js/third_party/jquery-ui-1.8.20.custom.min.js"></script>
+<script src="/static/js/third_party/underscore-min.js"></script>
+<script src="/static/js/third_party/bootstrap-dropdown.js"></script>
+
+<script type='text/javascript' src='http://www.google.com/jsapi'></script>
+<script type='text/javascript'>
+(function() {
+    var data = null,
+        chart = null;
+
+    google.load('visualization', '1', {'packages':['annotatedtimeline']});
+    google.setOnLoadCallback(loadDataTable);
+
+    function drawChart() {
+        var view = new google.visualization.DataView(data),
+            lastRow = data.getNumberOfRows() - 1,
+            columns = [];
+
+        _.each(statSelector.querySelectorAll('input'), function(input) {
+            if (input.checked) {
+                var cols = input.getAttribute("data-col").split(",").map(Number);
+                columns = columns.concat(cols);
+            }
+        });
+
+        if (lastRow >= 0) {
+            // Sort the legend to match top-to-bottom of the right of the graph.
+            columns = columns.sort(function(a, b) {
+                return data.getValue(lastRow, b) - data.getValue(lastRow, a);
+            });
+        }
+
+        columns = _.uniq(columns, true);
+        if (columns.length) {
+            // We must always start with the date.
+            columns.unshift(0);
+            view.setColumns(columns);
+            // TODO(chris): is it faster to use showDataColumns() on the
+            // AnnotatedTimeline rather than a new DataView each time?
+            chart.draw(view, {
+                displayAnnotations: true,
+                legendPosition: "newRow"
+            });
+        }
+    }
+
+    function loadDataTable() {
+        data = new google.visualization.DataTable();
+        data.addColumn('date', 'Date');
+        data.addColumn('number', 'count');
+        data.addColumn('number', 'avg bytes');
+        data.addColumn('number', 'ms (95th pctile)');
+        data.addColumn('number', 'ms (50th pctile)');
+        data.addColumn('number', 'ms (5th pctile)');
+        data.addColumn('number', 'cpu ms (95th pctile)');
+        data.addColumn('number', 'cpu ms (50th pctile)');
+        data.addColumn('number', 'cpu ms (5th pctile)');
+        data.addColumn('number', 'cpm ucents (95th pctile)');
+        data.addColumn('number', 'cpu ucents (50th pctile)');
+        data.addColumn('number', 'cpu ucents (5th pctile)');
+        data.addRows([
+{% for row in url_stats %}
+            [new Date({{row['dt']|replace('-', ',')}}),
+             {{row['count']}}, {{row['avg_response_bytes']}},
+             {{row['ms_pct95']}}, {{row['ms_pct50']}}, {{row['ms_pct5']}},
+             {{row['cpu_ms_pct95']}}, {{row['cpu_ms_pct50']}}, {{row['cpu_ms_pct5']}},
+             {{row['cpm_microcents_pct95']}}, {{row['cpm_microcents_pct50']}}, {{row['cpm_microcents_pct5']}}],
+{% endfor %}
+        ]);
+
+        chart = new google.visualization.AnnotatedTimeLine(document.getElementById('chart_div'));
+        drawChart();
+    }
+
+    var statSelector = document.getElementById("stat-selector");
+    statSelector.onchange = function(e) {
+        drawChart();
+    };
+})();
+</script>
+
+</body>
+</html>
+
+

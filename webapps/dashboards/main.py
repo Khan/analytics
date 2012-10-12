@@ -10,6 +10,7 @@ This hosts the following dashboards:
 It will house more dashboards for fundamental metrics we want to track.
 """
 
+import datetime
 import gzip
 import json
 import logging
@@ -168,6 +169,57 @@ def gae_stats_instances():
                                         len(report)))
     return flask.render_template('gae-stats/instances.html',
                                  instance_counts=instance_counts)
+
+
+@app.route('/gae_stats/daily_request_log_url_stats')
+@auth.login_required
+def gae_stats_daily_request_log_url_stats():
+    """This dashboard shows stats for the most accessed URLs."""
+    results = data.daily_request_log_url_stats(db, dt=yesterday_utc_as_dt())
+    return flask.render_template('gae-stats/daily-request-log-url-stats.html',
+                                 collection_rows=results)
+
+
+@app.route('/gae_stats/daily_request_log_urlroute_stats')
+@auth.login_required
+def gae_stats_daily_request_log_urlroute_stats():
+    """This dashboard shows stats for the most accessed URLs, grouped by the
+    route patterns that they match for handlers on the website.
+    """
+    results = data.daily_request_log_urlroute_stats(db, yesterday_utc_as_dt())
+    # Set 'url' so that we can reuse the same template as
+    # daily_request_log_url_stats.
+    for row in results:
+        row['url'] = row['url_route']
+
+    return flask.render_template('gae-stats/daily-request-log-url-stats.html',
+                                 collection_rows=results)
+
+
+@app.route('/gae_stats/url_stats')
+@auth.login_required
+def gae_stats_url_stats():
+    """This dashboard shows stats over time for a given URL."""
+    url = flask.request.args.get('url', '/')
+
+    url_stats = data.daily_request_log_url_stats(db, url=url)
+    urls = data.daily_request_log_url_stats(db, dt=yesterday_utc_as_dt(),
+                                            fields=['url'])
+
+    urls = [u['url'] for u in urls]
+    return flask.render_template('gae-stats/url-stats.html',
+                                 current_url=url, urls=urls,
+                                 url_stats=url_stats)
+
+
+def yesterday_utc_as_dt():
+    """Yesterday's UTC date as a string dt for use in a mongo query.
+
+    The 'dt' field stored in mongo on the analytics machine is in the format
+    'YYY-MM-DD', and its clock is on UTC time.
+    """
+    yesterday = datetime.datetime.utcnow() - datetime.timedelta(1)
+    return yesterday.strftime('%Y-%m-%d')
 
 
 def main():

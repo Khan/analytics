@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+<!--
+A dashboard of performance statistics grouped by URL.
+-->
+
+<head>
+<link rel="shortcut icon" href="http://www.khanacademy.org/favicon.ico?leaf">
+<link rel="stylesheet" type="text/css" href="/static/css/third_party/bootstrap.css">
+<link rel="stylesheet" type="text/css" href="/static/css/third_party/jquery/flick/jquery-ui-1.8.20.custom.css">
+</head>
+
+<body>
+
+{% include 'navbar.html' %}
+
+<div class="growth-summary" style="width:800px; margin: 40px auto;">
+    <h2>Daily Request Log URL Stats</h2>
+    <div id='table_div' style='width: 700px; height: 740px;'></div>
+</div>
+
+<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
+<script src="/static/js/third_party/jquery-ui-1.8.20.custom.min.js"></script>
+<script src="/static/js/third_party/underscore-min.js"></script>
+<script src="/static/js/third_party/bootstrap-dropdown.js"></script>
+
+<script type='text/javascript' src='http://www.google.com/jsapi'></script>
+<script type='text/javascript'>
+    google.load('visualization', '1', {packages:['table']});
+    google.setOnLoadCallback(drawTable);
+    function drawTable() {
+        var data = new google.visualization.DataTable();
+        data.addColumn('number', 'Count');
+        data.addColumn('string', 'URL');
+        data.addColumn('number', 'Average Bytes');
+        data.addColumn('number', 'MS (50th Pct)');
+        data.addColumn('number', 'CPU MS (50th Pct)');
+        data.addColumn('number', 'CPM (50th Pct)');
+        data.addColumn('string', '');
+        data.addColumn('number', 'MS (5th Pct)');
+        data.addColumn('number', 'MS (50th Pct)');
+        data.addColumn('number', 'MS (95th Pct)');
+        data.addColumn('number', 'CPU MS (5th Pct)');
+        data.addColumn('number', 'CPU MS (50th Pct)');
+        data.addColumn('number', 'CPU MS (95th Pct)');
+        data.addColumn('number', 'CPM (5th Pct)');
+        data.addColumn('number', 'CPM (50th Pct)');
+        data.addColumn('number', 'CPM (95th Pct)');
+        data.addRows([
+{% for row in collection_rows %}
+            [{{row['count']}}, "{{row['url']}}", {{row['avg_response_bytes']}},
+             {{row['ms_pct50']}}, {{row['cpu_ms_pct50']}}, {{row['cpm_microcents_pct50']}}, "",
+             {{row['ms_pct5']}}, {{row['ms_pct50']}}, {{row['ms_pct95']}},
+             {{row['cpu_ms_pct5']}}, {{row['cpu_ms_pct50']}}, {{row['cpu_ms_pct95']}},
+             {{row['cpm_microcents_pct5']}}, {{row['cpm_microcents_pct50']}}, {{row['cpm_microcents_pct95']}}],
+{% endfor %}
+        ]);
+
+        var table = new google.visualization.Table(document.getElementById('table_div'));
+        table.draw(data, {showRowNumber: true});
+    }
+</script>
+
+</body>
+</html>
+
+
