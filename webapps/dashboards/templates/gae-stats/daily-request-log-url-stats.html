@@ -47,8 +47,11 @@ A dashboard of performance statistics grouped by URL.
         data.addColumn('number', 'CPM (50th Pct)');
         data.addColumn('number', 'CPM (95th Pct)');
         data.addRows([
+        {# The table renderer escapes data so mark URLs as safe to allow
+           patterns in URL routes. However, escape quotes for use in a JS
+           string. #}
 {% for row in collection_rows %}
-            [{{row['count']}}, "{{row['url']}}", {{row['avg_response_bytes']}},
+            [{{row['count']}}, "{{row['url']|replace('"', '\\"')|safe}}", {{row['avg_response_bytes']}},
              {{row['ms_pct50']}}, {{row['cpu_ms_pct50']}}, {{row['cpm_microcents_pct50']}}, "",
              {{row['ms_pct5']}}, {{row['ms_pct50']}}, {{row['ms_pct95']}},
              {{row['cpu_ms_pct5']}}, {{row['cpu_ms_pct50']}}, {{row['cpu_ms_pct95']}},

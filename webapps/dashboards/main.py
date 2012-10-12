@@ -187,13 +187,18 @@ def gae_stats_daily_request_log_urlroute_stats():
     route patterns that they match for handlers on the website.
     """
     results = data.daily_request_log_urlroute_stats(db, yesterday_utc_as_dt())
-    # Set 'url' so that we can reuse the same template as
-    # daily_request_log_url_stats.
-    for row in results:
-        row['url'] = row['url_route']
+
+    def result_iter():
+        # Set 'url' so that we can reuse the same template as
+        # daily_request_log_url_stats.  This is done one-by-one in a generator
+        # and not by iterating over the results here in order to avoid
+        # exhausting the "results" cursor.
+        for row in results:
+            row['url'] = row['url_route']
+            yield row
 
     return flask.render_template('gae-stats/daily-request-log-url-stats.html',
-                                 collection_rows=results)
+                                 collection_rows=result_iter())
 
 
 @app.route('/gae_stats/url_stats')
