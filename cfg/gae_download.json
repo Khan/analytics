@@ -14,7 +14,7 @@
             "UserBadge": [600, 30, 0, 0, "user"],
             "UserData": [600, 15, 1, 0, "key"],
             "UserVideo" : [1200, 100, 1, 0, "user"],
-            "Feedback": [1800, 1800, 1, 1, "author_user_id"],
+            "Feedback": [1800, 1800, 1, 1, "key"],
             "TopicVersion": [1800, 1800, 1, 0, "key"],
             "_GAEBingoIdentityRecord": [600, 150, 1, 0, "identity"],
 

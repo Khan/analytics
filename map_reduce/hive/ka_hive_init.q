@@ -4,13 +4,16 @@
 --        -d INPATH=s3://ka-mapreduce/entity_store
 -- for your interactive hive shells.
 --
--- Alternatively, you can source this file, but you need INPATH defined
--- prior to doing so.
+-- Note that userdata_partition specifies the latest snapshot date for all
+-- entities that require daily snapshotting (i.e. entities that can mutate),
+-- not just UserData.
+--
+-- Alternatively, you can source this file, but you need INPATH and
+-- userdata_partition defined prior to doing so.
 
 
 --------------------------------------------------------------------------------
 -- Datastore Entity Tables
-
 
 CREATE EXTERNAL TABLE IF NOT EXISTS Exercise (
     key string, json string
@@ -22,14 +25,6 @@ CREATE EXTERNAL TABLE IF NOT EXISTS ExerciseVideo (
     key string, json string)
 ROW FORMAT DELIMITED FIELDS TERMINATED BY '\t'
 LOCATION '${INPATH}/ExerciseVideo';
-
-CREATE EXTERNAL TABLE IF NOT EXISTS Feedback (
-    key string, json string
-  )
-  PARTITIONED BY (dt string)
-  ROW FORMAT DELIMITED FIELDS TERMINATED BY '\t'
-  LOCATION '${INPATH}/Feedback';
-ALTER TABLE Feedback RECOVER PARTITIONS;
 
 CREATE EXTERNAL TABLE IF NOT EXISTS FeedbackVote (
     key string, json string
@@ -164,6 +159,38 @@ AS SELECT * FROM GAEBingoIdentityRecordP
 TABLESAMPLE(BUCKET 1 OUT OF 128 ON key)
 WHERE dt = '${userdata_partition}';
 
+-- This stores daily subsets of Feedback entities (ones that have been
+-- modified on the partition date, and therefore needs updating).
+CREATE EXTERNAL TABLE IF NOT EXISTS FeedbackIncr (
+    key string, json string)
+COMMENT 'Daily incremental Feedback updates'
+PARTITIONED BY (dt string)
+CLUSTERED BY (key) INTO 16 BUCKETS
+ROW FORMAT DELIMITED FIELDS TERMINATED BY '\t'
+LOCATION 's3://ka-mapreduce/entity_store_incr/Feedback';
+ALTER TABLE FeedbackIncr RECOVER PARTITIONS;
+
+CREATE EXTERNAL TABLE IF NOT EXISTS FeedbackP (
+    key string,  -- GAE entity key for the Feedback
+    json string)
+COMMENT 'Feedback snapshots (created from multiple FeedbackIncr partitions)'
+PARTITIONED BY (dt string)
+CLUSTERED BY (key) INTO 32 BUCKETS
+LOCATION '${INPATH}/FeedbackP';
+ALTER TABLE FeedbackP RECOVER PARTITIONS;
+
+DROP TABLE IF EXISTS Feedback;
+DROP VIEW IF EXISTS Feedback;
+CREATE VIEW Feedback
+AS SELECT * FROM FeedbackP
+WHERE dt = '${userdata_partition}';
+
+DROP VIEW IF EXISTS FeedbackSample;
+CREATE VIEW FeedbackSample
+AS SELECT * FROM FeedbackP
+TABLESAMPLE(BUCKET 1 OUT OF 16 ON key)
+WHERE dt = '${userdata_partition}';
+
 --------------------------------------------------------------------------------
 -- Summary Tables
 
@@ -257,7 +284,7 @@ CREATE EXTERNAL TABLE IF NOT EXISTS userdata_info_p(
   registered BOOLEAN,
   is_coached BOOLEAN,
   is_student BOOLEAN
-  ) 
+  )
 PARTITIONED BY (dt STRING)
 LOCATION 's3://ka-mapreduce/summary_tables/userdata_info_p';
 ALTER TABLE userdata_info_p RECOVER PARTITIONS;
@@ -325,7 +352,7 @@ ALTER TABLE accuracy_deltas_summary RECOVER PARTITIONS;
 -- Website request logs
 CREATE EXTERNAL TABLE IF NOT EXISTS website_request_logs (
     ip STRING, user STRING, time_stamp STRING, method STRING, url STRING,
-    protocol STRING, status INT, bytes INT, referer STRING, 
+    protocol STRING, status INT, bytes INT, referer STRING,
     ms INT, cpu_ms INT, cpm_usd DOUBLE, queue_name STRING, pending_ms INT,
     url_route STRING
   )
@@ -358,10 +385,10 @@ ALTER TABLE daily_request_log_urlroute_stats RECOVER PARTITIONS;
 CREATE EXTERNAL TABLE IF NOT EXISTS daily_video_stats (
   title STRING,
   youtube_id STRING,
-  watched INT, 
-  completed INT, 
+  watched INT,
+  completed INT,
   seconds_watched BIGINT
-) PARTITIONED BY (dt STRING, user_category STRING, aggregation STRING) 
+) PARTITIONED BY (dt STRING, user_category STRING, aggregation STRING)
 LOCATION 's3://ka-mapreduce/summary_tables/daily_video_stats';
 ALTER TABLE daily_video_stats RECOVER PARTITIONS;
 
@@ -374,12 +401,12 @@ ALTER TABLE daily_video_stats RECOVER PARTITIONS;
 CREATE EXTERNAL TABLE IF NOT EXISTS video_stats (
   title STRING,
   youtube_id STRING,
-  users INT, 
-  visits INT, 
-  completed INT, 
+  users INT,
+  visits INT,
+  completed INT,
   seconds_watched BIGINT
-) PARTITIONED BY (duration STRING, dt STRING, 
-                  user_category STRING, aggregation STRING) 
+) PARTITIONED BY (duration STRING, dt STRING,
+                  user_category STRING, aggregation STRING)
 LOCATION 's3://ka-mapreduce/summary_tables/video_stats';
 ALTER TABLE daily_video_stats RECOVER PARTITIONS;
 

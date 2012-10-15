@@ -30,6 +30,21 @@
    }
 },
 {
+    "Name": "Loading <dt> Feedback into EMR",
+    "ActionOnFailure": "CONTINUE",
+    "HadoopJarStep": {
+      "Jar": "/home/hadoop/contrib/streaming/hadoop-streaming.jar",
+      "Args": [
+         "-D", "mapred.output.compress=true",
+         "-input",    "s3n://ka-mapreduce/rawdata/<dt>/Feedback/*.json.gz",
+         "-output",   "s3n://ka-mapreduce/entity_store_incr/Feedback/dt=<dt>/",
+         "-mapper",   "/bin/cat",
+         "-reducer",  "/bin/cat",
+         "-numReduceTasks", "16"
+      ]
+    }
+},
+{
     "Name": "Setup Hive",
     "ActionOnFailure": "TERMINATE_JOB_FLOW",
     "HadoopJarStep": {
@@ -43,7 +58,7 @@
     }
 },
 {
-    "Name": "Generating UserDataP and GAEBingoIdentityRecordP partition <end_dt>",
+    "Name": "Generating snapshot partitions (for UserDataP, GAEBingoIdentityRecordP, etc) <end_dt>",
     "ActionOnFailure": "CONTINUE",
     "HadoopJarStep": {
         "Jar": "s3://us-east-1.elasticmapreduce/libs/script-runner/script-runner.jar",
