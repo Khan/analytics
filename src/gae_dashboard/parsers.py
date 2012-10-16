@@ -1,29 +1,118 @@
-from lxml import cssselect
 from lxml import html
 
+# TODO(chris): implement more parsers.
+#
+# Instances:
+# - expand detail dicts to contain all info (but no links).
+#
+# Logs:
+# - application_id()/version_id()
+# - logs_storage() -> {total: "", version: ""}
+#
+# Deployment:
+# - application_id()
+# - version_dicts()
+#   {version_id: "", size: "", runtime: "", api_version: "", is_default: "",
+#    deployed: ""}
+#
+# Backends:
+# - application_id()
+# - backend_dicts()
+#   {version_id: "", size: "", runtime: "", api_version: "", deployed: "",
+#    class: "B2", num_instances: "", options: ""}
+#
+# Queues:
+# - application_id()
+# - summary_dict()
+#   {api_calls: "", stored_task_count: "", stored_task_bytes: ""}
+# - push_queue_detail_dicts()
+#   {queue_name: "", max_rate: "", enforced_rate: "", bucket_size: "",
+#    oldest_task: "", in_queue: "", "run_last_minute": "", running: ""}
+#
+# Memcache:
+# - application_id()
+# - statistics_dict()
+#   {hit_count: "", miss_count: "", hit_ratio: "", item_count: "",
+#    total_cache_size: "", oldest_item_age: ""}
+#
+# BillingHistory:
+# - event_dicts() for event types other than usage reports.
+# - filtered_event_dicts(title="")
 
-class Instances(object):
-    """An API for the contents of /instances as structured data."""
+
+class BaseParser(object):
+    """A shared base class for common operations."""
 
     def __init__(self, html_contents):
-        """Constructor.
-
-        Arguments:
-          html_contents - The HTML contents of the /instances dashboard page as
-            a string.
-        """
+        """Initialize with a string containing the dashboard page's HTML."""
         self.doc = html.document_fromstring(html_contents)
 
-    def select_css(self, selector):
-        select = cssselect.CSSSelector(selector)
-        for match in select(self.doc):
-            yield match
+    def application_id(self):
+        selector = '#ae-appbar-app-id option[selected="selected"]'
+        # There should be exactly one selected application id.
+        (app_id_element, ) = self.doc.cssselect(selector)
+        value = app_id_element['value']
+        assert(value.startswith('s~'))
+        return value[2:]
+
+
+class BillingHistory(BaseParser):
+    """An API for the contents of /billing/history as structured data."""
+
+    def _usage_report_dict(self, root):
+        """Extract usage report details from the element that contains
+        the table with columns resource, unit, used."""
+        details = {}
+        selector = 'table > tbody > tr'
+        for (resource, unit, used) in root.cssselect(selector):
+            name = resource.findtext('strong').strip()
+            details[name] = (used.text.strip(), unit.text.strip())
+        return details
+
+    def event_dicts(self):
+        """Information about each row in the billing history table.
+
+        Entries match the found in the HTML and have "date" and
+        "title" fields. If the event is a usage report, the key
+        "details" contains usage data. For example:
+
+        {date: "2012-10-13 15:36:05",
+         title: "Usage Report for 2012-10-13",
+         details: {"Frontend Instance Hours": ('<X,XXX.XX>', 'Hour'),
+                   "Backend Instance Hours": ('<X,XXX.XX>', 'Hour'),
+                   ...}}
+        """
+        events = []
+        # We're assuming that the table has alternating rows that
+        # containg (date, event title) possibly followed by (<empty>,
+        # event details).
+        selector = '#ae-billing-logs-table > tbody > tr'
+        for (date_elt, event_elt) in self.doc.cssselect(selector):
+            if date_elt.text is not None:
+                events.append({
+                    # <td>EVENT DATE</td>
+                    'date': date_elt.text.strip(),
+                    # <td><span id="...">EVENT TITLE</span></td>
+                    'title': event_elt.findtext('span').strip()
+                })
+            else:
+                # An empty first column indicates details for the
+                # preceeding event.
+                assert(len(events))
+                last_event = events[-1]
+                if last_event['title'].startswith('Usage Report '):
+                    last_event['details'] = self._usage_report_dict(event_elt)
+        return events
+
+
+class Instances(BaseParser):
+    """An API for the contents of /instances as structured data."""
 
     def version(self):
         """The app version that owns these instances."""
         selector = '#ae-appbar-version-id option[selected="selected"]'
-        # There shold be exactly one selected version.
-        (version_element, ) = self.select_css(selector)
+        # There should be exactly one selected version.
+        (version_element, ) = self.doc.cssselect(selector)
         return version_element.text.strip()
 
     def summary_dict(self):
@@ -39,7 +128,7 @@ class Instances(object):
         """
         selector = '#ae-instances-summary-table tbody tr'
         # The table should have exactly one row.
-        (row, ) = self.select_css(selector)
+        (row, ) = self.doc.cssselect(selector)
         children = list(row)
         # Expecting 'Total number of instances', 'Average QPS',
         # 'Average Latency', 'Average Memory'
@@ -70,7 +159,7 @@ class Instances(object):
         # TODO(chris): validate columns using column headers.
         details = []
         selector = '#ae-instances-details-table tbody tr'
-        for element in self.select_css(selector):
+        for element in self.doc.cssselect(selector):
             children = list(element)
             assert len(children) == 9
             details.append({
