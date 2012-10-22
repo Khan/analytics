@@ -52,15 +52,36 @@ export PYTHONPATH="${ROOT}:${PYTHONPATH}"   # for oauth_util/ directory
 # previous logs were generated, and we can tell that to appengine.
 prev_statusfile="$log_dir/`echo $hour_prev | tr T- //`-status.log"
 
+# Running fetch_logs.py serially for FEs and BEs takes longer than an
+# hour and this script is killed by a timeout in the crontab. So we want
+# to fetch FE and BE logs in parallel, but PIPESTATUS is only available
+# for the most recent foreground pipeline. We use a named pipe and
+# bash's "wait" to obtain the exit status of a background job.
+tmppipe="/tmp/`basename $0`-$$"
+mkfifo "$tmppipe"
+
 "$ROOT/fetch_logs.py" -s "$hour" -e "$hour_next" \
     --file_for_alternate_appengine_versions="$prev_statusfile" \
     2> "${outfile_prefix}-status.log" \
-    | gzip -c > "${outfile_prefix}.log.gz"
+    > "$tmppipe" &
+# Store the PID to later determine the exit-code of fetch_logs.
+pid_frontends=$!
+gzip -c < "$tmppipe" > "${outfile_prefix}.log.gz" &
 
 "$ROOT/fetch_logs.py" --backend -s "$hour" -e "$hour_next" \
     --file_for_alternate_appengine_versions="$prev_statusfile" \
     2> "${backend_outfile_prefix}-status.log" \
     | gzip -c > "${backend_outfile_prefix}.log.gz"
-
 # Use a bash-ism to return the exit-code of fetch_logs (not gzip).
-exit ${PIPESTATUS[0]}
+exit_code_backends=${PIPESTATUS[0]}
+
+wait $pid_frontends
+exit_code_frontends=$?
+
+wait  # wait to finish reading from $tmppipe in the background
+rm "$tmppipe"
+
+# TODO: don't conflate failure of FE and BE fetching. Until then, check
+# *-status.log for more info about which failed.
+[[ $exit_code_frontends == 0 ]] || exit $exit_code_frontends
+[[ $exit_code_backends  == 0 ]] || exit $exit_code_backends

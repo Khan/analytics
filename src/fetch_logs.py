@@ -207,8 +207,12 @@ def main():
             _read_versions(options.file_for_alternate_appengine_versions))
 
     if options.backend:
-        # there's no 'default' version for backends
-        appengine_versions.remove(None) 
+        try:
+            # if the 'default' version is in the list, it isn't valid
+            # for backends
+            appengine_versions.remove(None)
+        except ValueError:
+            pass
         appengine_versions = ["mapreducebackend-" + v 
                               for v in appengine_versions]
         
