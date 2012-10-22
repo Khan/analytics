@@ -33,7 +33,7 @@ import sys
 def _mongo_collection():
     """The pymongo.Collection to store reports in."""
     db = pymongo.Connection('107.21.23.204')
-    collection = db['reporting']['gae_dashboard_usage_reports']
+    collection = db['report']['gae_dashboard_usage_reports']
     return collection
 
 
