@@ -46,7 +46,8 @@ def video_title_summary(mongo, title, duration, start_dt, end_dt):
     return get_keyed_results(db_collection, {}, 'dt', criteria)
 
 
-def daily_request_log_url_stats(mongo, dt=None, url=None, fields=None, limit=100):
+def daily_request_log_url_stats(mongo, dt=None, url=None, fields=None,
+                                limit=100):
     """Fetch from the mongo collection daily_request_log_url_stats.
 
     Arguments:
@@ -86,6 +87,37 @@ def daily_request_log_urlroute_stats(mongo, dt, limit=100):
     """
     collection = mongo['report']['daily_request_log_urlroute_stats']
     return collection.find({'dt': dt}).limit(limit)
+
+
+def gae_usage_reports_for_resource(mongo, resource_name, limit=100):
+    """Fetch from the mongo collection gae_dashboard_usage_reports.
+
+    Arguments:
+      mongo: a pymongo connection
+      resource_name: the name of a resource from the App Engine usage
+        report, e.g., "Frontend Instance Hours", "Datastore Storage".
+      limit (optional): the maximum size of the result set. Default is 100.
+
+    Returns:
+      A generator of (dt, used, unit) tuples where dt is a date string like
+      'YYYY-MM-DD', used is a numeric amount quantity (float or int), and
+      unit is the App Engine unit such as "GByte-day".
+    """
+    collection = mongo['report']['gae_dashboard_usage_reports']
+    cursor = collection.find(sort=[('dt', -1)], limit=limit)
+    # Each document has the following structure, where usage entries
+    # match the data from the billing history CSV published by App Engine:
+    #
+    # {'dt': '2012-10-15',
+    #  'usage': [
+    #    {'name': 'Frontend Instance Hours', 'unit': 'Hour', 'used': XX.XX},
+    #    {'name', 'Datastore Storage', 'unit': 'GByte-day', 'used': YY.YY},
+    #    ... ]}
+    for doc in cursor:
+        for entry in doc['usage']:
+            if entry['name'] == resource_name:
+                yield doc['dt'], entry['used'], entry['unit']
+                break  # break out of the usage items iteration
 
 
 def get_keyed_results(db_collection, total_info, index_key, 

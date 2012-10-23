@@ -147,6 +147,47 @@ def collection_start_dates(collection_name):
     })
 
 
+_billing_resources = (
+    'Frontend Instance Hours', 'Discounted Instance Hour',
+    'Backend Instance Hours', 'Datastore Storage', 'Logs Storage',
+    'Taskqueue Storage', 'Blobstore Storage', 'Code and Static File Storage',
+    'Datastore Writes', 'Datastore Reads', 'Small Datastore Operations',
+    'Bandwidth Out', 'Emails', 'XMPP Stanzas', 'Opened Channels',
+    'Logs Read Bandwidth', 'PageSpeed Out Bandwidth', 'SSL VIPs',
+    'SSL SNI Certificates'
+)
+
+
+@app.route('/gae_stats/billing_history')
+@auth.login_required
+def gae_stats_billing_history():
+    """Display usage over time for billable App Engine resources."""
+    resource_name = flask.request.args.get('res', None)
+    if resource_name not in _billing_resources:
+        resource_name = _billing_resources[0]
+
+    results = list(data.gae_usage_reports_for_resource(db, resource_name))
+
+    if results:
+        _, _, resource_unit = results[0]
+    else:
+        resource_unit = ''
+
+    def result_iter():
+        for dt, used, _ in results:
+            # Convert 2012-10-11 to (2012, 9, 11) for use in the JavaScript
+            # Date constructor.
+            dt_parts = map(int, dt.split('-'))
+            dt_parts[1] = dt_parts[1] - 1
+            yield tuple(dt_parts), used
+
+    return flask.render_template('gae-stats/billing-history.html',
+                                 resource_name=resource_name,
+                                 resource_unit=resource_unit,
+                                 resources=_billing_resources,
+                                 data=result_iter())
+
+
 @app.route('/gae_stats/instances')
 @auth.login_required
 def gae_stats_instances():
