@@ -206,8 +206,10 @@ def gae_stats_instances():
                     except json.JSONError, e:
                         logging.warn('skipping file %s: %s' % (filepath, e))
                         continue
-                instance_counts.append((tuple(map(int, timestamp_tuple[0])),
-                                        len(report)))
+                # Convert to 0-indexed months for JavaScript Date constructor.
+                date_parts = map(int, timestamp_tuple[0])
+                date_parts[1] = date_parts[1] - 1
+                instance_counts.append((tuple(date_parts), len(report)))
     return flask.render_template('gae-stats/instances.html',
                                  instance_counts=instance_counts)
 
