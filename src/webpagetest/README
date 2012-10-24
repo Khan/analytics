@@ -1,0 +1,16 @@
+Scripts and tools for using http://www.webpagetest.org/
+
+www.webpagetest.org is a tool for measuring the performance of web
+pages.  In our case, we use a tool that downloads and renders KA web
+pages from various locations and using various browsers, and records
+information like time to first byte, time until page is rendered, time
+until onload handlers fire, etc.
+
+We downloaded the files in this directory from:
+   http://webpagetest.googlecode.com/svn/trunk/batchtool/wpt_batch.py
+   http://webpagetest.googlecode.com/svn/trunk/batchtool/wpt_batch_lib.py
+
+The list of webpagetest locations comes from:
+   http://www.webpagetest.org/getLocations.php
+
+The API key was given to us by pmeenan@webpagetest.org.
