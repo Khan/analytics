@@ -75,6 +75,60 @@ def explode(key_fields, explode_field):
             sys.stdout.write(output)
 
 
+def rank(key_field_index, rank_field_index, reverse=True, delimiter="\t"):
+    """This reducer takes lines of delimited values that must be already
+    sorted by the values in column <key_field_index>. It ranks within each
+    group by the values in column <rank_field_index>.  The output is the
+    original lines with an additional column for the numerical in-group
+    rank appended as the last column.  Note that the ranks start at 1 for the 
+    top value.
+    """
+    def process_group(lines):
+        lines.sort(key=lambda l: l[rank_field_index], reverse=reverse)
+        for i, vals in enumerate(lines, start=1):
+            vals.append(str(i))
+            sys.stdout.write("\t".join(vals) + "\n")
+
+    prev_key = None
+    group = []
+    for line in sys.stdin:
+        line = line.strip().split(delimiter)
+        
+        key = line[key_field_index]
+        if key != prev_key:
+            process_group(group)
+            group = []
+
+        group.append(line)
+        prev_key = key
+
+    process_group(group)
+
+
+def ip_to_country(ip_field_index, delimiter="\t"):
+    """This reducer takes lines of delimited values with an ip address string
+    in column <ip_field_index>.  It outputs the same lines while appending
+    a new column that contains the country code, or "NULL" if the country
+    can't be determined.
+
+    NOTE: the hive caller must ADD FILE for both pygeoip.py and the database.
+    """
+    sys.path.append(".")
+    import pygeoip
+    
+    geo_ip = pygeoip.Database('GeoIP.dat')
+
+    for line in sys.stdin:
+        line = line.strip().split(delimiter)
+        ip = line[ip_field_index]
+        try: 
+            country = geo_ip.lookup(ip).country or "NULL"
+        except:
+            country = "NULL"
+        line.append(country)
+        sys.stdout.write("\t".join(line) + "\n")
+
+
 def main():
     if len(sys.argv) <= 1:
         print >> sys.stderr, "Usage: ka_udf.py <func_name> <extra args>"
@@ -97,6 +151,23 @@ def main():
             print >> sys.stderr, explode_usage_str
             exit(1)
         explode(sys.argv[2], sys.argv[3])
+        exit(0)
+
+    if sys.argv[1] == "rank":
+        rank_usage_str = ("Usage: ka_udf.py rank " +
+                "<key_field_index> <rank_field_index> <ASC|DESC>")
+        if len(sys.argv) != 5:
+            print >> sys.stderr, rank_usage_str
+            exit(1)
+        rank(int(sys.argv[2]), int(sys.argv[3]), sys.argv[4] == "DESC")
+        exit(0)
+
+    if sys.argv[1] == "ip_to_country":
+        ip_usage_str = "Usage: ka_udf.py ip_to_country <ip_field_index>"
+        if len(sys.argv) != 3:
+            print >> sys.stderr, ip_usage_str
+            exit(1)
+        ip_to_country(int(sys.argv[2]))
         exit(0)
 
     #Unknown 
