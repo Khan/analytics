@@ -28,6 +28,7 @@ __author__ = 'zhaoq@google.com (Qi Zhao)'
 import logging
 import optparse
 import os
+import sys
 import time
 
 import wpt_batch_lib
@@ -70,8 +71,21 @@ def SaveTestResult(output_dir, url, test_id, content):
   output.close()
 
 
-def RunBatch(options):
-  """Run one-off batch processing of WebpageTest testing."""
+def RunBatch(options, verbose=False):
+  """Run one-off batch processing of WebpageTest testing.
+
+  Arguments:
+      options: taken from GetOptions().  However, you may munge them
+        manually to get the following special behavior not possible
+        from just calling this script from the commandline:
+      options.urlfile: if you set this to a list, it will be taken
+        as the list of urls, rather than a filename to read urls
+        from.
+      verbose: print diagnostics as the testing goes along.
+
+  Returns:
+    A map from url to webpagetest results (as a minidom DOM object).
+  """
 
   test_params = {'f': 'xml',
                  'private': 1,
@@ -98,9 +112,14 @@ def RunBatch(options):
   if options.key:
     test_params['k'] = options.key
 
-  requested_urls = wpt_batch_lib.ImportUrls(options.urlfile)
+  if isinstance(options.urlfile, list) or isinstance(options.urlfile, tuple):
+    requested_urls = options.urlfile
+  else:
+    requested_urls = wpt_batch_lib.ImportUrls(options.urlfile)
   id_url_dict = wpt_batch_lib.SubmitBatch(requested_urls, test_params,
                                           options.server)
+  if verbose:
+    print 'Submitted %s urls to be tested' % len(requested_urls)
 
   submitted_urls = set(id_url_dict.values())
   for url in requested_urls:
@@ -108,8 +127,9 @@ def RunBatch(options):
       logging.warn('URL submission failed: %s', url)
 
   pending_test_ids = id_url_dict.keys()
-  if not os.path.isdir(options.outputdir):
+  if options.outputdir and not os.path.isdir(options.outputdir):
     os.mkdir(options.outputdir)
+  retval = {}
   while pending_test_ids:
     # TODO(zhaoq): add an expiring mechanism so that if some tests are stuck
     # too long they will reported as permanent errors and while loop will be
@@ -138,13 +158,20 @@ def RunBatch(options):
         logging.warn('The XML failed to retrieve: %s', test_id)
 
     for test_id, dom in test_results.iteritems():
-      SaveTestResult(options.outputdir, id_url_dict[test_id], test_id,
-                     dom.toxml('utf-8'))
+      if verbose:
+        print 'Done with %s' % id_url_dict[test_id]
+      retval[id_url_dict[test_id]] = dom
+      if options.outputdir:
+        SaveTestResult(options.outputdir, id_url_dict[test_id], test_id,
+                       dom.toxml('utf-8'))
     if pending_test_ids:
       time.sleep(int(options.runs) * 10)
 
+  return retval
 
-def main():
+
+def GetOptions(argv=sys.argv[1:]):
+  """Read options from the commandline and return an options struct."""
   class PlainHelpFormatter(optparse.IndentedHelpFormatter):
     def format_description(self, description):
       if description:
@@ -164,7 +191,8 @@ def main():
   option_parser.add_option('-i', '--urlfile', action='store',
                            default='./urls.txt', help='input URL file')
   option_parser.add_option('-f', '--outputdir', action='store',
-                           default='./result', help='output directory')
+                           default='./result',
+                           help='output directory (blank to suppress output)')
 
   # Test parameter settings
   help_txt = 'set the connectivity to pre-defined type: '
@@ -199,8 +227,11 @@ def main():
                            help='video only saved for the median run')
 
   options, args = option_parser.parse_args()
+  return options
 
-  RunBatch(options)
+
+def main():
+  RunBatch(GetOptions())
 
 if __name__ == '__main__':
   main()
