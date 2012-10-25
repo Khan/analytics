@@ -101,7 +101,7 @@ def RunTests(browser_locations, urls_to_test, connectivity_types,
 
 def main(args=sys.argv[1:]):
     parser = optparse.OptionParser()
-    parser.add_option('-t', '--test', action='store_true', default=True, #!!
+    parser.add_option('-t', '--test', action='store_true', default=True,
                       help='If true, only fetch two urls (to save quota)')
     parser.add_option('-v', '--verbose', action='store_true', default=False,
                       help='If true, print status as we go along')
