@@ -71,22 +71,8 @@ def SaveTestResult(output_dir, url, test_id, content):
   output.close()
 
 
-def RunBatch(options, verbose=False):
-  """Run one-off batch processing of WebpageTest testing.
-
-  Arguments:
-      options: taken from GetOptions().  However, you may munge them
-        manually to get the following special behavior not possible
-        from just calling this script from the commandline:
-      options.urlfile: if you set this to a list, it will be taken
-        as the list of urls, rather than a filename to read urls
-        from.
-      verbose: print diagnostics as the testing goes along.
-
-  Returns:
-    A map from url to webpagetest results (as a minidom DOM object).
-  """
-
+def StartBatch(options, verbose=False):
+  """Set off some urls to be processed, and return the id-to-url map."""
   test_params = {'f': 'xml',
                  'private': 1,
                  'priority': 6,
@@ -120,15 +106,27 @@ def RunBatch(options, verbose=False):
                                           options.server)
   if verbose:
     print 'Submitted %s urls to be tested' % len(requested_urls)
+    sys.stdout.flush()
 
   submitted_urls = set(id_url_dict.values())
   for url in requested_urls:
     if url not in submitted_urls:
       logging.warn('URL submission failed: %s', url)
 
+  return id_url_dict
+
+
+def FinishBatch(id_url_dict, server, outputdir, verbose=False):
+  """Waits for the server to give results for queries from StartBatch.
+
+  The main reason to separate these out is that multiple calls to
+  StartBatch can be handled by a single call to FinishBatch (so the
+  work of multiple batches can be done in parallel).  For this to work,
+  though, all batches must uuse the same server and outputdir.
+  """
   pending_test_ids = id_url_dict.keys()
-  if options.outputdir and not os.path.isdir(options.outputdir):
-    os.mkdir(options.outputdir)
+  if outputdir and not os.path.isdir(outputdir):
+    os.mkdir(outputdir)
   retval = {}
   while pending_test_ids:
     # TODO(zhaoq): add an expiring mechanism so that if some tests are stuck
@@ -136,7 +134,7 @@ def RunBatch(options, verbose=False):
     # terminated.
 
     id_status_dict = wpt_batch_lib.CheckBatchStatus(pending_test_ids,
-                                                    server_url=options.server)
+                                                    server_url=server)
     completed_test_ids = []
     for test_id, test_status in id_status_dict.iteritems():
       # We could get 4 different status codes with different meanings as
@@ -151,7 +149,7 @@ def RunBatch(options, verbose=False):
         else:
           logging.warn('Tests failed with status $s: %s', test_status, test_id)
     test_results = wpt_batch_lib.GetXMLResult(completed_test_ids,
-                                              server_url=options.server)
+                                              server_url=server)
     result_test_ids = set(test_results.keys())
     for test_id in completed_test_ids:
       if test_id not in result_test_ids:
@@ -159,15 +157,35 @@ def RunBatch(options, verbose=False):
 
     for test_id, dom in test_results.iteritems():
       if verbose:
-        print 'Done with %s' % id_url_dict[test_id]
+        print 'Done with %s' % str(id_url_dict[test_id])
+        sys.stdout.flush()
       retval[id_url_dict[test_id]] = dom
-      if options.outputdir:
-        SaveTestResult(options.outputdir, id_url_dict[test_id], test_id,
+      if outputdir:
+        SaveTestResult(outputdir, id_url_dict[test_id], test_id,
                        dom.toxml('utf-8'))
     if pending_test_ids:
-      time.sleep(int(options.runs) * 10)
+      time.sleep(10)
 
   return retval
+
+
+def RunBatch(options, verbose=False):
+  """Run one-off batch processing of WebpageTest testing.
+
+  Arguments:
+      options: taken from GetOptions().  However, you may munge them
+        manually to get the following special behavior not possible
+        from just calling this script from the commandline:
+      options.urlfile: if you set this to a list, it will be taken
+        as the list of urls, rather than a filename to read urls
+        from.
+      verbose: print diagnostics as the testing goes along.
+
+  Returns:
+    A map from url to webpagetest results (as a minidom DOM object).
+  """
+  id_url_dict = StartBatch(options, verbose)
+  return FinishBatch(id_url_dict, options.server, options.outputdir, verbose)
 
 
 def GetOptions(argv=sys.argv[1:]):

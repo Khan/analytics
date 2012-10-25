@@ -7,6 +7,8 @@ number of locations, and then render it in a headless browser,
 reporting stats about the rendering time.
 """
 
+import sys
+
 import wpt_batch
 
 
@@ -75,7 +77,7 @@ def RunTests():
     wpt_options.runs = _NUM_RUNS_PER_URL
 
     # Map from (browser-location, connectivity_type, url) to result DOM
-    retval = {}
+    id_url_dict = {}    # data structure used to parallelize lookups.
     for browser_location in _BROWSER_LOCATIONS:
         for connectivity_type in _CONNECTIVITY_TYPES:
             wpt_options.location = browser_location
@@ -83,11 +85,16 @@ def RunTests():
 
             print ('---\nGetting results for %s (%s)'
                    % (browser_location, connectivity_type))
-            results = wpt_batch.RunBatch(wpt_options, verbose=True)
-            for (url, dom) in results.iteritems():
-                retval[(browser_location, connectivity_type, url)] = dom
+            sys.stdout.flush()
+            # The values of id_url_dict are just used for human
+            # readability.  wpt_batch has the value be a url, but for
+            # us a url-info tuple is more useful.
+            this_id_url_dict = wpt_batch.StartBatch(wpt_options, verbose=True)
+            for (id, url) in this_id_url_dict.iteritems():
+                id_url_dict[id] = (browser_location, connectivity_type, url)
 
-    return retval
+    return wpt_batch.FinishBatch(id_url_dict, wpt_options.server,
+                                 wpt_options.outputdir, verbose=True)
 
 
 def main():
