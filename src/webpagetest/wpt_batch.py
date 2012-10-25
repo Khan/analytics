@@ -244,7 +244,7 @@ def GetOptions(argv=sys.argv[1:]):
   option_parser.add_option('-m', '--mv', action='store', default=1,
                            help='video only saved for the median run')
 
-  options, args = option_parser.parse_args()
+  options, args = option_parser.parse_args(argv)
   return options
 
 
