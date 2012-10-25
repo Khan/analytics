@@ -7,6 +7,7 @@ number of locations, and then render it in a headless browser,
 reporting stats about the rendering time.
 """
 
+import optparse
 import sys
 
 import wpt_batch
@@ -66,20 +67,21 @@ def _ReadKey():
     return open('api_key').read().strip()
 
 
-def RunTests():
+def RunTests(browser_locations, urls_to_test, connectivity_types,
+             num_runs_per_url, test_repeat_view, verbose):
     """Get data as a DOM and return a map from url/etc to dom."""
     wpt_options = wpt_batch.GetOptions([])
     wpt_options.server = 'http://www.webpagetest.org/'
-    wpt_options.urlfile = _URLS_TO_TEST
+    wpt_options.urlfile = urls_to_test
     wpt_options.outputdir = None    # we will handle output ourselves
     wpt_options.key = _ReadKey()
-    wpt_options.fvonly = int(not _TEST_REPEAT_VIEW)
-    wpt_options.runs = _NUM_RUNS_PER_URL
+    wpt_options.fvonly = int(not test_repeat_view)
+    wpt_options.runs = num_runs_per_url
 
     # Map from (browser-location, connectivity_type, url) to result DOM
     id_url_dict = {}    # data structure used to parallelize lookups.
-    for browser_location in _BROWSER_LOCATIONS:
-        for connectivity_type in _CONNECTIVITY_TYPES:
+    for browser_location in browser_locations:
+        for connectivity_type in connectivity_types:
             wpt_options.location = browser_location
             wpt_options.connectivity = connectivity_type
 
@@ -89,17 +91,40 @@ def RunTests():
             # The values of id_url_dict are just used for human
             # readability.  wpt_batch has the value be a url, but for
             # us a url-info tuple is more useful.
-            this_id_url_dict = wpt_batch.StartBatch(wpt_options, verbose=True)
+            this_id_url_dict = wpt_batch.StartBatch(wpt_options, verbose)
             for (id, url) in this_id_url_dict.iteritems():
                 id_url_dict[id] = (browser_location, connectivity_type, url)
 
     return wpt_batch.FinishBatch(id_url_dict, wpt_options.server,
-                                 wpt_options.outputdir, verbose=True)
+                                 wpt_options.outputdir, verbose)
 
 
-def main():
+def main(args=sys.argv[1:]):
+    parser = optparse.OptionParser()
+    parser.add_option('-t', '--test', action='store_true', default=True, #!!
+                      help='If true, only fetch two urls (to save quota)')
+    parser.add_option('-v', '--verbose', action='store_true', default=False,
+                      help='If true, print status as we go along')
+    options, commandline_args = parser.parse_args(args)
+    if commandline_args:
+        raise KeyError('No commandline arguments expected, only flags')
+
+    if options.test:
+        browser_locations = _BROWSER_LOCATIONS[:2]
+        urls_to_test = _URLS_TO_TEST[:1]
+        connectivity_types = _CONNECTIVITY_TYPES[:1]
+        num_runs_per_url = 1
+        test_repeat_view = False
+    else:
+        browser_locations = _BROWSER_LOCATIONS
+        urls_to_test = _URLS_TO_TEST
+        connectivity_types = _CONNECTIVITY_TYPES
+        num_runs_per_url = _NUM_RUNS_PER_URL
+        test_repeat_view = _TEST_REPEAT_VIEW
+
     _VerifyNumberOfTestsDoesNotExceedThreshold()
-    results = RunTests()
+    results = RunTests(browser_locations, urls_to_test, connectivity_types,
+                       num_runs_per_url, test_repeat_view, options.verbose)
     for k, v in results.iteritems():
         print '%s\n%s\n' % (k, v.toxml('utf-8'))
 
