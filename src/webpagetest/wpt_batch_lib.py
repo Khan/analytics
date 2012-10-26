@@ -13,6 +13,7 @@ A sample usage of this library can be found in wpt_batch.py.
 
 __author__ = 'zhaoq@google.com (Qi Zhao)'
 
+import logging
 import urllib
 from xml.dom import minidom
 
@@ -78,6 +79,14 @@ def SubmitBatch(url_list, test_params,
                 test_id = (dom.getElementsByTagName('testId')[0]
                            .firstChild.wholeText)
                 id_url_dict[test_id] = url
+            else:
+                why_node = dom.getElementsByTagName('statusText')[0]
+                logging.error('URL submission failed for %s: %s'
+                              % (request, why_node.firstChild.wholeText))
+        else:
+            logging.error('URL submission returned %s for %s'
+                          % (return_code, request))
+
     return id_url_dict
 
 

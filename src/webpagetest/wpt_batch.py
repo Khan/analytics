@@ -110,11 +110,6 @@ def StartBatch(options, verbose=False):
         print 'Submitted %s urls to be tested' % len(requested_urls)
         sys.stdout.flush()
 
-    submitted_urls = set(id_url_dict.values())
-    for url in requested_urls:
-        if url not in submitted_urls:
-            logging.warn('URL submission failed: %s', url)
-
     return id_url_dict
 
 
