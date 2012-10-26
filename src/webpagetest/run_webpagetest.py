@@ -7,8 +7,10 @@ number of locations, and then render it in a headless browser,
 reporting stats about the rendering time.
 """
 
+import csv
 import optparse
 import sys
+import urllib2
 
 import wpt_batch
 
@@ -96,7 +98,62 @@ def RunTests(browser_locations, urls_to_test, connectivity_types,
                 id_url_dict[id] = (browser_location, connectivity_type, url)
 
     return wpt_batch.FinishBatch(id_url_dict, wpt_options.server,
-                                 wpt_options.outputdir, verbose)
+                                 wpt_options.outputdir, csv_output=True,
+                                 verbose=verbose)
+
+
+def AddToMongoDB(browser_location, connectivity_type, url,
+                 test_id, dict_output):
+    """Take information about one webpagetest result and save it to the db.
+
+    dict_output holds the information that webpagetest gives back in its
+    csv output, converted to a dict.  We take that information, add in
+    other information we have (browser location, etc), and yet other
+    information we fetch from the web (.har file), and put that all
+    in a dict we pass to mongo_db.
+    """
+    mongo_dict = {'Browser Location': browser_location,
+                  'Connectivity Type': connectivity_type,
+                  }
+    # The string elements from dict_output.
+    for k in ('Browser Version', 'Date', 'Time', 'URL'):
+        mongo_dict[k] = dict_output[k]
+
+    # The int elements from dict_output.
+    for k in ('Activity Time(ms)',
+              'Bytes In (Doc)',
+              'Bytes In',
+              'Bytes Out (Doc)',
+              'Bytes Out',
+              'Cached',
+              'Connections (Doc)',
+              'Connections',
+              'DNS Lookups (Doc)',
+              'DNS Lookups',
+              'DOM Content Ready End',
+              'DOM Content Ready Start',
+              'Doc Complete Time (ms)',
+              'Load Event End',
+              'Load Event Start',
+              'Load Time (ms)',
+              'Requests (Doc)',
+              'Requests',
+              'Run'
+              'Time to Base Page Complete (ms)',
+              'Time to DOM Element (ms)',
+              'Time to First Byte (ms)',
+              'Time to Start Render (ms)',
+              'Time to Title',
+              'Visually Complete (ms)'):
+        mongo_dict[k] = int(dict_output[k])
+
+    # Donwload the har file.
+    har_url = ('http://www.webpagetest.org/export.php?test=%s&run=%s&cached=%s'
+               % (test_id, mongo_dict['Run'], mongo_dict['Cached']))
+    har_contents = urllib2.urlopen(har_url).read()
+    mongo_dict['HAR File'] = har_contents
+    # TODO(csilvers): actually import this data into mongo instead.
+    print mongo_dict
 
 
 def main(args=sys.argv[1:]):
@@ -123,10 +180,16 @@ def main(args=sys.argv[1:]):
         test_repeat_view = _TEST_REPEAT_VIEW
 
     _VerifyNumberOfTestsDoesNotExceedThreshold()
+
     results = RunTests(browser_locations, urls_to_test, connectivity_types,
                        num_runs_per_url, test_repeat_view, options.verbose)
-    for k, v in results.iteritems():
-        print '%s\n%s\n' % (k, v.toxml('utf-8'))
+
+    for ((browser_location, connectivity_type, url), 
+         (test_id, csv_output)) in results.iteritems():
+        reader = csv.DictReader(csv_output)
+        for dict_output in reader:
+            AddToMongoDB(browser_location, connectivity_type, url,
+                         test_id, dict_output)
 
 
 if __name__ == '__main__':

@@ -52,20 +52,22 @@ def BuildFileName(url):
     return filename
 
 
-def SaveTestResult(output_dir, url, test_id, content):
+def SaveTestResult(output_dir, url, test_id, extension, content):
     """Save the result of a test into a file on disk.
 
     Args:
       output_dir: the directory to save the result
       url: the associated URL
       test_id: the ID of the test
+      extension: 'csv' or 'xml'
       content: the string of test result
 
     Returns:
       None
     """
-    filename = BuildFileName(url)
-    filename = '%s/%s.%s.xml' % (output_dir.rstrip('/'), filename, test_id)
+    basename = BuildFileName(url)
+    filename = os.path.join(output_dir,
+                            '%s.%s.%s' % (basename, test_id, extension))
     output = open(filename, 'wb')
     output.write(content)
     output.close()
@@ -116,13 +118,13 @@ def StartBatch(options, verbose=False):
     return id_url_dict
 
 
-def FinishBatch(id_url_dict, server, outputdir, verbose=False):
+def FinishBatch(id_url_dict, server, outputdir, csv_output, verbose=False):
     """Waits for the server to give results for queries from StartBatch.
 
     The main reason to separate these out is that multiple calls to
     StartBatch can be handled by a single call to FinishBatch (so the
     work of multiple batches can be done in parallel).  For this to work,
-    though, all batches must uuse the same server and outputdir.
+    though, all batches must use the same server and outputdir.
     """
     pending_test_ids = id_url_dict.keys()
     if outputdir and not os.path.isdir(outputdir):
@@ -149,21 +151,29 @@ def FinishBatch(id_url_dict, server, outputdir, verbose=False):
                 else:
                     logging.warn('Tests failed with status $s: %s',
                                  test_status, test_id)
-        test_results = wpt_batch_lib.GetXMLResult(completed_test_ids,
-                                                  server_url=server)
+
+        if csv_output:
+            test_results = wpt_batch_lib.GetCSVResult(completed_test_ids,
+                                                      server_url=server)
+        else:
+            test_results = wpt_batch_lib.GetXMLResult(completed_test_ids,
+                                                      server_url=server)
         result_test_ids = set(test_results.keys())
         for test_id in completed_test_ids:
             if test_id not in result_test_ids:
-                logging.warn('The XML failed to retrieve: %s', test_id)
+                logging.warn('The results failed to retrieve: %s', test_id)
 
-        for test_id, dom in test_results.iteritems():
+        for test_id, result in test_results.iteritems():
             if verbose:
                 print 'Done with %s' % str(id_url_dict[test_id])
                 sys.stdout.flush()
-            retval[id_url_dict[test_id]] = dom
-            if outputdir:
-                SaveTestResult(outputdir, id_url_dict[test_id], test_id,
-                               dom.toxml('utf-8'))
+            retval[id_url_dict[test_id]] = (test_id, result)
+            if outputdir and csv_output:
+                SaveTestResult(outputdir, id_url_dict[test_id], test_id, 'csv',
+                               '\n'.join(result) + '\n')
+            elif outputdir:
+                SaveTestResult(outputdir, id_url_dict[test_id], test_id, 'xml',
+                               result.toxml('utf-8'))
         if pending_test_ids:
             time.sleep(10)
 
@@ -186,7 +196,8 @@ def RunBatch(options, verbose=False):
       A map from url to webpagetest results (as a minidom DOM object).
     """
     id_url_dict = StartBatch(options, verbose)
-    return FinishBatch(id_url_dict, options.server, options.outputdir, verbose)
+    return FinishBatch(id_url_dict, options.server, options.outputdir,
+                       options.csv, verbose)
 
 
 def GetOptions(argv=sys.argv[1:]):
@@ -244,6 +255,8 @@ def GetOptions(argv=sys.argv[1:]):
                              default='Test', help='test location')
     option_parser.add_option('-m', '--mv', action='store', default=1,
                              help='video only saved for the median run')
+    option_parser.add_option('--csv', action='store_true',
+                             help='store the data as csv files, not xml')
 
     options, args = option_parser.parse_args(argv)
     return options

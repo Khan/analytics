@@ -126,3 +126,26 @@ def GetXMLResult(test_ids, server_url='http://www.webpagetest.org/',
             dom = minidom.parseString(response.read())
             id_dom_dict[test_id] = dom
     return id_dom_dict
+
+
+def GetCSVResult(test_ids, server_url='http://www.webpagetest.org/',
+                 urlopen=urllib.urlopen):
+    """Obtain the test result in CSV format (returned as a list of lines).
+
+    Args:
+      test_ids: the list of interested test ids
+      server_url: the URL of WebPageTest server
+      urlopen: the callable to be used to load the request
+
+    Returns:
+      A dictionary where the key is test id and the value is a list of
+      strings, each a CSV line.  The first element of the list is the
+      CSV header.
+    """
+    id_csv_dict = {}
+    for test_id in test_ids:
+        request = server_url + 'result/' + test_id + '/page_data.csv'
+        response = __LoadEntity(request, urlopen)
+        if response.getcode() == 200:
+            id_csv_dict[test_id] = response.read().splitlines()
+    return id_csv_dict
