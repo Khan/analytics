@@ -23,7 +23,7 @@ import wpt_batch
 
 _BROWSER_LOCATIONS = (
     'Dulles_IE8',
-    'Dulles_IE10',
+    'Dulles_IE9',
     'Dulles:Chrome',
     'Dulles:Firefox',
     'SanJose_IE9',
