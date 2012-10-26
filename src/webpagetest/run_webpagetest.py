@@ -9,8 +9,11 @@ reporting stats about the rendering time.
 
 import csv
 import optparse
+import os
 import sys
 import urllib2
+
+import pymongo
 
 import wpt_batch
 
@@ -66,7 +69,11 @@ def _VerifyNumberOfTestsDoesNotExceedThreshold():
 
 def _ReadKey():
     """Read the API key from the local filesystem, and return it."""
-    return open('api_key').read().strip()
+    try:
+        return open('api_key').read().strip()
+    except IOError:
+        sys.exit('Need to put the webpagetest API key in %s'
+                 % os.path.join(os.getcwd(), 'api_key'))
 
 
 def RunTests(browser_locations, urls_to_test, connectivity_types,
@@ -102,15 +109,15 @@ def RunTests(browser_locations, urls_to_test, connectivity_types,
                                  verbose=verbose)
 
 
-def AddToMongoDB(browser_location, connectivity_type, url,
-                 test_id, dict_output):
-    """Take information about one webpagetest result and save it to the db.
+def ConvertToDict(browser_location, connectivity_type, url,
+                  test_id, dict_output):
+    """Take information about one webpagetest result and stores it in a dict.
 
     dict_output holds the information that webpagetest gives back in its
     csv output, converted to a dict.  We take that information, add in
     other information we have (browser location, etc), and yet other
-    information we fetch from the web (.har file), and put that all
-    in a dict we pass to mongo_db.
+    information we fetch from the web (.har file).  We return this dict,
+    which is in a format suitable to being passed to mongo_db.
     """
     mongo_dict = {'Browser Location': browser_location,
                   'Connectivity Type': connectivity_type,
@@ -138,7 +145,7 @@ def AddToMongoDB(browser_location, connectivity_type, url,
               'Load Time (ms)',
               'Requests (Doc)',
               'Requests',
-              'Run'
+              'Run',
               'Time to Base Page Complete (ms)',
               'Time to DOM Element (ms)',
               'Time to First Byte (ms)',
@@ -152,8 +159,15 @@ def AddToMongoDB(browser_location, connectivity_type, url,
                % (test_id, mongo_dict['Run'], mongo_dict['Cached']))
     har_contents = urllib2.urlopen(har_url).read()
     mongo_dict['HAR File'] = har_contents
-    # TODO(csilvers): actually import this data into mongo instead.
-    print mongo_dict
+
+    return mongo_dict
+
+
+def SaveToMongo(mongo_dicts):
+    """Save a series of dicts holding webpagetest data, to mongo."""
+    db = pymongo.Connection('107.21.23.204')
+    mongo_collection = db['report']['webpagetest_reports']
+    mongo_collection.insert(mongo_dicts, safe=True)
 
 
 def main(args=sys.argv[1:]):
@@ -184,12 +198,17 @@ def main(args=sys.argv[1:]):
     results = RunTests(browser_locations, urls_to_test, connectivity_types,
                        num_runs_per_url, test_repeat_view, options.verbose)
 
+    mongo_dicts = []
     for ((browser_location, connectivity_type, url), 
          (test_id, csv_output)) in results.iteritems():
         reader = csv.DictReader(csv_output)
         for dict_output in reader:
-            AddToMongoDB(browser_location, connectivity_type, url,
-                         test_id, dict_output)
+            mongo_dict = ConvertToDict(browser_location, connectivity_type,
+                                       url, test_id, dict_output)
+            mongo_dicts.append(mongo_dict)
+
+    SaveToMongo(mongo_dicts)
+    print 'DONE.  Saved %s dicts to mongo' % len(mongo_dicts)
 
 
 if __name__ == '__main__':
