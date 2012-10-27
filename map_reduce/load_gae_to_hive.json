@@ -85,6 +85,23 @@
 
 
 {
+    "Name": "Loading <dt> ScratchpadRevision into EMR",
+    "ActionOnFailure": "CONTINUE",
+    "HadoopJarStep": {
+      "Jar": "/home/hadoop/contrib/streaming/hadoop-streaming.jar",
+      "Args": [
+         "-D", "mapred.output.compress=true",
+         "-input",    "s3n://ka-mapreduce/rawdata/<dt>/ScratchpadRevision/*.json.gz",
+         "-output",   "s3n://ka-mapreduce/entity_store/ScratchpadRevision/dt=<dt>/",
+         "-mapper",   "/bin/cat",
+         "-reducer",  "/bin/cat",
+         "-numReduceTasks", "16"
+      ]
+    }
+},
+
+
+{
     "Name": "Loading <dt> Exercise into EMR",
     "ActionOnFailure": "CONTINUE",
     "HadoopJarStep": {

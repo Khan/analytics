@@ -78,6 +78,14 @@ CREATE EXTERNAL TABLE IF NOT EXISTS VideoLog (
   LOCATION '${INPATH}/VideoLog';
 ALTER TABLE VideoLog RECOVER PARTITIONS;
 
+CREATE EXTERNAL TABLE IF NOT EXISTS ScratchpadRevision (
+    key STRING, json STRING
+  )
+  PARTITIONED BY (dt STRING)
+  ROW FORMAT DELIMITED FIELDS TERMINATED BY '\t'
+  LOCATION '${INPATH}/ScratchpadRevision';
+ALTER TABLE ScratchpadRevision RECOVER PARTITIONS;
+
 --------------------------------------------------------------------------------
 -- Incrementally fetched entities
 
@@ -190,6 +198,27 @@ CREATE VIEW FeedbackSample
 AS SELECT * FROM FeedbackP
 TABLESAMPLE(BUCKET 1 OUT OF 16 ON key)
 WHERE dt = '${userdata_partition}';
+
+-- Scratchpads...
+CREATE EXTERNAL TABLE IF NOT EXISTS ScratchpadIncr (key string, json string)
+COMMENT 'Daily incremental Scratchpad updates'
+PARTITIONED BY (dt string)
+ROW FORMAT DELIMITED FIELDS TERMINATED BY '\t'
+LOCATION 's3://ka-mapreduce/entity_store_incr/Scratchpad';
+ALTER TABLE ScratchpadIncr RECOVER PARTITIONS;
+
+CREATE EXTERNAL TABLE IF NOT EXISTS ScratchpadP (key string, json string)
+COMMENT 'Scratchpad snapshots (created from multiple ScratchpadIncr partitions)'
+PARTITIONED BY (dt string)
+LOCATION '${INPATH}/ScratchpadP';
+ALTER TABLE ScratchpadP RECOVER PARTITIONS;
+
+DROP TABLE IF EXISTS Scratchpad;
+DROP VIEW IF EXISTS Scratchpad;
+CREATE VIEW Scratchpad
+AS SELECT * FROM ScratchpadP
+WHERE dt = '${userdata_partition}';
+
 
 --------------------------------------------------------------------------------
 -- Summary Tables

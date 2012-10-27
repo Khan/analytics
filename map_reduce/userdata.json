@@ -30,14 +30,29 @@
    }
 },
 {
-    "Name": "Loading <dt> Feedback into EMR",
+    "Name": "Loading <end_dt> Incr Scratchpad into EMR",
     "ActionOnFailure": "CONTINUE",
     "HadoopJarStep": {
       "Jar": "/home/hadoop/contrib/streaming/hadoop-streaming.jar",
       "Args": [
          "-D", "mapred.output.compress=true",
-         "-input",    "s3n://ka-mapreduce/rawdata/<dt>/Feedback/*.json.gz",
-         "-output",   "s3n://ka-mapreduce/entity_store_incr/Feedback/dt=<dt>/",
+         "-input",    "s3n://ka-mapreduce/rawdata/<end_dt>/Scratchpad/*.json.gz",
+         "-output",   "s3n://ka-mapreduce/entity_store_incr/Scratchpad/dt=<end_dt>/",
+         "-mapper",   "/bin/cat",
+         "-reducer",  "/bin/cat",
+         "-numReduceTasks", "16"
+      ]
+   }
+},
+{
+    "Name": "Loading <end_dt> Feedback into EMR",
+    "ActionOnFailure": "CONTINUE",
+    "HadoopJarStep": {
+      "Jar": "/home/hadoop/contrib/streaming/hadoop-streaming.jar",
+      "Args": [
+         "-D", "mapred.output.compress=true",
+         "-input",    "s3n://ka-mapreduce/rawdata/<end_dt>/Feedback/*.json.gz",
+         "-output",   "s3n://ka-mapreduce/entity_store_incr/Feedback/dt=<end_dt>/",
          "-mapper",   "/bin/cat",
          "-reducer",  "/bin/cat",
          "-numReduceTasks", "16"

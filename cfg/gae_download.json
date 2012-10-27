@@ -17,6 +17,8 @@
             "Feedback": [1800, 1800, 1, 1, "key"],
             "TopicVersion": [1800, 1800, 1, 0, "key"],
             "_GAEBingoIdentityRecord": [600, 150, 1, 0, "identity"],
+            "Scratchpad": [1800, 100, 1, 0, "key"],
+            "ScratchpadRevision": [1800, 100, 0, 0, "key"],
 
             # The following are also duplicated in the bulk download process.
             # We include them here for posterity; if one is interested in the

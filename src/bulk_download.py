@@ -137,7 +137,7 @@ def jsonify_downloaded_file(kind, config):
     cursor.execute(sqlstring)
     f = open(json_filename, 'wb')
     for unused_entity_id, pb in cursor:
-        doc = load_pbufs_to_hive.pb_to_dict(pb)
+        doc = load_pbufs_to_hive.pb_to_dict(pb, parent=True)
         json_str = json.dumps(doc)
         print >>f, "%s\t%s" % (doc['key'], json_str)
     f.close()

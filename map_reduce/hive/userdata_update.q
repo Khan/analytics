@@ -75,6 +75,20 @@ AS key, json;
 
 FROM (
   FROM (
+    SELECT key, json FROM ScratchpadP
+    WHERE dt = '${start_dt}'
+    UNION ALL
+    SELECT key, json FROM ScratchpadIncr
+    WHERE dt > '${start_dt}' AND dt <= '${end_dt}'
+  ) map_out
+  SELECT key, json CLUSTER BY key
+)  red_out
+INSERT OVERWRITE TABLE ScratchpadP PARTITION(dt='${end_dt}')
+SELECT TRANSFORM(json) USING 'find_latest_record.py'
+AS key, json;
+
+FROM (
+  FROM (
     SELECT key, json FROM FeedbackP
     WHERE dt = '${start_dt}'
     UNION ALL

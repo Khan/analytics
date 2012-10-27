@@ -30,6 +30,11 @@ from google.appengine.api import users
 from google.appengine.datastore import entity_pb
 
 
+_serialize_blacklists = {
+        "Scratchpad": ['latest_revision_cache'],
+        "ScratchpadRevision": ['image_url']}
+
+
 def get_cmd_line_args():
     parser = optparse.OptionParser(
             usage="%prog [options]",
@@ -101,6 +106,11 @@ def pre_process_entity_dict(kind, document):
         # the massaged BingoIdentityCache (now a dict) back to the property
         # so it can be serialized back to a JSON in Hive.
         document["pickled"] = deserialized.__dict__
+
+    if kind in _serialize_blacklists:
+        for prop in _serialize_blacklists[kind]:
+            if prop in document:
+                del document[prop]
 
 
 def main():
