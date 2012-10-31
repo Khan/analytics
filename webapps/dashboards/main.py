@@ -218,9 +218,19 @@ def gae_stats_instances():
 @auth.login_required
 def gae_stats_daily_request_log_url_stats():
     """This dashboard shows stats for the most accessed URLs."""
-    results = data.daily_request_log_url_stats(db, dt=yesterday_utc_as_dt())
-    return flask.render_template('gae-stats/daily-request-log-url-stats.html',
-                                 collection_rows=results)
+    # Some days the data isn't generated properly, and some days
+    # it takes a while for yesterday's report to be generated.  So
+    # we try going back a few days.  When we go back far enough, we
+    # say so in the date.
+    for days_ago in xrange(1, 8):
+        dt_string = utc_as_dt(days_ago)
+        results = data.daily_request_log_url_stats(db, dt=dt_string)
+        if results.count():
+            return flask.render_template(
+                'gae-stats/daily-request-log-url-stats.html',
+                collection_rows=results,
+                date=dt_string, days_ago=days_ago)
+    return 'No data in the db for the last %s days' % days_ago
 
 
 @app.route('/gae_stats/daily_request_log_urlroute_stats')
@@ -229,19 +239,27 @@ def gae_stats_daily_request_log_urlroute_stats():
     """This dashboard shows stats for the most accessed URLs, grouped by the
     route patterns that they match for handlers on the website.
     """
-    results = data.daily_request_log_urlroute_stats(db, yesterday_utc_as_dt())
-
     def result_iter():
         # Set 'url' so that we can reuse the same template as
-        # daily_request_log_url_stats.  This is done one-by-one in a generator
-        # and not by iterating over the results here in order to avoid
-        # exhausting the "results" cursor.
+        # daily_request_log_url_stats.  This is done one-by-one in a
+        # generator and not by iterating over the results here in
+        # order to avoid exhausting the "results" cursor.
         for row in results:
             row['url'] = row['url_route']
             yield row
 
-    return flask.render_template('gae-stats/daily-request-log-url-stats.html',
-                                 collection_rows=result_iter())
+    # Some days the data isn't generated properly, and some days
+    # it takes a while for yesterday's report to be generated.  So
+    # we try going back a few days.  When we go back far enough, we
+    # say so in the date.
+    for days_ago in xrange(1, 8):
+        dt_string = utc_as_dt(days_ago)
+        results = data.daily_request_log_urlroute_stats(db, dt=dt_string)
+        if results.count():
+            return flask.render_template(
+                'gae-stats/daily-request-log-url-stats.html',
+                collection_rows=result_iter(),
+                date=dt_string, days_ago=days_ago)
 
 
 @app.route('/gae_stats/url_stats')
@@ -249,25 +267,39 @@ def gae_stats_daily_request_log_urlroute_stats():
 def gae_stats_url_stats():
     """This dashboard shows stats over time for a given URL."""
     url = flask.request.args.get('url', '/')
-
     url_stats = data.daily_request_log_url_stats(db, url=url)
-    urls = data.daily_request_log_url_stats(db, dt=yesterday_utc_as_dt(),
-                                            fields=['url'])
 
-    urls = [u['url'] for u in urls]
+    # Get a list of all the urls.  Some days this data isn't generated
+    # properly, and some days it takes a while for yesterday's report
+    # to be generated, so we just go back in time until we get a list
+    # of urls; hopefully it's *fairly* up-to-date, at least.
+    for days_ago in xrange(1, 8):
+        dt_string = utc_as_dt(days_ago)
+        urls = data.daily_request_log_url_stats(db, dt=dt_string,
+                                                fields=['url'])
+        urls = [u['url'] for u in urls]
+        if urls:
+            break
+    else:
+        urls = [url, '(Could not fetch full list of urls)']
+
     return flask.render_template('gae-stats/url-stats.html',
                                  current_url=url, urls=urls,
                                  url_stats=url_stats)
 
 
-def yesterday_utc_as_dt():
-    """Yesterday's UTC date as a string dt for use in a mongo query.
+def utc_as_dt(days_ago=0):
+    """Today's UTC date as a string dt for use in a mongo query.
 
     The 'dt' field stored in mongo on the analytics machine is in the format
     'YYY-MM-DD', and its clock is on UTC time.
+
+    Arguments:
+      days_ago: how many days ago to look at.  The default is today.
+         Many callers will want yesterday (days_ago=1).
     """
-    yesterday = datetime.datetime.utcnow() - datetime.timedelta(1)
-    return yesterday.strftime('%Y-%m-%d')
+    dt = datetime.datetime.utcnow() - datetime.timedelta(days_ago)
+    return dt.strftime('%Y-%m-%d')
 
 
 def main():
