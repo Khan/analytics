@@ -152,7 +152,7 @@ def ConvertToDict(browser_location, connectivity_type, url,
               'Time to Start Render (ms)',
               'Time to Title',
               'Visually Complete (ms)'):
-        mongo_dict[k] = int(dict_output[k])
+        mongo_dict[k] = int(dict_output[k] or '0')
 
     # Donwload the har file.
     har_url = ('http://www.webpagetest.org/export.php?test=%s&run=%s&cached=%s'
