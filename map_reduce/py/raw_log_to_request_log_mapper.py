@@ -18,6 +18,9 @@ A user-facing request:
 
 91.174.232.10 - chris [24/Jul/2012:17:00:09 -0700] "GET /assets/images/thumbnails/Rothko-13.jpg HTTP/1.1" 200 572 "http://smarthistory.khanacademy.org/" "Mozilla/5.0" "smarthistory.khanacademy.org" ms=65 cpu_ms=35 cpm_usd=0.000001 pending_ms=0 instance=00c61b117c5f1f26699563074cdd44e841096e
 
+A homagepage request, with no referer:
+68.202.49.17 - - [29/Oct/2012:17:00:09 -0700] "GET / HTTP/1.1" 200 11377 - "Mozilla/5.0 (Windows NT 6.0; WOW64) AppleWebKit/537.4 (KHTML, like Gecko) Chrome/22.0.1229.94 Safari/537.4" "www.khanacademy.org" ms=200 cpu_ms=103 cpm_usd=0.000001 pending_ms=0 instance=00c61b117c4811eae292cd1ee62739468526
+
 A task queue request, initiated by App Engine:
 
 0.1.0.2 - - [31/Jul/2012:17:00:09 -0700] "POST /_ah/queue/deferred_problemlog HTTP/1.1" 200 84 "http://www.khanacademy.org/api/v1/user/exercises/converting_between_point_slope_and_slope_intercept/problems/1/attempt" "AppEngine-Google; (+http://code.google.com/appengine)" "www.khanacademy.org" ms=88 cpu_ms=300 cpm_usd=0.000007 queue_name=problem-log-queue task_name=10459794276075119660 pending_ms=0 instance=00c61b117cca420ac067602b717789e7aec8ca
@@ -80,7 +83,7 @@ _LOG_MATCHER = re.compile(r"""
      (?P<protocol>[^"]+)"\s
     (?P<status>\S+)\s
     (?P<bytes>\S+)\s
-    "(?P<referer>[^"\\]*(?:\\.[^"\\]*)*)"\s
+    (?:"(?P<referer>[^"\\]*(?:\\.[^"\\]*)*)"|-)\s
     "(?P<user_agent>[^"\\]*(?:\\.[^"\\]*)*)"\s
 
     # Apache combined log format is above, custom fields are below.
