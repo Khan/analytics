@@ -121,9 +121,10 @@ def ConvertToDict(browser_location, connectivity_type, url,
     """
     mongo_dict = {'Browser Location': browser_location,
                   'Connectivity Type': connectivity_type,
+                  'URL': url,
                   }
     # The string elements from dict_output.
-    for k in ('Browser Version', 'Date', 'Time', 'URL'):
+    for k in ('Browser Version', 'Date', 'Time'):
         mongo_dict[k] = dict_output[k]
 
     # The int elements from dict_output.
