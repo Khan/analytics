@@ -14,11 +14,12 @@ SELECT
   parsed.user, parsed.vid_key, COUNT(1), SUM(parsed.q), SUM(parsed.a)
 FROM (
   SELECT
-    get_json_object(FeedbackIncr.json, '$.author') AS user,
-    get_json_object(FeedbackIncr.json, '$.targets[0]') AS vid_key,
-    IF(get_json_object(FeedbackIncr.json, '$.types[0]') = "question", 1, 0) AS q,
-    IF(get_json_object(FeedbackIncr.json, '$.types[0]') = "answer", 1, 0) AS a
-  FROM FeedbackIncr
-  WHERE FeedbackIncr.dt = '${dt}'
+    get_json_object(Feedback.json, '$.author') AS user,
+    get_json_object(Feedback.json, '$.targets[0]') AS vid_key,
+    IF(get_json_object(Feedback.json, '$.types[0]') = "question", 1, 0) AS q,
+    IF(get_json_object(Feedback.json, '$.types[0]') = "answer", 1, 0) AS a
+  FROM Feedback
+  WHERE 
+    SUBSTR(FROM_UNIXTIME(FLOOR(get_json_object(Feedback.json, '$.date'))), 1, 10) = '${dt}'
 ) parsed
 GROUP BY parsed.user, parsed.vid_key;
