@@ -1,27 +1,37 @@
 {
   "name": "Daily report generation for <day>",
   "wait_for": [ 
-    { "table_name": "user_video_summary",
-      "partitions": [ "dt=<day>" ]
-    },
-    { "table_name": "user_exercise_summary",
-      "partitions": [ "dt=<day>" ]
-    },
-    { "table_name": "user_feedback_summary",
-      "partitions": [ "dt=<day>" ]
-    },
     { "table_name": "website_request_logs",
+      "partitions": [ "dt=<day>" ]
+    },
+    { "table_name": "FeedbackP",
+      "partitions": [ "dt=<day>" ]
+    },
+    { "table_name": "ScratchpadRevision",
       "partitions": [ "dt=<day>" ]
     }
   ],
   "steps": [
+
+    { "hive_script": "s3://ka-mapreduce/code/hive/user_video_summary.q",
+      "hive_args": {"dt": "<day>"}
+    },
+    { "hive_script": "s3://ka-mapreduce/code/hive/user_exercise_summary.q",
+      "hive_args": {"dt": "<day>"}
+    },
+    { "hive_script": "s3://ka-mapreduce/code/hive/user_feedback_summary.q",
+      "hive_args": {"dt": "<day>"}
+    },
+    { "hive_script": "s3://ka-mapreduce/code/hive/user_daily_activity.q",
+      "hive_args": {"start_dt": "<day>", "end_dt": "<day_after>"}
+    },
+
     { "hive_script": "s3://ka-mapreduce/code/hive/video_stats.q",
       "hive_args": {"start_dt": "<day>", "end_dt": "<day>", "duration": "day"},
       "hive_table": "video_stats",
       "importer_args": "duration=day dt=<day>",
       "mongo_collection":  "video_stats"
     },
-
     { "hive_script": "s3://ka-mapreduce/code/hive/daily_video_stats.q",
       "hive_args": {"dt": "<day>"},
       "hive_table": "daily_video_stats",
@@ -47,9 +57,6 @@
       "mongo_collection":  "daily_request_log_urlroute_stats",
       "importer_args": "dt=<day>",
       "hive_init": true
-    },
-    { "hive_script": "s3://ka-mapreduce/code/hive/user_daily_activity.q",
-      "hive_args": {"start_dt": "<day>", "end_dt": "<day_after>"}
     },
     { "hive_script": "s3://ka-mapreduce/code/hive/user_growth.q",
       "hive_args": {"start_dt": "2011-01-01", "end_dt": "<day_after>"},

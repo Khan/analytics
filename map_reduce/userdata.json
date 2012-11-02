@@ -45,7 +45,7 @@
    }
 },
 {
-    "Name": "Loading <end_dt> Feedback into EMR",
+    "Name": "Loading <end_dt> Incr Feedback into EMR",
     "ActionOnFailure": "CONTINUE",
     "HadoopJarStep": {
       "Jar": "/home/hadoop/contrib/streaming/hadoop-streaming.jar",
