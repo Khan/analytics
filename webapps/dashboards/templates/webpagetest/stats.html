@@ -1,7 +1,8 @@
 <!DOCTYPE html>
 <html>
 <!--
-A dashboard of statistics about a URL.
+A dashboard of webpagetest page-loading statistics.
+http://www.webpagetest.org
 -->
 
 <head>
@@ -9,7 +10,7 @@ A dashboard of statistics about a URL.
 <link rel="stylesheet" type="text/css" href="/static/css/third_party/bootstrap.css">
 <link rel="stylesheet" type="text/css" href="/static/css/third_party/jquery/flick/jquery-ui-1.8.20.custom.css">
 <style type="text/css">
-    #url-selector select { width:40em; vertical-align:baseline }
+    #input-selector select { vertical-align:baseline; width: auto; }
 
     #stat-selector input { display:inline; margin-right:0.3em; }
     #stat-selector label { display:inline; margin-right:1em; white-space:nowrap; }
@@ -20,27 +21,37 @@ A dashboard of statistics about a URL.
 
 {% include 'navbar.html' %}
 
-<div class="growth-summary" style="width:800px; margin: 40px auto;">
-    <form id="url-selector">
-        <h2>URL Statistics for 
-        <!-- TODO(chris): SELECT should take all available width -->
+<div class="growth-summary" style="margin: 40px auto;">
+    <form id="input-selector">
+        <!-- TODO(chris): mark proper checkboxes as "selected" -->
+        <h2>Webpagetest Statistics for 
         <select name="url" onchange="this.form.submit();">
-            {% for url in urls %}
+{% for url in urls %}
             <option value="{{url}}" {% if url == current_url %}selected{% endif %}>{{url}}</option>
-            {% endfor %}
+{% endfor %}
         </select>
-        </h2>
+	from
+        <select name="browser" onchange="this.form.submit();">
+{% for browser_and_loc in browser_locations %}
+            <option value="{{browser_and_loc}}" {% if browser_and_loc == current_browser_and_loc %}selected{% endif %}>{{browser_and_loc}}</option>
+{% endfor %}
+        </select>
+	(<select name="connectivity" onchange="this.form.submit();">
+{% for connectivity in connectivities %}
+            <option value="{{connectivity}}" {% if connectivity == current_connectivity %}selected{% endif %}>{{connectivity}}</option>
+{% endfor %}
+        </select>)
+        <select name="cached" onchange="this.form.submit();">
+            <option value="1" {% if current_cached == 1 %}selected{% endif %}>[use browser cache]</option>
+            <option value="0" {% if current_cached == 0 %}selected{% endif %}>[ignore browser cache]</option>
+        </select>
+	</h2>
     </form>
     <form id="stat-selector">
         <!-- TODO(chris): mark proper checkboxes as "selected" -->
-        <label><input type="checkbox" value="count" data-col=1>Number of Calls</label>
-        <label><input type="checkbox" value="avg_response_bytes" data-col=2>Response Bytes</label>
-        <label><input type="checkbox" value="ms_pct50" data-col="4">ms (median)</label>
-        <label><input type="checkbox" value="ms_pct" data-col="3,4,5" checked=checked>ms (5/50/95 pctile)</label>
-        <label><input type="checkbox" value="cpu_ms_pct50" data-col="7">cpu_ms (median)</label>
-        <label><input type="checkbox" value="cpu_ms_pct" data-col="6,7,8">cpu_ms (5/50/95 pctile)</label>
-        <label><input type="checkbox" value="cpm_microcents_pct50" data-col="10">cpm in microcents (median)</label>
-        <label><input type="checkbox" value="cpm_microcents_pct" data-col="9,10,11">cpm in microcents (5/50/95 pctile)</label>
+{% for field in fields %}
+        <label><input type="checkbox" data-col="{{loop.index}}" {% if field == "Doc Complete Time (ms)" %}checked{% endif %}>{{field}}</label>
+{% endfor %}
     </form>
     <div id='chart_div' style='width: 800px; height: 740px;'></div>
 </div>
@@ -95,25 +106,14 @@ A dashboard of statistics about a URL.
     function loadDataTable() {
         data = new google.visualization.DataTable();
         data.addColumn('date', 'Date');
-        data.addColumn('number', 'count');
-        data.addColumn('number', 'avg bytes');
-        data.addColumn('number', 'ms (95th pctile)');
-        data.addColumn('number', 'ms (50th pctile)');
-        data.addColumn('number', 'ms (5th pctile)');
-        data.addColumn('number', 'cpu ms (95th pctile)');
-        data.addColumn('number', 'cpu ms (50th pctile)');
-        data.addColumn('number', 'cpu ms (5th pctile)');
-        data.addColumn('number', 'cpm ucents (95th pctile)');
-        data.addColumn('number', 'cpu ucents (50th pctile)');
-        data.addColumn('number', 'cpu ucents (5th pctile)');
+{% for field in fields %}
+        data.addColumn('number', '{{field}}');
+{% endfor %}
         data.addRows([
-            // TODO(csilvers): subtract 1 from the month (js is 0-indexed)
-{% for row in url_stats %}
-            [new Date({{row['dt']|replace('-', ',')}}),
-             {{row['count']}}, {{row['avg_response_bytes']}},
-             {{row['ms_pct95']}}, {{row['ms_pct50']}}, {{row['ms_pct5']}},
-             {{row['cpu_ms_pct95']}}, {{row['cpu_ms_pct50']}}, {{row['cpu_ms_pct5']}},
-             {{row['cpm_microcents_pct95']}}, {{row['cpm_microcents_pct50']}}, {{row['cpm_microcents_pct5']}}],
+{% for row in webpagetest_stats %}
+            [new Date({{row['Date'][6:10]}}, {{row['Date'][0:2]|int - 1}}, {{row['Date'][3:5]}}),
+             {% for field in fields %}{{row[field]}},{% endfor %}
+            ],
 {% endfor %}
         ]);
 

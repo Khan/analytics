@@ -295,6 +295,84 @@ def gae_stats_url_stats():
                                  url_stats=url_stats)
 
 
+@app.route('/webpagetest/stats')
+@auth.login_required
+def webpagetest_stats():
+    """This dashboard shows download-speed over time for a given URL/etc."""
+    # TODO(csilvers): get from analytics/src/webpagetest/run_webpagetest,
+    # rather than cut-and-pasting them here.
+    _BROWSER_LOCATIONS = (
+        'Dulles_IE8',
+        'Dulles_IE9',
+        'Dulles:Chrome',
+        'Dulles:Firefox',
+        'SanJose_IE9',
+        'London_IE8',
+    )
+    _URLS_TO_TEST = (
+        'http://www.khanacademy.org/',
+        'http://www.khanacademy.org/exercisedashboard',
+        # An arbitrarily picked video
+        ('http://khanacademy.org/math/algebra/solving-linear-equations'
+         '/v/simple-equations'),
+        # An arbitrarily picked exercise
+        'http://www.khanacademy.org/math/calculus/e/derivative_intuition',
+        # An arbitrarily picked CS scratchpad
+        'http://www.khanacademy.org/cs/winston/823977317',
+    )
+    # Options here are DSL, Fios, Dial, and custom.
+    _CONNECTIVITY_TYPES = (
+        'DSL',
+    )
+
+    # These are the fields that are needed to select on, and by stats.html.
+    input_fields = [
+        'Date',
+        'Browser Location',
+        'URL',
+        'Connectivity Type',
+        'Cached',
+        ]
+    output_fields = [
+        'Time to First Byte (ms)',
+        'Time to Title',
+        'Time to Base Page Complete (ms)',
+        'Time to Start Render (ms)',
+        'Doc Complete Time (ms)',
+        'Load Time (ms)',
+        'Activity Time(ms)',
+        'Bytes In',
+        'Bytes Out',
+        'Requests',
+        'DNS Lookups',
+        ]
+
+    browser_and_loc = flask.request.args.get('browser', _BROWSER_LOCATIONS[0])
+    url = flask.request.args.get('url', _URLS_TO_TEST[0])
+    connectivity = flask.request.args.get('connectivity',
+                                          _CONNECTIVITY_TYPES[0])
+    cached = flask.request.args.get('cached', '0')
+
+    webpagetest_stats = data.webpagetest_stats(db,
+                                               url=url,
+                                               browser=browser_and_loc,
+                                               connectivity=connectivity,
+                                               cached=cached,
+                                               fields=(input_fields +
+                                                       output_fields))
+
+    return flask.render_template('webpagetest/stats.html',
+                                 browser_locations=_BROWSER_LOCATIONS,
+                                 current_browser_and_loc=browser_and_loc,
+                                 urls=_URLS_TO_TEST,
+                                 current_url=url,
+                                 connectivities=_CONNECTIVITY_TYPES,
+                                 current_connectivity=connectivity,
+                                 current_cached=cached,
+                                 fields=output_fields,
+                                 webpagetest_stats=webpagetest_stats)
+
+
 def utc_as_dt(days_ago=0):
     """Today's UTC date as a string dt for use in a mongo query.
 

@@ -31,14 +31,15 @@ _BROWSER_LOCATIONS = (
 )
 
 _URLS_TO_TEST = (
-    'http://www.khanacademy.org',
+    'http://www.khanacademy.org/',
     'http://www.khanacademy.org/exercisedashboard',
-    'http://www.khanacademy.org/cs/',
     # An arbitrarily picked video
     ('http://khanacademy.org/math/algebra/solving-linear-equations'
      '/v/simple-equations'),
     # An arbitrarily picked exercise
     'http://www.khanacademy.org/math/calculus/e/derivative_intuition',
+    # An arbitrarily picked CS scratchpad
+    'http://www.khanacademy.org/cs/winston/823977317',
 )
 
 # Options here are DSL, Fios, Dial, and custom.
