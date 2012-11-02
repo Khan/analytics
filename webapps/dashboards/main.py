@@ -218,18 +218,21 @@ def gae_stats_instances():
 @auth.login_required
 def gae_stats_daily_request_log_url_stats():
     """This dashboard shows stats for the most accessed URLs."""
+    num_urls = int(flask.request.args.get('count', '100'))
+
     # Some days the data isn't generated properly, and some days
     # it takes a while for yesterday's report to be generated.  So
     # we try going back a few days.  When we go back far enough, we
     # say so in the date.
     for days_ago in xrange(1, 8):
         dt_string = utc_as_dt(days_ago)
-        results = data.daily_request_log_url_stats(db, dt=dt_string)
+        results = data.daily_request_log_url_stats(db, dt=dt_string,
+                                                   limit=num_urls)
         if results.count():
             return flask.render_template(
                 'gae-stats/daily-request-log-url-stats.html',
                 collection_rows=results,
-                date=dt_string, days_ago=days_ago)
+                count=num_urls, date=dt_string, days_ago=days_ago)
     return 'No data in the db for the last %s days' % days_ago
 
 
@@ -248,18 +251,21 @@ def gae_stats_daily_request_log_urlroute_stats():
             row['url'] = row['url_route']
             yield row
 
+    num_urls = int(flask.request.args.get('count', '100'))
+
     # Some days the data isn't generated properly, and some days
     # it takes a while for yesterday's report to be generated.  So
     # we try going back a few days.  When we go back far enough, we
     # say so in the date.
     for days_ago in xrange(1, 8):
         dt_string = utc_as_dt(days_ago)
-        results = data.daily_request_log_urlroute_stats(db, dt=dt_string)
+        results = data.daily_request_log_urlroute_stats(db, dt=dt_string,
+                                                        limit=num_urls)
         if results.count():
             return flask.render_template(
                 'gae-stats/daily-request-log-url-stats.html',
                 collection_rows=result_iter(),
-                date=dt_string, days_ago=days_ago)
+                count=num_urls, date=dt_string, days_ago=days_ago)
 
 
 @app.route('/gae_stats/url_stats')
@@ -267,7 +273,8 @@ def gae_stats_daily_request_log_urlroute_stats():
 def gae_stats_url_stats():
     """This dashboard shows stats over time for a given URL."""
     url = flask.request.args.get('url', '/')
-    url_stats = data.daily_request_log_url_stats(db, url=url)
+    # Get up to 3 years(ish) worth of data.
+    url_stats = data.daily_request_log_url_stats(db, url=url, limit=1000)
 
     # Get a list of all the urls.  Some days this data isn't generated
     # properly, and some days it takes a while for yesterday's report

@@ -8,6 +8,10 @@ A dashboard of performance statistics grouped by URL.
 <link rel="shortcut icon" href="http://www.khanacademy.org/favicon.ico?leaf">
 <link rel="stylesheet" type="text/css" href="/static/css/third_party/bootstrap.css">
 <link rel="stylesheet" type="text/css" href="/static/css/third_party/jquery/flick/jquery-ui-1.8.20.custom.css">
+<style type="text/css">
+    #count-selector input { vertical-align:baseline }
+    #count-selector #count { width:3em; }
+</style>
 </head>
 
 <body>
@@ -18,6 +22,10 @@ A dashboard of performance statistics grouped by URL.
     <h2>Daily Request Log URL Stats for {{date}}
         {% if days_ago > 2 %}<font color="red">[OLD DATE! {{days_ago}} days ago]</font>{% endif %}
     </h2>
+    <form action="" id="count-selector">
+      Showing top <input id="count" name="count" value="{{count}}"> URLs.
+      &nbsp;&nbsp;<input type="submit" name="submit" value="Go!">
+    </form>
     <div id='table_div' style='width: 700px; height: 740px;'></div>
 </div>
 
