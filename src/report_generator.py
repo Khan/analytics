@@ -40,7 +40,7 @@ def parse_command_line_args():
     parser.add_option("-c", "--config", help="Config file. REQUIRED")
     parser.add_option("-m", "--hive_masternode", default="ka-hive",
                        help="Hive master node alias")
-    parser.add_option("-w", "--max_wait", type="float", default=12.0,
+    parser.add_option("-w", "--max_wait", type="float", default=24.0,
                        help="Max # hours we will wait for the data")
     parser.add_option("-s", '--ssh_keyfile',
         help=('A location of an SSH pem file to use for SSH connections '
