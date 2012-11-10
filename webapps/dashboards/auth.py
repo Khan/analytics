@@ -78,14 +78,27 @@ def configure_app(app, required=True):
 def login():
     # TODO(benkomalo): pass along continue url.
     callback = flask.url_for('authorized', _external=True)
-    return google.authorize(callback=callback)
+
+    continue_url = flask.request.args.get('continue', '/')
+
+    # Store continue_url in 'state' param
+    # TODO(alpert): This is horrible and not threadsafe
+    google.request_token_params['state'] = continue_url
+    resp = google.authorize(callback=callback)
+    del google.request_token_params['state']
+
+    return resp
 
 
 @google.authorized_handler
 def authorized(resp):
     access_token = resp['access_token']
     flask.session['access_token'] = access_token, ''
-    return flask.redirect(flask.request.args.get('continue', '/'))
+    flask.session.permanent = True
+
+    # continue_url is stored in 'state' param
+    continue_url = flask.request.args.get('state', '/')
+    return flask.redirect(continue_url)
 
 
 @google.tokengetter
@@ -99,19 +112,23 @@ def login_required(func):
         if FAKED_SECRETS:
             return func(*args, **kwargs)
 
+        login_url = flask.url_for('login', **{
+            # continue is reserved, so we do this funny kwarg dance
+            'continue': flask.request.path})
+
         # TODO(benkomalo): pass along continue url.
         access_token = flask.session.get('access_token')
         if access_token is None:
             # TODO(benkomalo): add in a flag here just in case something is
             # wrong with cookie setting and we get into an infinite redirect.
-            return flask.redirect(flask.url_for('login'))
+            return flask.redirect(login_url)
 
         access_token = access_token[0]
         email = _get_verified_user(access_token)
         if not email:
             # Couldn't get user info - the access_token must have expired
             # or is invalid.
-            return flask.redirect(flask.url_for('login'))
+            return flask.redirect(login_url)
         elif (email in _auth_whitelist or
               email.lower().endswith('@khanacademy.org')):
             return func(*args, **kwargs)
