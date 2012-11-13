@@ -111,7 +111,7 @@ http://www.webpagetest.org
 {% endfor %}
         data.addRows([
 {% for row in webpagetest_stats %}
-            [new Date({{row['Date'][6:10]}}, {{row['Date'][0:2]|int - 1}}, {{row['Date'][3:5]}}),
+            [new Date{{row['Date']}},
              {% for field in fields %}{{row[field]}},{% endfor %}
             ],
 {% endfor %}

@@ -361,6 +361,15 @@ def webpagetest_stats():
                                                fields=(input_fields +
                                                        output_fields))
 
+    def webpagetest_stats_iter():
+        for stat in webpagetest_stats:
+            # Convert 10/20/2012 to (2012, 9, 20) for use in the JavaScript
+            # Date constructor.
+            retval = stat.copy()
+            dt_parts = map(int, retval['Date'].split('/'))
+            retval['Date'] = (dt_parts[2], dt_parts[0] - 1, dt_parts[1])
+            yield retval
+
     return flask.render_template('webpagetest/stats.html',
                                  browser_locations=_BROWSER_LOCATIONS,
                                  current_browser_and_loc=browser_and_loc,
@@ -370,7 +379,7 @@ def webpagetest_stats():
                                  current_connectivity=connectivity,
                                  current_cached=cached,
                                  fields=output_fields,
-                                 webpagetest_stats=webpagetest_stats)
+                                 webpagetest_stats=webpagetest_stats_iter())
 
 
 def utc_as_dt(days_ago=0):
