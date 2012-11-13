@@ -4,7 +4,6 @@ json config file to specify what entity types to download and the detailed
 download configurations.  The program also takes the start_date and end_date
  to specify the data duration we would like to download.  All the entity types
  have to have the field "backup_timestamp" to be downloaded properly.
-The entity keys becomes the _id in the mongo db.
 See the config under ../../cfg for more details
 
 TODO(yunfang): adding a controldb in mongo to coordinate the fetch and
@@ -25,17 +24,9 @@ from multiprocessing import active_children
 from multiprocessing import Process
 
 import pymongo
-from pymongo.errors import DuplicateKeyError
-from pymongo.errors import InvalidDocument
-from pymongo.errors import InvalidStringData
 
 import gae_util
 gae_util.fix_sys_path()
-
-from google.appengine.api import datastore
-from google.appengine.api import datastore_types
-from google.appengine.api import users
-from google.appengine.datastore import entity_pb
 
 sys.path.append(os.path.dirname(__file__) + "/../map_reduce/py")
 import load_pbufs_to_hive
@@ -59,14 +50,6 @@ DEFAULT_DOWNLOAD_SETTINGS = {
     "archive_dir": "archive"
 }
 
-COLLECTION_INDICES = {
-    'UserData': ['user', 'current_user', 'user_email'],
-    'UserExercise': [[('user', 1), ('exercise', 1)]],
-    'UserVideo': ['user'],
-    'VideoLog': ['user', [('backup_timestamp', -1)]],
-    'ProblemLog': ['user', [('backup_timestamp', -1)]]
-}
-
 g_logger = get_logger()
 
 
@@ -81,15 +64,11 @@ def get_cmd_line_args():
     parser.add_option("-e", "--end_date",
         help="Latest exclusive date of logs to fetch, in ISO 8601 format. "
               "Defaults to today at 00:00.")
-    parser.add_option("-r", "--redo", default=0,
-        help="Re-fetch and overwrite db entries. default to 0. ")
     parser.add_option("-d", "--archive_dir",
         help="The directory to archive the downloaded protobufs. Will "
              "override the value in the JSON config if specified.")
     parser.add_option("-p", "--proc_interval", default=3600,
         help="process interval if no start_date end_date specified")
-    parser.add_option("-l", "--load_db", default=1,
-        help="load the downloaded data to db")
 
     options, _ = parser.parse_args()
     if not options.config:
@@ -115,31 +94,6 @@ def get_archive_file_name(config, kind, start_dt, end_dt, ftype='pickle'):
         str(start_dt.date()), str(start_dt.time()),
         str(end_dt.date()), str(end_dt.time()), ftype)
     return filename
-
-
-def load_pbufs_to_db(config, mongo, entity_list, start_dt, end_dt, kind=None):
-    """Load protocol buffers into mongo."""
-    if not kind:
-        if len(entity_list) > 0:
-            pb = entity_list[0]
-            entity = datastore.Entity._FromPb(entity_pb.EntityProto(pb))
-            kind = entity.key().kind()
-        else:
-            kind = 'unknown'
-    num = 0
-    for pb in entity_list:
-        entity = datastore.Entity._FromPb(entity_pb.EntityProto(pb))
-        put_document(entity, config, mongo)
-        num += 1
-        if (num % 100000) == 0:
-            g_logger.info(
-                "Writing to db for %s from %s to %s. # rows: %d loaded" % (
-                kind, start_dt, end_dt, num))
-    # assume all entities are from the same kind
-    g_logger.info("Writing to db for %s from %s to %s. # rows: %d finishes" % (
-        kind, start_dt, end_dt, len(entity_list)))
-    kdc.record_progress(mongo, config['coordinator_cfg'],
-        kind, start_dt, end_dt, kdc.DownloadStatus.LOADED)
 
 
 def fetch_and_process_data(kind, start_dt_arg, end_dt_arg,
@@ -200,25 +154,9 @@ def fetch_and_process_data(kind, start_dt_arg, end_dt_arg,
     kdc.record_progress(mongo, config['coordinator_cfg'],
         kind, start_dt_arg, end_dt_arg, kdc.DownloadStatus.SAVED)
 
-    # load to db
-    if config['load_db']:
-        load_pbufs_to_db(config, mongo, entity_list,
-            start_dt_arg, end_dt_arg, kind)
-
-
-def apply_transform(doc):
-    """transform the document to a format that can be accepted by mongodb """
-    if isinstance(doc, dict):
-        for key, value in doc.iteritems():
-            doc[key] = apply_transform(value)
-        return doc
-    elif isinstance(doc, list):
-        doc = [apply_transform(item) for item in doc]
-        return doc
-    elif (isinstance(doc, datastore_types.Key) or
-          isinstance(doc, users.User)):
-        return str(doc)
-    return doc
+    # we used to load into mongoDB, we don't anymore. but still set the flag.
+    kdc.record_progress(mongo, config['coordinator_cfg'],
+        kind, start_dt_arg, end_dt_arg, kdc.DownloadStatus.LOADED)
 
 
 def open_db_conn(config):
@@ -227,71 +165,6 @@ def open_db_conn(config):
         return pymongo.Connection(config['dbhost'], config['dbport'])
     func = db_decorator(config['max_tries'], _open_db_conn)
     return func(config)
-
-
-def get_db_name(config, kind):
-    """Return a db connection with kind and config"""
-    if kind not in config['kinds_to_db']:
-        return config['default_db']
-    return config['kinds_to_db'][kind]
-
-
-def ensure_db_indices(config):
-    """Ensure all the indices built"""
-    mongo = open_db_conn(config)
-    for kind, indices in COLLECTION_INDICES.iteritems():
-        for index in indices:
-            ensure_db_index(config, mongo, kind, index)
-
-
-def ensure_db_index(config, mongo, kind, index):
-    """ensure index for kind"""
-    def _ensure_db_index(config, mongo, kind, index):
-        mongo_db = mongo[get_db_name(config, kind)]
-        mongo_db[kind].ensure_index(index)
-
-    func = db_decorator(config['max_tries'], _ensure_db_index)
-    func(config, mongo, kind, index)
-
-
-def put_document(entity, config, mongo):
-    """Put the GAE entity into mongodb"""
-    def _put_document(entity, config, mongo):
-        kind = entity.key().kind()
-
-        # TODO(benkomalo): HACK HACK HACK - don't care about
-        # _GAEBingoIdentityRecord in Mongo right now and it has pickled data,
-        # which doesn't encode well when put into Mongo, so it explodes.
-        if kind == '_GAEBingoIdentityRecord':
-            return
-
-        document = {}
-        document.update(entity)
-        mutable = int(config['kinds'][kind][2])
-        #make sure all records using the key field as the
-        #index key
-        if 'key' not in document:
-            document['_id'] = str(entity.key())
-        else:
-            document['_id'] = document['key']
-        document = apply_transform(document)
-        try:
-            mongo_db = mongo[get_db_name(config, kind)]
-            mongo_collection = mongo_db[kind]
-            if mutable == 0:
-                mongo_collection.insert(document)
-            else:
-                mongo_collection.save(document)
-        except DuplicateKeyError:
-            # ignore
-            pass
-        except InvalidDocument:
-            g_logger.error("InvalidDocument %s" % (document))
-        except InvalidStringData as e:
-            g_logger.error("Problem inserting doc: %s \n error: %s" %
-               (document, e))
-    func = db_decorator(config['max_tries'], _put_document)
-    func(entity, config, mongo)
 
 
 def monitor(config, processes):
@@ -317,8 +190,7 @@ def start_data_process(config, start_dt_arg, end_dt_arg):
     """Loop through the entity types and perform the main function """
     g_logger.info("Start processing data from %s to %s" %
                   (str(start_dt_arg), str(end_dt_arg)))
-    #ensure the db index exist
-    ensure_db_indices(config)
+
     processes = []
     for kind, fetch_intervals in config['kinds'].iteritems():
         interval = dt.timedelta(seconds=int(fetch_intervals[0]))
@@ -362,7 +234,6 @@ def main():
     if options.archive_dir:
         # Override the archive directory, if specified.
         config['archive_dir'] = options.archive_dir
-    config['load_db'] = int(options.load_db)
     start_data_process(config, start_dt, end_dt)
 
 

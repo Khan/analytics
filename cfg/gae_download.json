@@ -30,11 +30,6 @@
             "Video" : [1800, 1800, 1, 0, "key"]
            },
   "default_db": "kadb",
-  # these tables have their own db because they are big
-  "kinds_to_db": {
-    "VideoLog":  "kadb_vl",
-    "ProblemLog": "kadb_pl"
-  },
   # save the fetched data to this dir
   "archive_dir": "/home/analytics/kabackup/daily_new",
   # coordinator config
