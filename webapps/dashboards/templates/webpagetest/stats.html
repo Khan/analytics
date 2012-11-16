@@ -12,8 +12,8 @@ http://www.webpagetest.org
 <style type="text/css">
     #input-selector select { vertical-align:baseline; width: auto; }
 
-    #stat-selector input { display:inline; margin-right:0.3em; }
-    #stat-selector label { display:inline; margin-right:1em; white-space:nowrap; }
+    #field-selector input { display:inline; margin-right:0.3em; }
+    #field-selector label { display:inline; margin-right:1em; white-space:nowrap; }
 </style>
 </head>
 
@@ -24,33 +24,72 @@ http://www.webpagetest.org
 <div class="growth-summary" style="margin: 40px auto;">
     <form id="input-selector">
         <!-- TODO(chris): mark proper checkboxes as "selected" -->
-        <h2>Webpagetest Statistics for 
+        <h2>Webpagetest Statistics
+
+{% if current_stat == "(all)" %}
+        <input type="hidden" name="stat" value="(all)">
+{% else %}
+        of
+        <select name="stat" onchange="this.form.submit();">
+{% for stat in stats %}
+            <option value="{{stat}}" {% if stat == current_stat %}selected{% endif %}>{{stat}}</option>
+{% endfor %}
+            <option value="(new_all)">(all)</option>
+        </select>
+{% endif %}
+
+
+{% if current_url == "(all)" %}
+        <input type="hidden" name="url" value="(all)">
+{% else %}
+        for 
         <select name="url" onchange="this.form.submit();">
 {% for url in urls %}
             <option value="{{url}}" {% if url == current_url %}selected{% endif %}>{{url}}</option>
 {% endfor %}
+            <option value="(new_all)">(all)</option>
         </select>
+{% endif %}
+
+{% if current_browser_and_loc == "(all)" %}
+        <input type="hidden" name="browser" value="(all)">
+{% else %}
 	from
         <select name="browser" onchange="this.form.submit();">
 {% for browser_and_loc in browser_locations %}
             <option value="{{browser_and_loc}}" {% if browser_and_loc == current_browser_and_loc %}selected{% endif %}>{{browser_and_loc}}</option>
 {% endfor %}
+            <option value="(new_all)">(all)</option>
         </select>
+{% endif %}
+
+{% if current_connectivity == "(all)" %}
+        <input type="hidden" name="connectivity" value="(all)">
+{% else %}
 	(<select name="connectivity" onchange="this.form.submit();">
 {% for connectivity in connectivities %}
             <option value="{{connectivity}}" {% if connectivity == current_connectivity %}selected{% endif %}>{{connectivity}}</option>
 {% endfor %}
+            <option value="(new_all)">(all)</option>
         </select>)
+{% endif %}
+
+{% if current_cached == "(all)" %}
+        <input type="hidden" name="cached" value="(all)">
+{% else %}
         <select name="cached" onchange="this.form.submit();">
-            <option value="1" {% if current_cached == 1 %}selected{% endif %}>[use browser cache]</option>
-            <option value="0" {% if current_cached == 0 %}selected{% endif %}>[ignore browser cache]</option>
+            <option value="1" {% if current_cached == "1" %}selected{% endif %}>[use browser cache]</option>
+            <option value="0" {% if current_cached == "0" %}selected{% endif %}>[ignore browser cache]</option>
+            <option value="(new_all)">(all)</option>
         </select>
+{% endif %}
+
 	</h2>
     </form>
-    <form id="stat-selector">
+    <form id="field-selector">
         <!-- TODO(chris): mark proper checkboxes as "selected" -->
 {% for field in fields %}
-        <label><input type="checkbox" data-col="{{loop.index}}" {% if field == "Doc Complete Time (ms)" %}checked{% endif %}>{{field}}</label>
+        <label><input type="checkbox" data-col="{{loop.index}}" {% if field.default %}checked{% endif %}>{{field.name}}</label>
 {% endfor %}
     </form>
     <div id='chart_div' style='width: 800px; height: 740px;'></div>
@@ -75,7 +114,7 @@ http://www.webpagetest.org
             lastRow = data.getNumberOfRows() - 1,
             columns = [];
 
-        _.each(statSelector.querySelectorAll('input'), function(input) {
+        _.each(fieldSelector.querySelectorAll('input'), function(input) {
             if (input.checked) {
                 var cols = input.getAttribute("data-col").split(",").map(Number);
                 columns = columns.concat(cols);
@@ -107,12 +146,12 @@ http://www.webpagetest.org
         data = new google.visualization.DataTable();
         data.addColumn('date', 'Date');
 {% for field in fields %}
-        data.addColumn('number', '{{field}}');
+        data.addColumn('number', '{{field.name}}');
 {% endfor %}
         data.addRows([
 {% for row in webpagetest_stats %}
             [new Date{{row['Date']}},
-             {% for field in fields %}{{row[field]}},{% endfor %}
+             {% for field in fields %}{{row[field.name]}},{% endfor %}
             ],
 {% endfor %}
         ]);
@@ -121,8 +160,8 @@ http://www.webpagetest.org
         drawChart();
     }
 
-    var statSelector = document.getElementById("stat-selector");
-    statSelector.onchange = function(e) {
+    var fieldSelector = document.getElementById("field-selector");
+    fieldSelector.onchange = function(e) {
         drawChart();
     };
 })();

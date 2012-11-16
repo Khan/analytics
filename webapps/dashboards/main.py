@@ -295,6 +295,63 @@ def gae_stats_url_stats():
                                  url_stats=url_stats)
 
 
+def _collect_records(records, fixed_keys, varying_key, varying_value):
+    """Collate a list of records (each a dict) and return a new list.
+
+    Input is a list of records, each of which is a list of dicts.
+    The idea is to create new dicts which 'transpose' these records
+    as follows:
+
+    1) Collect together all records that have the same values for
+    the fixed keys.  There may be many such records, which differ
+    in the values of other keys.
+
+    2) For a single collection, go through all the records and look
+    for the values of the varying_key and varying_value for each
+    record.  Add {dict[varying_key]: dict[varying_value]} to the
+    record.
+
+    As an example: fixed_keys = ('Year', 'Country').  varying_key =
+    'City'.  varying_value = 'Population'.  Then if the records are
+    [{'Year': 1972, 'Country': 'USA', 'City': 'NY', 'Population': 1000},
+     {'Year': 1972, 'Country': 'USA', 'City': 'LA', 'Population': 500},
+     {'Year': 1973, 'Country': 'USA', 'City': 'NY', 'Population': 2000},
+     {'Year': 1973, 'Country': 'USA', 'City': 'Chicago', 'Population': 400},
+     {'Year': 1973, 'Country': 'USA', 'City': 'LA', 'Population': 600},
+     {'Year': 1972, 'Country': 'Canada', 'City': 'Toronto', 'Population': 6},
+     ]
+    The output would be:
+    [{'Year': 1972, 'Country': 'USA', 'NY': 1000, 'LA': 500},
+     {'Year': 1973, 'Country': 'USA', 'NY': 2000, 'LA': 600, 'Chicago': 400},
+     {'Year': 1972, 'Country': 'Canada', 'Toronto': 6}
+    ]
+
+    Arguments:
+      records: a list of dicts, such as is returned by mongodb.
+      fixed_keys: a list/set of keys that we collect by.
+      varying_key: a key of the input dict; its value is an output key.
+      varying_value: a key of the input dict; its value is varying_key's value.
+
+    Returns:
+      A list of dicts, transposed as described above.
+    """
+    # First, collect together all records with the same values for fixed_keys
+    collections = {}
+    for record in records:
+        collection_key = tuple((x, record[x]) for x in fixed_keys)
+        collections.setdefault(collection_key, []).append(record)
+
+    # Next, create the output record for each collection.
+    retval = []
+    for (fixed_keys_and_values, collection) in collections.iteritems():
+        output_record = dict(fixed_keys_and_values)
+        for record in collection:
+            output_record[record[varying_key]] = record[varying_value]
+        retval.append(output_record)
+
+    return retval
+
+
 @app.route('/webpagetest/stats')
 @auth.login_required
 def webpagetest_stats():
@@ -324,16 +381,8 @@ def webpagetest_stats():
     _CONNECTIVITY_TYPES = (
         'DSL',
     )
-
-    # These are the fields that are needed to select on, and by stats.html.
-    input_fields = [
-        'Date',
-        'Browser Location',
-        'URL',
-        'Connectivity Type',
-        'Cached',
-        ]
-    output_fields = [
+    # These are the stats we chose to store in run_webpagetest.py.
+    _STATS = (
         'Time to First Byte (ms)',
         'Time to Title',
         'Time to Base Page Complete (ms)',
@@ -345,30 +394,103 @@ def webpagetest_stats():
         'Bytes Out',
         'Requests',
         'DNS Lookups',
+        )
+    # These are the stats we graph by default
+    _DEFAULT_STATS = ('Time to First Byte (ms)',
+                      'Doc Complete Time (ms)',
+                      )
+
+    # These are the fields that are needed to select on, and by stats.html.
+    input_fields = [
+        'Date',
+        'Browser Location',
+        'URL',
+        'Connectivity Type',
+        'Cached',
         ]
 
+    # We default to letting the user see all the stats from one url/location.
     browser_and_loc = flask.request.args.get('browser', _BROWSER_LOCATIONS[0])
     url = flask.request.args.get('url', _URLS_TO_TEST[0])
     connectivity = flask.request.args.get('connectivity',
                                           _CONNECTIVITY_TYPES[0])
     cached = flask.request.args.get('cached', '0')
+    stat = flask.request.args.get('stat', _STATS[0])
+    all_vars = (browser_and_loc, url, connectivity, cached, stat)
 
-    webpagetest_stats = data.webpagetest_stats(db,
-                                               url=url,
-                                               browser=browser_and_loc,
-                                               connectivity=connectivity,
-                                               cached=cached,
-                                               fields=(input_fields +
-                                                       output_fields))
+    # We want exactly one '(all)' field: that's the one that gets graphed.
+    # If a field is '(new_all)', that one wins; it means the user just
+    # selected it to be 'all'.  Otherwise, if there's more than one, we
+    # pick arbitrarily.  If there are none, we make 'stats' the '(all)'.
+    # TODO(csilvers): implement this.  But for now...
+    if browser_and_loc == '(new_all)':
+        browser_and_loc = '(all)'
+    if url == '(new_all)':
+        url = '(all)'
+    if connectivity == '(new_all)':
+        connectivity = '(all)'
+    if cached == '(new_all)':
+        cached = '(all)'
+    if stat == '(new_all)':
+        stat = '(all)'
+    if '(all)' not in all_vars:
+        stat = '(all)'
 
-    def webpagetest_stats_iter():
-        for stat in webpagetest_stats:
-            # Convert 10/20/2012 to (2012, 9, 20) for use in the JavaScript
-            # Date constructor.
-            retval = stat.copy()
-            dt_parts = map(int, retval['Date'].split('/'))
-            retval['Date'] = (dt_parts[2], dt_parts[0] - 1, dt_parts[1])
-            yield retval
+    # We filter on the given url/browser/etc, unless the user said
+    # "(all)", in which case we don't filter on that field.  The way
+    # we tell webpagetest_stats() not to filter is to pass in None.
+    url_filter = url if url != '(all)' else None
+    browser_filter = browser_and_loc if browser_and_loc != '(all)' else None
+    connectivity_filter = connectivity if connectivity != '(all)' else None
+    cached_filter = cached if cached != '(all)' else None
+    stats_filter = [stat] if stat != '(all)' else list(_STATS)
+
+    webpagetest_stats = data.webpagetest_stats(
+        db,
+        url=url_filter,
+        browser=browser_filter,
+        connectivity=connectivity_filter,
+        cached=cached_filter,
+        fields=(input_fields + stats_filter))
+
+    # Now we need to collate the stats appropriately, depending on
+    # which dimension is the '(all)' dimension.  If it's stats, then
+    # we want each record to have all the stats (which it already
+    # does, by default).  If it's url, we want each record to have
+    # the single requested stat for all urls, which we'll have to
+    # collate.  Etc.  This assumes that at most one dimension says
+    # '(all)'.  If more than one does, we will give weird results.
+    if stat == '(all)':
+        collated_stats = webpagetest_stats[:]
+        varying_fields = [{'name': s, 'default': s in _DEFAULT_STATS}
+                          for s in _STATS]
+    else:
+        if url == '(all)':
+            varying_key = 'URL'
+            varying_fields = [{'name': u, 'default': True}
+                              for u in _URLS_TO_TEST]
+        elif browser_and_loc == '(all)':
+            varying_key = 'Browser Location'
+            varying_fields = [{'name': b, 'default': True}
+                              for b in _BROWSER_LOCATIONS]
+        elif connectivity == '(all)':
+            varying_key = 'Connectivity'
+            varying_fields = [{'name': ct, 'default': True}
+                              for ct in _CONNECTIVITY_TYPES]
+        elif cached == '(all)':
+            varying_key = 'Cached'
+            varying_fields = [{'name': c, 'default': True}
+                              for c in (0, 1)]
+        fixed_keys = input_fields[:]
+        fixed_keys.remove(varying_key)
+        collated_stats = _collect_records(webpagetest_stats, fixed_keys,
+                                          varying_key, stat)
+
+    # Now we need to fix up the date: convert 10/20/2012
+    # to (2012, 9, 20) for use in the JavaScript Date constructor.
+    for record in collated_stats:
+        dt_parts = map(int, record['Date'].split('/'))
+        record['Date'] = (dt_parts[2], dt_parts[0] - 1, dt_parts[1])
 
     return flask.render_template('webpagetest/stats.html',
                                  browser_locations=_BROWSER_LOCATIONS,
@@ -378,8 +500,10 @@ def webpagetest_stats():
                                  connectivities=_CONNECTIVITY_TYPES,
                                  current_connectivity=connectivity,
                                  current_cached=cached,
-                                 fields=output_fields,
-                                 webpagetest_stats=webpagetest_stats_iter())
+                                 stats=_STATS,
+                                 current_stat=stat,
+                                 fields=varying_fields,
+                                 webpagetest_stats=collated_stats)
 
 
 def utc_as_dt(days_ago=0):
