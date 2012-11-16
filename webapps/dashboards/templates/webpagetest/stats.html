@@ -26,61 +26,51 @@ http://www.webpagetest.org
         <!-- TODO(chris): mark proper checkboxes as "selected" -->
         <h2>Webpagetest Statistics
 
-{% if current_stat == "(all)" %}
-        <input type="hidden" name="stat" value="(all)">
-{% else %}
+{% if stat_current != "(all)" %}
         of
         <select name="stat" onchange="this.form.submit();">
-{% for stat in stats %}
-            <option value="{{stat}}" {% if stat == current_stat %}selected{% endif %}>{{stat}}</option>
+{% for stat in stat_all %}
+            <option value="{{stat}}" {% if stat == stat_current %}selected{% endif %}>{{stat}}</option>
 {% endfor %}
-            <option value="(new_all)">(all)</option>
+            <option value="(all)">(all)</option>
         </select>
 {% endif %}
 
 
-{% if current_url == "(all)" %}
-        <input type="hidden" name="url" value="(all)">
-{% else %}
+{% if url_current != "(all)" %}
         for 
         <select name="url" onchange="this.form.submit();">
-{% for url in urls %}
-            <option value="{{url}}" {% if url == current_url %}selected{% endif %}>{{url}}</option>
+{% for url in url_all %}
+            <option value="{{url}}" {% if url == url_current %}selected{% endif %}>{{url}}</option>
 {% endfor %}
-            <option value="(new_all)">(all)</option>
+            <option value="(all)">(all)</option>
         </select>
 {% endif %}
 
-{% if current_browser_and_loc == "(all)" %}
-        <input type="hidden" name="browser" value="(all)">
-{% else %}
+{% if browser_and_loc_current != "(all)" %}
 	from
-        <select name="browser" onchange="this.form.submit();">
-{% for browser_and_loc in browser_locations %}
-            <option value="{{browser_and_loc}}" {% if browser_and_loc == current_browser_and_loc %}selected{% endif %}>{{browser_and_loc}}</option>
+        <select name="browser_and_loc" onchange="this.form.submit();">
+{% for browser_and_loc in browser_and_loc_all %}
+            <option value="{{browser_and_loc}}" {% if browser_and_loc == browser_and_loc_current %}selected{% endif %}>{{browser_and_loc}}</option>
 {% endfor %}
-            <option value="(new_all)">(all)</option>
+            <option value="(all)">(all)</option>
         </select>
 {% endif %}
 
-{% if current_connectivity == "(all)" %}
-        <input type="hidden" name="connectivity" value="(all)">
-{% else %}
+{% if connectivity_current != "(all)" %}
 	(<select name="connectivity" onchange="this.form.submit();">
-{% for connectivity in connectivities %}
-            <option value="{{connectivity}}" {% if connectivity == current_connectivity %}selected{% endif %}>{{connectivity}}</option>
+{% for connectivity in connectivity_all %}
+            <option value="{{connectivity}}" {% if connectivity == connectivity_current %}selected{% endif %}>{{connectivity}}</option>
 {% endfor %}
-            <option value="(new_all)">(all)</option>
+            <option value="(all)">(all)</option>
         </select>)
 {% endif %}
 
-{% if current_cached == "(all)" %}
-        <input type="hidden" name="cached" value="(all)">
-{% else %}
+{% if cached_current != "(all)" %}
         <select name="cached" onchange="this.form.submit();">
-            <option value="1" {% if current_cached == "1" %}selected{% endif %}>[use browser cache]</option>
-            <option value="0" {% if current_cached == "0" %}selected{% endif %}>[ignore browser cache]</option>
-            <option value="(new_all)">(all)</option>
+            <option value="1" {% if cached_current == "1" %}selected{% endif %}>[use browser cache]</option>
+            <option value="0" {% if cached_current == "0" %}selected{% endif %}>[ignore browser cache]</option>
+            <option value="(all)">(all)</option>
         </select>
 {% endif %}
 
@@ -88,7 +78,8 @@ http://www.webpagetest.org
     </form>
     <form id="field-selector">
         <!-- TODO(chris): mark proper checkboxes as "selected" -->
-{% for field in fields %}
+        <b>{{varying_field}}:</b>
+{% for field in varying_field_values %}
         <label><input type="checkbox" data-col="{{loop.index}}" {% if field.default %}checked{% endif %}>{{field.name}}</label>
 {% endfor %}
     </form>
@@ -145,13 +136,13 @@ http://www.webpagetest.org
     function loadDataTable() {
         data = new google.visualization.DataTable();
         data.addColumn('date', 'Date');
-{% for field in fields %}
+{% for field in varying_field_values %}
         data.addColumn('number', '{{field.name}}');
 {% endfor %}
         data.addRows([
 {% for row in webpagetest_stats %}
             [new Date{{row['Date']}},
-             {% for field in fields %}{{row[field.name]}},{% endfor %}
+             {% for field in varying_field_values %}{{row[field.name]}},{% endfor %}
             ],
 {% endfor %}
         ]);
