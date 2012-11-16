@@ -352,35 +352,28 @@ def _collect_records(records, fixed_keys, varying_key, varying_value):
     return retval
 
 
-@app.route('/webpagetest/stats')
-@auth.login_required
-def webpagetest_stats():
-    """This dashboard shows download-speed over time for a given URL/etc."""
+class WebpagetestInputs(object):
+    """Stores information about the query dimensions for a webpagetest query.
+
+    Our webpagetest data viewer allows us to view data along several
+    dimensions (axes): browser type, tested urls, timing statistics,
+    etc.  We allow one dimension to vary while the others are fixed.
+    For instance, we can graph the time-to-first-byte data for the
+    homepage url from all browser types (the 'varying-field' is
+    browser type).  Or we can graph time-to-first-byte data for all
+    urls for a given browser (the 'varying-field' is url).
+
+    This class holds all the dimensions that we can query over, and
+    examines the user request to figure out which dimension is the
+    'varying-field', and which (all the rest) are the 'fixed fields'.
+    """
+
     # TODO(csilvers): get from analytics/src/webpagetest/run_webpagetest,
     # rather than cut-and-pasting them here.
-    _BROWSER_LOCATIONS = (
-        'Dulles_IE8',
-        'Dulles_IE9',
-        'Dulles:Chrome',
-        'Dulles:Firefox',
-        'SanJose_IE9',
-        'London_IE8',
-    )
-    _URLS_TO_TEST = (
-        'http://www.khanacademy.org/',
-        'http://www.khanacademy.org/exercisedashboard',
-        # An arbitrarily picked video
-        ('http://khanacademy.org/math/algebra/solving-linear-equations'
-         '/v/simple-equations'),
-        # An arbitrarily picked exercise
-        'http://www.khanacademy.org/math/calculus/e/derivative_intuition',
-        # An arbitrarily picked CS scratchpad
-        'http://www.khanacademy.org/cs/winston/823977317',
-    )
-    # Options here are DSL, Fios, Dial, and custom.
-    _CONNECTIVITY_TYPES = (
-        'DSL',
-    )
+
+    # For each of the below, the default value (if the user doesn't
+    # specify) is taken to be the first value in the list.
+
     # These are the stats we chose to store in run_webpagetest.py.
     _STATS = (
         'Time to First Byte (ms)',
@@ -395,96 +388,201 @@ def webpagetest_stats():
         'Requests',
         'DNS Lookups',
         )
-    # These are the stats we graph by default
+
+    _BROWSER_LOCATIONS = (
+        'Dulles:Chrome',
+        'Dulles:Firefox',
+        'Dulles_IE8',
+        'Dulles_IE9',
+        'SanJose_IE9',
+        'London_IE8',
+    )
+
+    _URLS_TO_TEST = (
+        'http://www.khanacademy.org/',
+        'http://www.khanacademy.org/exercisedashboard',
+        # An arbitrarily picked video
+        ('http://khanacademy.org/math/algebra/solving-linear-equations'
+         '/v/simple-equations'),
+        # An arbitrarily picked exercise
+        'http://www.khanacademy.org/math/calculus/e/derivative_intuition',
+        # An arbitrarily picked CS scratchpad
+        'http://www.khanacademy.org/cs/winston/823977317',
+    )
+
+    # Options here are DSL, Fios, Dial, and custom.
+    _CONNECTIVITY_TYPES = (
+        'DSL',
+    )
+
+    _CACHED = (
+        0,          # do not use the browser cache
+        1,          # use the browser cache
+        )
+
+    class FieldInfo(object):
+        def __init__(self, url_name, mongodb_name, all_values, current_value):
+            self.url_name = url_name          # name submitted by stats.html
+            self.mongodb_name = mongodb_name  # field-name in mongodb (see above)
+            self.all_values = all_values
+            self.current_value = current_value
+
+    def __init__(self, url_query_args):
+        # current_value is initialized to None here, and set later.
+        # NOTE: the first field here is the default varying-field if the
+        # user doesn't specify one explicitly.
+        self.field_info = (
+            self.FieldInfo('stat', None, self._STATS, None),
+            self.FieldInfo('browser_and_loc', 'Browser Location',
+                           self._BROWSER_LOCATIONS, None),
+            self.FieldInfo('url', 'URL', self._URLS_TO_TEST, None),
+            self.FieldInfo('connectivity', 'Connectivity Type',
+                           self._CONNECTIVITY_TYPES, None),
+            self.FieldInfo('cached', 'Cached', self._CACHED, None),
+            )
+
+        # Fill in the actual-value from the url query fields.  We may
+        # override these choices later (for instance, if they specify
+        # two fields as '(all)').
+        for fi in self.field_info:
+            fi.current_value = url_query_args.get(fi.url_name, None)
+
+        varying_field = self._find_varying_field()
+
+        # Make sure the varying-field has a value of '(all)' and no
+        # other field has a value of '(all)' or None -- use the
+        # default instead, which is the first value in the all-list.
+        for fi in self.field_info:
+            if fi.url_name == varying_field:
+                fi.current_value = '(all)'
+            elif fi.current_value in ('(all)', None):
+                fi.current_value = fi.all_values[0]    # the default
+
+    def _find_varying_field(self):
+        """Examine the current field values to find the varying field.
+
+        Here are the rules:
+
+        1) If a field value is '(all)', that means that the user just
+        selected that field as the varying-field explicitly in the
+        form drop-down.  This field should be the varying-field.
+
+        2) If a field value is None, that means that the user had
+        selected the field as a varying-field sometime previously, and
+        had never overridden that choice (the varying field is not
+        physically present in the form-submit, which is why its value
+        ends up as None).  This field should be the varying-field if
+        no field explicilty says '(all)'.
+
+        If the rules above yield more than one field as varying, then
+        the first (in self.field_info order) is chosen.  If the rules
+        yield no varying field, the first rule in self.field_order is
+        chosen.
+
+        Returns:
+           The url-name of the chosen field (from self.field_info[x][0]).
+        """
+        explicit_all_field = None
+        implicit_all_field = None
+
+        for fi in self.field_info:
+            if fi.current_value == '(all)' and explicit_all_field is None:
+                explicit_all_field = fi.url_name
+            if fi.current_value is None and implicit_all_field is None:
+                implicit_all_field = fi.url_name
+
+        return (explicit_all_field or implicit_all_field or
+                self.field_info[0].url_name)
+
+    def _field_info(self, url_name):
+        return [fi for fi in self.field_info if fi.url_name == url_name][0]
+
+    def all_url_names(self):
+        return [fi.url_name for fi in self.field_info]        
+
+    def all_mongodb_names(self):
+        """A list of all the input field names, as keys to mongodb."""
+        return [fi.mongodb_name for fi in self.field_info if fi.mongodb_name]
+
+    def mongodb_name(self, url_name):
+        """mongodb-name corresponding to a given url-name."""
+        return self._field_info(url_name).mongodb_name
+
+    def value_list(self, url_name):
+        """The value of the field, or all possible values if field=='(all)'."""
+        info = self._field_info(url_name)
+        if info.current_value == '(all)':
+            return list(info.all_values)
+        return [info.current_value]
+
+    def value(self, url_name):
+        """Value of the field."""
+        return self._field_info(url_name).current_value
+
+    def value_if_not_all(self, url_name):
+        """Value of the field, or None if the value is '(all)'."""
+        value = self.value(url_name)
+        return value if value != '(all)' else None
+
+    def all_field_values(self, url_name):
+        """List of all possible field-values for a given field."""
+        return self._field_info(url_name).all_values
+
+    def varying_field_info(self):
+        """Return a tuple: (varying-field url-name, all it possible values)."""
+        info = [fi for fi in self.field_info if fi.current_value == '(all)'][0]
+        return (info.url_name, info.all_values)
+
+        
+@app.route('/webpagetest/stats')
+@auth.login_required
+def webpagetest_stats():
+    """This dashboard shows download-speed over time for a given URL/etc."""
+    # These are the stats we graph by default.
     _DEFAULT_STATS = ('Time to First Byte (ms)',
                       'Doc Complete Time (ms)',
                       )
 
-    # These are the fields that are needed to select on, and by stats.html.
-    input_fields = [
-        'Date',
-        'Browser Location',
-        'URL',
-        'Connectivity Type',
-        'Cached',
-        ]
-
-    # We default to letting the user see all the stats from one url/location.
-    browser_and_loc = flask.request.args.get('browser', _BROWSER_LOCATIONS[0])
-    url = flask.request.args.get('url', _URLS_TO_TEST[0])
-    connectivity = flask.request.args.get('connectivity',
-                                          _CONNECTIVITY_TYPES[0])
-    cached = flask.request.args.get('cached', '0')
-    stat = flask.request.args.get('stat', _STATS[0])
-    all_vars = (browser_and_loc, url, connectivity, cached, stat)
-
-    # We want exactly one '(all)' field: that's the one that gets graphed.
-    # If a field is '(new_all)', that one wins; it means the user just
-    # selected it to be 'all'.  Otherwise, if there's more than one, we
-    # pick arbitrarily.  If there are none, we make 'stats' the '(all)'.
-    # TODO(csilvers): implement this.  But for now...
-    if browser_and_loc == '(new_all)':
-        browser_and_loc = '(all)'
-    if url == '(new_all)':
-        url = '(all)'
-    if connectivity == '(new_all)':
-        connectivity = '(all)'
-    if cached == '(new_all)':
-        cached = '(all)'
-    if stat == '(new_all)':
-        stat = '(all)'
-    if '(all)' not in all_vars:
-        stat = '(all)'
-
-    # We filter on the given url/browser/etc, unless the user said
-    # "(all)", in which case we don't filter on that field.  The way
-    # we tell webpagetest_stats() not to filter is to pass in None.
-    url_filter = url if url != '(all)' else None
-    browser_filter = browser_and_loc if browser_and_loc != '(all)' else None
-    connectivity_filter = connectivity if connectivity != '(all)' else None
-    cached_filter = cached if cached != '(all)' else None
-    stats_filter = [stat] if stat != '(all)' else list(_STATS)
+    input_field_info = WebpagetestInputs(flask.request.args)
 
     webpagetest_stats = data.webpagetest_stats(
         db,
-        url=url_filter,
-        browser=browser_filter,
-        connectivity=connectivity_filter,
-        cached=cached_filter,
-        fields=(input_fields + stats_filter))
+        browser=input_field_info.value_if_not_all('browser_and_loc'),
+        url=input_field_info.value_if_not_all('url'),
+        connectivity=input_field_info.value_if_not_all('connectivity'),
+        cached=input_field_info.value_if_not_all('cached'),
+        # The mongodb fields we care about: the date (x-axis),
+        # input-fields (which mongodb needs for filtering), and the
+        # stat(s) we want to graph.
+        fields=(['Date'] + input_field_info.all_mongodb_names() +
+                input_field_info.value_list('stat')))
 
     # Now we need to collate the stats appropriately, depending on
     # which dimension is the '(all)' dimension.  If it's stats, then
     # we want each record to have all the stats (which it already
-    # does, by default).  If it's url, we want each record to have
-    # the single requested stat for all urls, which we'll have to
-    # collate.  Etc.  This assumes that at most one dimension says
-    # '(all)'.  If more than one does, we will give weird results.
-    if stat == '(all)':
+    # does, by default).  If it's url (say), we want each record to
+    # have the single requested stat for all urls, which we'll have to
+    # collate.
+    (varying_field, field_values) = input_field_info.varying_field_info()
+    if varying_field == 'stat':
+        varying_field_mongodb = 'Timing stats'
         collated_stats = webpagetest_stats[:]
-        varying_fields = [{'name': s, 'default': s in _DEFAULT_STATS}
-                          for s in _STATS]
+        varying_values = [{'name': s, 'default': s in _DEFAULT_STATS}
+                          for s in field_values]
     else:
-        if url == '(all)':
-            varying_key = 'URL'
-            varying_fields = [{'name': u, 'default': True}
-                              for u in _URLS_TO_TEST]
-        elif browser_and_loc == '(all)':
-            varying_key = 'Browser Location'
-            varying_fields = [{'name': b, 'default': True}
-                              for b in _BROWSER_LOCATIONS]
-        elif connectivity == '(all)':
-            varying_key = 'Connectivity'
-            varying_fields = [{'name': ct, 'default': True}
-                              for ct in _CONNECTIVITY_TYPES]
-        elif cached == '(all)':
-            varying_key = 'Cached'
-            varying_fields = [{'name': c, 'default': True}
-                              for c in (0, 1)]
-        fixed_keys = input_fields[:]
-        fixed_keys.remove(varying_key)
-        collated_stats = _collect_records(webpagetest_stats, fixed_keys,
-                                          varying_key, stat)
+        varying_field_mongodb = input_field_info.mongodb_name(varying_field)
+        fixed_fields_mongodb = ['Date'] + input_field_info.all_mongodb_names()
+        fixed_fields_mongodb.remove(varying_field_mongodb)
+        # This collects the value of the requested stat for each different
+        # varying field (e.g. the value of 'Time to First Byte' for each
+        # different url, if varying-field were 'url'.)
+        collated_stats = _collect_records(
+            webpagetest_stats, fixed_fields_mongodb, varying_field_mongodb,
+            input_field_info.value_if_not_all('stat'))
+
+        # We show all the values (e.g. all the urls) on the graph by default.
+        varying_values = [{'name': fv, 'default': True}
+                          for fv in field_values]
 
     # Now we need to fix up the date: convert 10/20/2012
     # to (2012, 9, 20) for use in the JavaScript Date constructor.
@@ -492,18 +590,15 @@ def webpagetest_stats():
         dt_parts = map(int, record['Date'].split('/'))
         record['Date'] = (dt_parts[2], dt_parts[0] - 1, dt_parts[1])
 
-    return flask.render_template('webpagetest/stats.html',
-                                 browser_locations=_BROWSER_LOCATIONS,
-                                 current_browser_and_loc=browser_and_loc,
-                                 urls=_URLS_TO_TEST,
-                                 current_url=url,
-                                 connectivities=_CONNECTIVITY_TYPES,
-                                 current_connectivity=connectivity,
-                                 current_cached=cached,
-                                 stats=_STATS,
-                                 current_stat=stat,
-                                 fields=varying_fields,
-                                 webpagetest_stats=collated_stats)
+    template_dict = {'webpagetest_stats': collated_stats,
+                     'varying_field': varying_field_mongodb,
+                     'varying_field_values': varying_values,
+                     }
+    for f in input_field_info.all_url_names():
+        template_dict[f + '_current_'] = input_field_info.value(f)
+        template_dict[f + '_all'] = input_field_info.all_field_values(f)
+
+    return flask.render_template('webpagetest/stats.html', **template_dict)
 
 
 def utc_as_dt(days_ago=0):
