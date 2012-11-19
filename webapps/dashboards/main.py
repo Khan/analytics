@@ -595,7 +595,7 @@ def webpagetest_stats():
                      'varying_field_values': varying_values,
                      }
     for f in input_field_info.all_url_names():
-        template_dict[f + '_current_'] = input_field_info.value(f)
+        template_dict[f + '_current'] = input_field_info.value(f)
         template_dict[f + '_all'] = input_field_info.all_field_values(f)
 
     return flask.render_template('webpagetest/stats.html', **template_dict)
