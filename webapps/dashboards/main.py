@@ -423,7 +423,7 @@ class WebpagetestInputs(object):
     class FieldInfo(object):
         def __init__(self, url_name, mongodb_name, all_values, current_value):
             self.url_name = url_name          # name submitted by stats.html
-            self.mongodb_name = mongodb_name  # field-name in mongodb (see above)
+            self.mongodb_name = mongodb_name  # field-name in mongodb (above)
             self.all_values = all_values
             self.current_value = current_value
 
