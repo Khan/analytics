@@ -548,6 +548,57 @@ class WebpagetestInputs(object):
 def webpagetest_stats():
     """This dashboard shows download-speed over time for a given URL/etc."""
     # These are the stats we graph by default.
+    _DEFAULT_STATS = ('Time to First Byte (ms)',
+                      'Doc Complete Time (ms)',
+                      )
+
+    input_field_info = WebpagetestInputs(flask.request.args)
+
+    webpagetest_stats = data.webpagetest_stats(
+        db,
+        browser=input_field_info.value_if_not_all('browser_and_loc'),
+        url=input_field_info.value_if_not_all('url'),
+        connectivity=input_field_info.value_if_not_all('connectivity'),
+        cached=input_field_info.value_if_not_all('cached'),
+        # The mongodb fields we care about: the date (x-axis),
+        # input-fields (which mongodb needs for filtering), and the
+        # stat(s) we want to graph.
+        fields=(['Date'] + input_field_info.all_mongodb_names() +
+                input_field_info.value_list('stat')))
+
+    # Now we need to collate the stats appropriately, depending on
+    # which dimension is the '(all)' dimension.  If it's stats, then
+    # we want each record to have all the stats (which it already
+    # does, by default).  If it's url (say), we want each record to
+    # have the single requested stat for all urls, which we'll have to
+    # collate.
+    (varying_field, field_values) = input_field_info.varying_field_info()
+    if varying_field == 'stat':
+        varying_field_mongodb = 'Timing stats'
+        collated_stats = webpagetest_stats[:]
+        varying_values = [{'name': s, 'default': s in _DEFAULT_STATS}
+                          for s in field_values]
+    else:
+        varying_field_mongodb = input_field_info.mongodb_name(varying_field)
+        fixed_fields_mongodb = ['Date'] + input_field_info.all_mongodb_names()
+        fixed_fields_mongodb.remove(varying_field_mongodb)
+        # This collects the value of the requested stat for each different
+        # varying field (e.g. the value of 'Time to First Byte' for each
+        # different url, if varying-field were 'url'.)
+        collated_stats = _collect_records(
+            webpagetest_stats, fixed_fields_mongodb, varying_field_mongodb,
+            input_field_info.value_if_not_all('stat'))
+
+        # We show all the values (e.g. all the urls) on the graph by default.
+        varying_values = [{'name': fv, 'default': True}
+                          for fv in field_values]
+
+    # Now we need to fix up the date: convert 10/20/2012
+    # to (2012, 9, 20) for use in the JavaScript Date constructor.
+    for record in collated_stats:
+        dt_parts = map(int, record['Date'].split('/'))
+        record['Date'] = (dt_parts[2], dt_parts[0] - 1, dt_parts[1])
+
     template_dict = {'webpagetest_stats': collated_stats,
                      'varying_field': varying_field_mongodb,
                      'varying_field_values': varying_values,
