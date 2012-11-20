@@ -29,6 +29,8 @@ A dashboard of statistics about a URL.
             <option value="{{url}}" {% if url == current_url %}selected{% endif %}>{{url}}</option>
             {% endfor %}
         </select>
+        <p>(If you want a url not in the pulldown, you can enter it
+        manually into the browser's url bar: set <tt>?url=xxx</tt>)</p>
         </h2>
     </form>
     <form id="stat-selector">
@@ -107,9 +109,8 @@ A dashboard of statistics about a URL.
         data.addColumn('number', 'cpu ucents (50th pctile)');
         data.addColumn('number', 'cpu ucents (5th pctile)');
         data.addRows([
-            // TODO(csilvers): subtract 1 from the month (js is 0-indexed)
 {% for row in url_stats %}
-            [new Date({{row['dt']|replace('-', ',')}}),
+            [new Date{{row['dt']}},
              {{row['count']}}, {{row['avg_response_bytes']}},
              {{row['ms_pct95']}}, {{row['ms_pct50']}}, {{row['ms_pct5']}},
              {{row['cpu_ms_pct95']}}, {{row['cpu_ms_pct50']}}, {{row['cpu_ms_pct5']}},

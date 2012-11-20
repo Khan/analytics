@@ -276,6 +276,15 @@ def gae_stats_url_stats():
     # Get up to 3 years(ish) worth of data.
     url_stats = data.daily_request_log_url_stats(db, url=url, limit=1000)
 
+    def url_stats_iter():
+        """Convert 2012-10-11 to (2012, 9, 11) for use in JavaScript."""
+        for row in url_stats:
+            retval = row.copy()
+            dt_parts = map(int, retval['dt'].split('-'))
+            dt_parts[1] = dt_parts[1] - 1
+            retval['dt'] = tuple(dt_parts)
+            yield retval
+
     # Get a list of all the urls.  Some days this data isn't generated
     # properly, and some days it takes a while for yesterday's report
     # to be generated, so we just go back in time until we get a list
@@ -292,7 +301,7 @@ def gae_stats_url_stats():
 
     return flask.render_template('gae-stats/url-stats.html',
                                  current_url=url, urls=urls,
-                                 url_stats=url_stats)
+                                 url_stats=url_stats_iter())
 
 
 def _collect_records(records, fixed_keys, varying_key, varying_value):
