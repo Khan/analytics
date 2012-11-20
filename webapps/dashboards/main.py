@@ -419,6 +419,7 @@ class WebpagetestInputs(object):
         0,          # do not use the browser cache
         1,          # use the browser cache
         )
+<<<<<<< HEAD
 
     class FieldInfo(object):
         def __init__(self, url_name, mongodb_name, all_values, current_value):
@@ -539,57 +540,129 @@ class WebpagetestInputs(object):
 def webpagetest_stats():
     """This dashboard shows download-speed over time for a given URL/etc."""
     # These are the stats we graph by default.
-    _DEFAULT_STATS = ('Time to First Byte (ms)',
-                      'Doc Complete Time (ms)',
-                      )
+||||||| merged common ancestors
+    # These are the stats we graph by default
+=======
 
-    input_field_info = WebpagetestInputs(flask.request.args)
+    class FieldInfo(object):
+        def __init__(self, url_name, mongodb_name, all_values, current_value):
+            self.url_name = url_name          # name submitted by stats.html
+            self.mongodb_name = mongodb_name  # field-name in mongodb (see above)
+            self.all_values = all_values
+            self.current_value = current_value
 
-    webpagetest_stats = data.webpagetest_stats(
-        db,
-        browser=input_field_info.value_if_not_all('browser_and_loc'),
-        url=input_field_info.value_if_not_all('url'),
-        connectivity=input_field_info.value_if_not_all('connectivity'),
-        cached=input_field_info.value_if_not_all('cached'),
-        # The mongodb fields we care about: the date (x-axis),
-        # input-fields (which mongodb needs for filtering), and the
-        # stat(s) we want to graph.
-        fields=(['Date'] + input_field_info.all_mongodb_names() +
-                input_field_info.value_list('stat')))
+    def __init__(self, url_query_args):
+        # current_value is initialized to None here, and set later.
+        # NOTE: the first field here is the default varying-field if the
+        # user doesn't specify one explicitly.
+        self.field_info = (
+            self.FieldInfo('stat', None, self._STATS, None),
+            self.FieldInfo('browser_and_loc', 'Browser Location',
+                           self._BROWSER_LOCATIONS, None),
+            self.FieldInfo('url', 'URL', self._URLS_TO_TEST, None),
+            self.FieldInfo('connectivity', 'Connectivity Type',
+                           self._CONNECTIVITY_TYPES, None),
+            self.FieldInfo('cached', 'Cached', self._CACHED, None),
+            )
 
-    # Now we need to collate the stats appropriately, depending on
-    # which dimension is the '(all)' dimension.  If it's stats, then
-    # we want each record to have all the stats (which it already
-    # does, by default).  If it's url (say), we want each record to
-    # have the single requested stat for all urls, which we'll have to
-    # collate.
-    (varying_field, field_values) = input_field_info.varying_field_info()
-    if varying_field == 'stat':
-        varying_field_mongodb = 'Timing stats'
-        collated_stats = webpagetest_stats[:]
-        varying_values = [{'name': s, 'default': s in _DEFAULT_STATS}
-                          for s in field_values]
-    else:
-        varying_field_mongodb = input_field_info.mongodb_name(varying_field)
-        fixed_fields_mongodb = ['Date'] + input_field_info.all_mongodb_names()
-        fixed_fields_mongodb.remove(varying_field_mongodb)
-        # This collects the value of the requested stat for each different
-        # varying field (e.g. the value of 'Time to First Byte' for each
-        # different url, if varying-field were 'url'.)
-        collated_stats = _collect_records(
-            webpagetest_stats, fixed_fields_mongodb, varying_field_mongodb,
-            input_field_info.value_if_not_all('stat'))
+        # Fill in the actual-value from the url query fields.  We may
+        # override these choices later (for instance, if they specify
+        # two fields as '(all)').
+        for fi in self.field_info:
+            fi.current_value = url_query_args.get(fi.url_name, None)
 
-        # We show all the values (e.g. all the urls) on the graph by default.
-        varying_values = [{'name': fv, 'default': True}
-                          for fv in field_values]
+        varying_field = self._find_varying_field()
 
-    # Now we need to fix up the date: convert 10/20/2012
-    # to (2012, 9, 20) for use in the JavaScript Date constructor.
-    for record in collated_stats:
-        dt_parts = map(int, record['Date'].split('/'))
-        record['Date'] = (dt_parts[2], dt_parts[0] - 1, dt_parts[1])
+        # Make sure the varying-field has a value of '(all)' and no
+        # other field has a value of '(all)' or None -- use the
+        # default instead, which is the first value in the all-list.
+        for fi in self.field_info:
+            if fi.url_name == varying_field:
+                fi.current_value = '(all)'
+            elif fi.current_value in ('(all)', None):
+                fi.current_value = fi.all_values[0]    # the default
 
+    def _find_varying_field(self):
+        """Examine the current field values to find the varying field.
+
+        Here are the rules:
+
+        1) If a field value is '(all)', that means that the user just
+        selected that field as the varying-field explicitly in the
+        form drop-down.  This field should be the varying-field.
+
+        2) If a field value is None, that means that the user had
+        selected the field as a varying-field sometime previously, and
+        had never overridden that choice (the varying field is not
+        physically present in the form-submit, which is why its value
+        ends up as None).  This field should be the varying-field if
+        no field explicilty says '(all)'.
+
+        If the rules above yield more than one field as varying, then
+        the first (in self.field_info order) is chosen.  If the rules
+        yield no varying field, the first rule in self.field_order is
+        chosen.
+
+        Returns:
+           The url-name of the chosen field (from self.field_info[x][0]).
+        """
+        explicit_all_field = None
+        implicit_all_field = None
+
+        for fi in self.field_info:
+            if fi.current_value == '(all)' and explicit_all_field is None:
+                explicit_all_field = fi.url_name
+            if fi.current_value is None and implicit_all_field is None:
+                implicit_all_field = fi.url_name
+
+        return (explicit_all_field or implicit_all_field or
+                self.field_info[0].url_name)
+
+    def _field_info(self, url_name):
+        return [fi for fi in self.field_info if fi.url_name == url_name][0]
+
+    def all_url_names(self):
+        return [fi.url_name for fi in self.field_info]        
+
+    def all_mongodb_names(self):
+        """A list of all the input field names, as keys to mongodb."""
+        return [fi.mongodb_name for fi in self.field_info if fi.mongodb_name]
+
+    def mongodb_name(self, url_name):
+        """mongodb-name corresponding to a given url-name."""
+        return self._field_info(url_name).mongodb_name
+
+    def value_list(self, url_name):
+        """The value of the field, or all possible values if field=='(all)'."""
+        info = self._field_info(url_name)
+        if info.current_value == '(all)':
+            return list(info.all_values)
+        return [info.current_value]
+
+    def value(self, url_name):
+        """Value of the field."""
+        return self._field_info(url_name).current_value
+
+    def value_if_not_all(self, url_name):
+        """Value of the field, or None if the value is '(all)'."""
+        value = self.value(url_name)
+        return value if value != '(all)' else None
+
+    def all_field_values(self, url_name):
+        """List of all possible field-values for a given field."""
+        return self._field_info(url_name).all_values
+
+    def varying_field_info(self):
+        """Return a tuple: (varying-field url-name, all it possible values)."""
+        info = [fi for fi in self.field_info if fi.current_value == '(all)'][0]
+        return (info.url_name, info.all_values)
+
+        
+@app.route('/webpagetest/stats')
+@auth.login_required
+def webpagetest_stats():
+    """This dashboard shows download-speed over time for a given URL/etc."""
+    # These are the stats we graph by default.
     template_dict = {'webpagetest_stats': collated_stats,
                      'varying_field': varying_field_mongodb,
                      'varying_field_values': varying_values,
