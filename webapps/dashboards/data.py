@@ -72,18 +72,24 @@ def daily_request_log_url_stats(mongo, dt=None, url=None, fields=None,
     return collection.find(spec, fields).limit(limit)
 
 
-def _average_of_maps(maps):
-    """Given a list of maps with the same keys, return an 'average' map.
+def _median_of_maps(maps):
+    """Given a list of maps with the same keys, return a 'median' map.
 
     The return value has the same keys as the input maps, but for every
-    value that's a number, the output value is the average of the
+    value that's a number, the output value is the median of the
     value for all the input maps.  For every value that's not a number,
     the output value is taken arbitrarily from one of the input maps.
     """
     retval = {}
     for k in maps[0]:
         try:
-            retval[k] = sum(m[k] for m in maps) / len(maps)
+            values = [m[k] for m in maps]
+            values.sort()
+            if len(values) % 2:
+                retval[k] = values[(len(values) - 1) / 2]
+            else:
+                retval[k] = (values[len(values) / 2] + 
+                             values[len(values) / 2 - 1]) / 2
         except TypeError:    # m[k] is not a number
             retval[k] = maps[0][k]
     return retval
@@ -108,7 +114,8 @@ def webpagetest_stats(mongo, dt=None,
           not use the browser cache (shift-reload).  If "1" it does (normal
           reload).
       run (optional): if specified, retrieve information for run #<run>.
-          If None, then average all the integer fields across all runs.
+          If None, then take the median for all the integer fields
+          across all runs.
       fields (optional): a list of field names to return in the result set.
       limit (optional): the maximum size of the result set. Default is 100.
 
@@ -145,19 +152,19 @@ def webpagetest_stats(mongo, dt=None,
 
     entry_map = {}   # keys are (url, browser, connectivity, cached)
     for entry in wpt_data:
-        entry['Run'] = '(average)'
+        entry['Run'] = '(median)'
         key = (entry.get('Date'),
                entry.get('URL'), entry.get('Browser Location'),
                entry.get('Connectivity Type'), entry.get('Cached'))
         entry_map.setdefault(key, []).append(entry)
 
-    # Now each value in entry_map is a list of runs for the same url/etc.
-    # We average every int value in there, taking the rest to be the
-    # first.
+    # Now each value in entry_map is a list of runs for the same
+    # url/etc.  We take the median of every int value in there, taking
+    # the rest to be the first.
     retval = []
     for key in sorted(entry_map.keys()):
         run = entry_map[key]
-        retval.append(_average_of_maps(run))
+        retval.append(_median_of_maps(run))
     return retval[:limit]
 
 
