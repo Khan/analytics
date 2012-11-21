@@ -384,6 +384,7 @@ class WebpagetestInputs(object):
     # specify) is taken to be the first value in the list.
 
     # These are the stats we chose to store in run_webpagetest.py.
+    # Each value here is a field in mongodb.
     _STATS = (
         'Time to First Byte (ms)',
         'Time to Title',
@@ -398,6 +399,7 @@ class WebpagetestInputs(object):
         'DNS Lookups',
         )
 
+    # Each value for the fields below is a possible value in mongo-db.
     _BROWSER_LOCATIONS = (
         'Dulles:Chrome',
         'Dulles:Firefox',
@@ -437,6 +439,8 @@ class WebpagetestInputs(object):
             self.current_value = current_value
 
     def __init__(self, url_query_args):
+        # 'stat' has None for mongodb_name: it's a special case (it stores
+        # entire mongo-db fields instead of values for a single field).
         # current_value is initialized to None here, and set later.
         # NOTE: the first field here is the default varying-field if the
         # user doesn't specify one explicitly.
@@ -518,7 +522,7 @@ class WebpagetestInputs(object):
         return self._field_info(url_name).mongodb_name
 
     def value_list(self, url_name):
-        """The value of the field, or all possible values if field=='(all)'."""
+        """[value_of_the_field], or all possible values if field=='(all)'."""
         info = self._field_info(url_name)
         if info.current_value == '(all)':
             return list(info.all_values)
