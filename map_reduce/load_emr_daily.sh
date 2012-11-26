@@ -19,6 +19,8 @@ day_after=$(date --date=${day}+1day '+%Y-%m-%d')
 current_dir=`dirname $0`
 archive_dir="$HOME/kabackup/daily_new"
 
+LOG_URI="s3://ka-mapreduce/logs/"
+
 # Bulk download small factual tables.
 # TODO(yunfang): Revisit if this is the best place to do the download
 ${current_dir}/../src/bulk_download.py \
@@ -50,6 +52,7 @@ echo "Convert pbuf to json and load into the datastore"
 status=$(elastic-mapreduce --create --name "${day} GAE Upload" \
   --num-instances 3 --master-instance-type m1.small \
   --slave-instance-type c1.medium \
+  --log-uri "$LOG_URI" \
   --json ${current_dir}/load_gae_to_hive.json \
   --param "<dt>=${day}" 2>&1 )
 echo "$status"
@@ -62,6 +65,7 @@ echo "Updating the UserData"
 status=$(elastic-mapreduce --create --name "${day} UserDataP" \
   --num-instances 3 --master-instance-type m1.small \
   --slave-instance-type m1.large \
+  --log-uri "$LOG_URI" \
   --json ${current_dir}/userdata.json \
   --param "<start_dt>=${day_before}" \
   --param "<end_dt>=${day}" 2>&1 )
@@ -74,6 +78,7 @@ echo "Convert raw logs to TSV request logs"
 status=$(elastic-mapreduce --create --name "${day} Request Logs Upload" \
   --num-instance 3 --master-instance-type m1.small \
   --slave-instance-type m1.large \
+  --log-uri "$LOG_URI" \
   --json ${current_dir}/load_request_logs_to_hive.json \
   --param "<route_map_path>=${route_map_path}" \
   --param "<dt>=${day}" 2>&1 )
