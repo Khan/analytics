@@ -162,21 +162,21 @@ _billing_resources = (
 @auth.login_required
 def gae_stats_billing_history():
     """Display usage over time for billable App Engine resources."""
-    resource_name = flask.request.args.get('res', None)
+    group_dt_by = flask.request.args.get('group_dt_by', None)
+    if group_dt_by not in ('day', 'week'):
+        group_dt_by = 'day'
+
+    resource_name = flask.request.args.get('resource', None)
     if resource_name not in _billing_resources:
         resource_name = _billing_resources[0]
 
-    results = list(data.gae_usage_reports_for_resource(db, resource_name))
+    result_iter, resource_unit = data.gae_usage_reports_for_resource(
+        db, resource_name, group_dt_by=group_dt_by)
 
-    if results:
-        _, _, resource_unit = results[0]
-    else:
-        resource_unit = ''
-
-    def result_iter():
-        for dt, used, _ in results:
+    def result_iter_with_js_date():
+        for dt, used in result_iter:
             # Convert 2012-10-11 to (2012, 9, 11) for use in the JavaScript
-            # Date constructor.
+            # Date constructor where months begin with 0, not 1.
             dt_parts = map(int, dt.split('-'))
             dt_parts[1] = dt_parts[1] - 1
             yield tuple(dt_parts), used
@@ -185,7 +185,8 @@ def gae_stats_billing_history():
                                  resource_name=resource_name,
                                  resource_unit=resource_unit,
                                  resources=_billing_resources,
-                                 data=result_iter())
+                                 group_dt_by=group_dt_by,
+                                 data=result_iter_with_js_date())
 
 
 @app.route('/gae_stats/instances')

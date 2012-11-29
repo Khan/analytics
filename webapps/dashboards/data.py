@@ -1,5 +1,9 @@
 """ Library to massage data fetched from mongo report db"""
 
+import collections
+import datetime
+import itertools
+
 
 def topic_summary(mongo, dt, duration):
     """Get the topic summary based on dt and duration"""
@@ -185,20 +189,32 @@ def daily_request_log_urlroute_stats(mongo, dt, limit=100):
     return collection.find({'dt': dt}).limit(limit)
 
 
-def gae_usage_reports_for_resource(mongo, resource_name, limit=100):
+def gae_usage_reports_for_resource(mongo, resource_name, limit=366,
+                                   group_dt_by='day'):
     """Fetch from the mongo collection gae_dashboard_usage_reports.
 
     Arguments:
       mongo: a pymongo connection
       resource_name: the name of a resource from the App Engine usage
         report, e.g., "Frontend Instance Hours", "Datastore Storage".
-      limit (optional): the maximum size of the result set. Default is 100.
+      limit (optional): the maximum size of the result set. Default is
+        366, or about a year.
+      group_dt_by (optional): expects either "day" or "week". Normally
+        each result's "used" field is the amount for a single day.
+        Specifying "week" means that the result's "dt" field is the
+        Monday of that week and the "used" field is the sum for the days
+        in the week. Incomplete weeks (those with less than 7 days) are
+        ignored. 
 
     Returns:
-      A generator of (dt, used, unit) tuples where dt is a date string like
-      'YYYY-MM-DD', used is a numeric amount quantity (float or int), and
-      unit is the App Engine unit such as "GByte-day".
+      The tuple (result_iterator, unit) where unit is the App Engine
+      unit such as "GByte-day" and result_iterator returns (dt, used)
+      tuples where dt is a date string like 'YYYY-MM-DD', used is a
+      numeric amount quantity (float or int). When there are no results,
+      unit is the empty string.
     """
+    if not group_dt_by in ('day', 'week'):
+        raise ValueError('group_dt_by must be one of "day", "week"')
     collection = mongo['report']['gae_dashboard_usage_reports']
     cursor = collection.find(sort=[('dt', -1)], limit=limit)
     # Each document has the following structure, where usage entries
@@ -209,11 +225,48 @@ def gae_usage_reports_for_resource(mongo, resource_name, limit=100):
     #    {'name': 'Frontend Instance Hours', 'unit': 'Hour', 'used': XX.XX},
     #    {'name', 'Datastore Storage', 'unit': 'GByte-day', 'used': YY.YY},
     #    ... ]}
-    for doc in cursor:
-        for entry in doc['usage']:
+    try:
+        peek = cursor[0]
+        cursor = itertools.chain([peek], cursor)
+    except IndexError:
+        # No items returned by this cursor.
+        peek = None
+
+    unit = ''
+    if peek:
+        # Extract a resource's unit of usage or fall back to the empty
+        # string. This function is expected to normalize units though in
+        # practice the unit remains uniform. A resource billed by "Day"
+        # will always bill by "Day" and not in "Hour". This may need
+        # revision if App Engine changes how units are billed.
+        for entry in peek['usage']:
             if entry['name'] == resource_name:
-                yield doc['dt'], entry['used'], entry['unit']
-                break  # break out of the usage items iteration
+                unit = entry['unit']
+                break
+
+    def result_iter():
+        for doc in cursor:
+            for entry in doc['usage']:
+                if entry['name'] == resource_name:
+                    yield doc['dt'], entry['used']
+                    break  # break out of the usage items iteration
+
+    if group_dt_by == 'day':
+        return result_iter(), unit
+    else:
+        # Sum daily resource usage into weeks that start on Monday.
+        daily = list(result_iter())
+        week_buckets = collections.OrderedDict()
+        for dt, used in daily:
+            date = datetime.date(*map(int, dt.split('-')))
+            date -= datetime.timedelta(date.weekday())  # get to Monday
+            monday = '%d-%d-%d' % (date.year, date.month, date.day)
+            if monday not in week_buckets:
+                week_buckets[monday] = []
+            week_buckets[monday].append(used)
+        weekly = [(monday, sum(used_list))
+                  for monday, used_list in week_buckets.items()]
+        return iter(weekly), unit
 
 
 def get_keyed_results(db_collection, total_info, index_key, 

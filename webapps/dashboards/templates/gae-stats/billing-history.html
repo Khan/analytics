@@ -8,6 +8,17 @@ A dashboard of App Engine's billing history reports.
 <link rel="shortcut icon" href="http://www.khanacademy.org/favicon.ico?leaf">
 <link rel="stylesheet" type="text/css" href="/static/css/third_party/bootstrap.css">
 <link rel="stylesheet" type="text/css" href="/static/css/third_party/jquery/flick/jquery-ui-1.8.20.custom.css">
+<style type="text/css">
+.growth-summary form,
+.growth-summary form label,
+.growth-summary form input {
+    /* Override bootstrap.css's too-aggressive stylings of label and input. */
+    display: inline;
+}
+.growth-summary form label {
+    cursor: pointer;
+}
+</style>
 </head>
 
 <body>
@@ -15,13 +26,16 @@ A dashboard of App Engine's billing history reports.
 {% include 'navbar.html' %}
 
 <div class="growth-summary" style="width:800px; margin: 40px auto;">
-    <h2>App Engine Billing History for
-        <form style="display:inline" onchange="this.submit()">
-        <select name="res">{% for name in resources %}
-            <option value="{{name}}" {%if resource_name == name %}selected{% endif %}>{{name}}</option>{% endfor %}
-        </select>
-        </form>
-    </h2>
+    <form onchange="this.submit()">
+        <h2>App Engine Billing History for
+            <select name="resource">{% for name in resources %}
+                <option value="{{name}}" {%if resource_name == name %}selected{% endif %}>{{name}}</option>{% endfor %}
+            </select>
+        </h2>
+        Each data point is
+        <label><input type="radio" name="group_dt_by" value="day" {%if group_dt_by == "day" %}checked{% endif %}> a day</label>
+        <label><input type="radio" name="group_dt_by" value="week" {%if group_dt_by== "week" %}checked{% endif %}> a week</label>
+    </form>
     <div id='chart_div' style='width: 700px; height: 740px;'></div>
 </div>
 
