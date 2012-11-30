@@ -21,11 +21,20 @@ import wpt_batch
 # The locations/browsers we want to test *from*.  This list comes
 # from http://www.webpagetest.org/getLocations.php.
 
+# We don't do a full MxNxP test for browser_locations x urls_to_test x
+# connectivity.  Instead, we only do facets: test all the
+# browser-locations for urls_to_test[0] + connectivity[0], and all the
+# urls for browser_locations[0] + connectivity[0], and all the
+# connectivities for browser_locations[0] and urls_to_test[0].  (We
+# always test both cached and uncached though, for the moment.)  This
+# keeps the number of requests down, letting us focus on more runs per
+# day.
+
 _BROWSER_LOCATIONS = (
-    'Dulles_IE8',
-    'Dulles_IE9',
     'Dulles:Chrome',
     'Dulles:Firefox',
+    'Dulles_IE8',
+    'Dulles_IE9',
     'SanJose_IE9',
     'London_IE8',
 )
@@ -47,7 +56,7 @@ _CONNECTIVITY_TYPES = (
     'DSL',
 )
 
-_NUM_RUNS_PER_URL = 2
+_NUM_RUNS_PER_URL = 9
 
 # If true, we load each page twice, the second time making use of the
 # browser cache, cookies, etc.  If false, we only load the page once,
@@ -59,13 +68,21 @@ def _VerifyNumberOfTestsDoesNotExceedThreshold():
     """Our API key allows 200 requests.  Make sure we're not over that."""
     max_requests = 200
     num_views_per_url = 1 + int(_TEST_REPEAT_VIEW)
-    num_requests = (len(_BROWSER_LOCATIONS) * len(_URLS_TO_TEST) *
-                    len(_CONNECTIVITY_TYPES) *
-                    _NUM_RUNS_PER_URL * num_views_per_url)
+    # We fetch all the browser-locations with a fixed
+    # url+connectivity, then all the urls with a fixed
+    # browser-location+connectivity, then all the connectivies with a
+    # fixed url+browser-location.  Thus the number of fetches is just
+    # adding up all those lists, except that ends up counting the
+    # (browser[0], url[0], connectivity[0]) combination 3 times
+    # instead of 1, so we have to correct for that.
+    num_fetches = (len(_BROWSER_LOCATIONS) + len(_URLS_TO_TEST)
+                   + len(_CONNECTIVITY_TYPES) - 2)
+    num_requests = (num_fetches * _NUM_RUNS_PER_URL * num_views_per_url)
     if num_requests > max_requests:
         raise RuntimeError('Number of requests (%s) exceeds allowed quota (%s)'
                            ' -- modify this script to reduce the number.'
                            % (num_requests, max_requests))
+    return num_requests
 
 
 def _ReadKey():
@@ -82,7 +99,6 @@ def RunTests(browser_locations, urls_to_test, connectivity_types,
     """Get data as a DOM and return a map from url/etc to dom."""
     wpt_options = wpt_batch.GetOptions([])
     wpt_options.server = 'http://www.webpagetest.org/'
-    wpt_options.urlfile = urls_to_test
     wpt_options.outputdir = None    # we will handle output ourselves
     wpt_options.key = _ReadKey()
     wpt_options.fvonly = int(not test_repeat_view)
@@ -90,28 +106,40 @@ def RunTests(browser_locations, urls_to_test, connectivity_types,
 
     # Map from (browser-location, connectivity_type, url) to result DOM
     id_url_dict = {}    # data structure used to parallelize lookups.
-    for browser_location in browser_locations:
-        for connectivity_type in connectivity_types:
-            wpt_options.location = browser_location
-            wpt_options.connectivity = connectivity_type
 
-            print ('---\nGetting results for %s (%s)'
-                   % (browser_location, connectivity_type))
-            sys.stdout.flush()
-            # The values of id_url_dict are just used for human
-            # readability.  wpt_batch has the value be a url, but for
-            # us a url-info tuple is more useful.
-            this_id_url_dict = wpt_batch.StartBatch(wpt_options, verbose)
-            for (id, url) in this_id_url_dict.iteritems():
-                id_url_dict[id] = (browser_location, connectivity_type, url)
+    def RunOneTest(browser_location, connectivity_type, urls_to_test):
+        print ('---\nGetting results for %s (%s)'
+               % (browser_location, connectivity_type))
+        sys.stdout.flush()
+
+        wpt_options.location = browser_location
+        wpt_options.connectivity = connectivity_type
+        wpt_options.urlfile = urls_to_test
+
+        # The values of id_url_dict are just used for human
+        # readability.  wpt_batch has the value be a url, but for
+        # us a url-info tuple is more useful.
+        this_id_url_dict = wpt_batch.StartBatch(wpt_options, verbose)
+        for (id, url) in this_id_url_dict.iteritems():
+            id_url_dict[id] = (browser_location, connectivity_type, url)
+
+    # 1) The facet where we vary urls (other 2 dimensions are fixed).
+    # 2) The facet where we vary browser-locations
+    # 3) The facet where we vary connectivity_types
+    # For the last 2, we ignore brower_location[0] and connectivity_type[0],
+    # because that entry was already fetched in facet 1.
+    RunOneTest(browser_locations[0], connectivity_types[0], urls_to_test)
+    for browser_location in browser_locations[1:]:
+        RunOneTest(browser_location, connectivity_types[0], [urls_to_test[0]])
+    for connectivity_type in connectivity_types[1:]:
+        RunOneTest(browser_locations[0], connectivity_type, [urls_to_test[0]])
 
     return wpt_batch.FinishBatch(id_url_dict, wpt_options.server,
                                  wpt_options.outputdir, csv_output=True,
                                  verbose=verbose)
 
 
-def ConvertToDict(browser_location, connectivity_type, url,
-                  test_id, dict_output):
+def ConvertToDict(browser_location, connectivity_type, url, dict_output):
     """Take information about one webpagetest result and stores it in a dict.
 
     dict_output holds the information that webpagetest gives back in its
@@ -156,13 +184,41 @@ def ConvertToDict(browser_location, connectivity_type, url,
               'Visually Complete (ms)'):
         mongo_dict[k] = int(dict_output[k] or '0')
 
-    # Donwload the har file.
-    har_url = ('http://www.webpagetest.org/export.php?test=%s&run=%s&cached=%s'
-               % (test_id, mongo_dict['Run'], mongo_dict['Cached']))
-    har_contents = urllib2.urlopen(har_url).read()
-    mongo_dict['HAR File'] = har_contents
+    # This will be filled in later via DownloadHARFile().
+    mongo_dict['HAR File'] = ''
 
     return mongo_dict
+
+
+def DownloadHARFile(test_id, mongo_dicts, verbose):
+    """To save space, we only download one HAR file out of all the runs."""
+    # For every date/browser/connectivity/url/cached tuple, we collect all
+    # the runs.  We then take the median run (or one of the median runs
+    # if #runs is even) and fetch its har file as the "representative"
+    # HAR file.  We leave all other runs with blank HAR files.  The
+    # 'median' is determined based on total render time.
+    # The input test_id represents a single browser/connectivity/url,
+    # and the 'date' is always the run we just did, so we actually
+    # only need to group by 'cached'.
+    collections = {}
+    for mongo_dict in mongo_dicts:
+        collections.setdefault(mongo_dict['Cached'], []).append(mongo_dict)
+
+    for (cached, runs) in collections.iteritems():
+        sorted_runs = sorted(runs, key=lambda d: d['Doc Complete Time (ms)'])
+        median_run = sorted_runs[len(sorted_runs) / 2]
+        median_run_index = runs.index(median_run)
+        url = ('http://www.webpagetest.org/export.php?test=%s&run=%s&cached=%s'
+               % (test_id, median_run_index, cached))
+        har_contents = urllib2.urlopen(url).read()
+        runs[median_run]['HAR File'] = har_contents
+        if verbose:
+            print ('Downloaded HAR file for run %s of %s / %s / %s / %s (%s)'
+                   % (median_run['Run'], median_run['URL'],
+                      median_run['Browser Location'],
+                      median_run['Connectivity Type'],
+                      'cache' if median_run['Cached'] else 'nocache',
+                      median_run['Date']))
 
 
 def SaveToMongo(mongo_dicts):
@@ -201,13 +257,16 @@ def main(args=sys.argv[1:]):
                        num_runs_per_url, test_repeat_view, options.verbose)
 
     mongo_dicts = []
-    for ((browser_location, connectivity_type, url), 
+    for ((browser_location, connectivity_type, url),
          (test_id, csv_output)) in results.iteritems():
         reader = csv.DictReader(csv_output)
+        mongo_dicts_for_this_test_id = []
         for dict_output in reader:
             mongo_dict = ConvertToDict(browser_location, connectivity_type,
-                                       url, test_id, dict_output)
-            mongo_dicts.append(mongo_dict)
+                                       url, dict_output)
+            mongo_dicts_for_this_test_id.append(mongo_dict)
+        DownloadHARFile(test_id, mongo_dicts_for_this_test_id, options.verbose)
+        mongo_dicts.extend(mongo_dicts_for_this_test_id)
 
     SaveToMongo(mongo_dicts)
     print 'DONE.  Saved %s dicts to mongo' % len(mongo_dicts)
