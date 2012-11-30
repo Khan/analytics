@@ -108,8 +108,8 @@ _FIELDS_TO_KEEP = ('ip', 'user', 'time_stamp', 'method', 'url',
                    'pending_ms')
 
 
-def url_route(method, url, route_regexps):
-    """Determine the regexp that would be matched to handle this url.
+def route_for_url(route_map, url, method):
+    """Return the wsgi route for a given url + method.
 
     This looks at the wsgi apps (including the flask wsgi app) to
     determine what pattern matches the url, which in turn can be used
@@ -122,28 +122,18 @@ def url_route(method, url, route_regexps):
     we decided returning the regexp is more human-readable.)
 
     Arguments:
-        method: the method of the request: 'GET', 'POST', etc.
+        route_map: A list of app-yaml and wsgi-regexps, as returned
+            by route_map.py:generate_route_map(), or by
+            http://www.khanacademy.org/stats/route_map (but with the
+            regexp strings converted to actual regexps).
         url: the full url of the request, including protocol, hostname,
             query, etc.
-        route_regexps: An iterable that returns
-               (app_yaml_regexp, wsgi_regexp, list-of-methods)
-            tuples (one for each route in our app).  app_yaml_regexp
-            is the regexp in app.yaml that specifies the wsgi app,
-            and wsgi_regexp is the regexp in the wsgi app (main.py,
-            e.g.) that specifies the handler to run.  We return a
-            unique representation of the first regexp that matches
-            the given method + url, or the path-component of the url
-            itself if none does.  list-of-methods can be the empty
-            list to indicate that *all* methods match.
+        method: the method of the request: 'GET', 'POST', etc.
 
     Returns:
         A string representation of the matching regexp that is enough
-        to uniquely identify the regexp.  Normally this will be
-        wsgi_regexp (a regexp found in main.py or api/main.py).
-        However, if the same wsgi_regexp is found in two places
-        in route_regexps -- they'll have different app_yaml_regexps
-        -- we'll distinguish them by returning
-        '(<app_yaml_regexp>)(<wsgi_regexp>)'.
+        to uniquely identify the regexp, along with the 'module' where
+        the wsgi app is from.
 
         The 'matching regexp' is calculated as follows: find the
         first app_yaml_regexp that matches the url, and then find
@@ -152,54 +142,46 @@ def url_route(method, url, route_regexps):
         If no matching regexp is found, return the input url-path.
     """
     url_path = urlparse.urlparse(url).path
-    matched_app_yaml_regexp = None
-    for (app_yaml_regexp, wsgi_regexp, methods) in route_regexps:
-        if (matched_app_yaml_regexp is None
-            and app_yaml_regexp.search(url_path)):
-            matched_app_yaml_regexp = app_yaml_regexp
 
-        # Now check if the wsgi regexp is a match as well.
-        if ((not methods or method in methods) and  # method matches
-            app_yaml_regexp == matched_app_yaml_regexp and
-            wsgi_regexp.search(url_path)):          # wsgi regexp matches
-            matched_wsgi_regexp = wsgi_regexp
+    # The below is copied (ugh) from ka-stable:route_map.py:route_for_url()
+    for app_yaml_info in route_map:
+        app_yaml_regexp = app_yaml_info[0]
+        app_yaml_module = re.sub(r'\.[^.]+$', '', app_yaml_info[1])
+        if app_yaml_regexp.search(url_path):
             break
-    else:     # for/else: if we get here, no regexp matched
-        # This should never hit since we have catch-all urls in
-        # app.yaml and main.py.  It's just for safety.
+    else:   # for/else
+        # No match in app.yaml?  It's a 404, which we indicate by
+        # returning the input unchanged.
         return url_path
 
-    # Now check if wsgi_regexp is unique, and we can just return it,
-    # or we need to include app_yaml_regexp too.
-    is_duplicated = False
-    for (app_yaml_regexp, wsgi_regexp, methods) in route_regexps:
-        if (wsgi_regexp == matched_wsgi_regexp and
-            app_yaml_regexp != matched_app_yaml_regexp):
-            is_duplicated = True
+    for wsgi_info in app_yaml_info[2:]:
+        wsgi_regexp = wsgi_info[0]
+        methods = wsgi_info[2:]
+        if ((not methods or method in methods) and  # method matches
+            wsgi_regexp.search(url_path)):     # wsgi regexp matches
             break
+    else:  # for/else
+        # No match in the wsgi route table?  Also a 404.
+        return url_path
 
-    if is_duplicated:
-        return '(%s)(%s)' % (matched_app_yaml_regexp.pattern,
-                             matched_wsgi_regexp.pattern)
-    else:
-        return matched_wsgi_regexp.pattern
+    regexp = wsgi_regexp.pattern
+    # Clean up the regexp a little bit.
+    if regexp.startswith('^') and regexp.endswith('$'):
+        regexp = regexp[1:-1]
+    regexp = regexp.replace(r'\/', '/')
+    return '%s:%s' % (app_yaml_module, regexp)
 
 
-def convert_stats_route_map_to_route_regexps(route_map_json):
-    """Convert the output of ka.org/stats/route_map to url_route input."""
-    route_regexps = []
-    for app_yaml_info in route_map_json:
-        app_yaml_regexp = re.compile(app_yaml_info[0])
+def convert_stats_route_map_strings_to_regexps(route_map):
+    """Convert re-strings in ka.org/stats/route_map output to re objects."""
+    for app_yaml_info in route_map:
+        app_yaml_info[0] = re.compile(app_yaml_info[0])
         # We skip app_yaml_info[1], the wsgi app name.
         for wsgi_info in app_yaml_info[2:]:
-            wsgi_regexp = re.compile(wsgi_info[0])
-            # We skip wsgi_info[1], the handler name
-            methods = wsgi_info[2:]
-            route_regexps.append((app_yaml_regexp, wsgi_regexp, methods))
-    return route_regexps
+            wsgi_info[0] = re.compile(wsgi_info[0])
 
 
-def main(input_file, route_regexps):
+def main(input_file, route_map):
     """Print a converted logline for each logline in input_file.
 
     Also adds a few derived fields, such as the url_route (the
@@ -207,9 +189,11 @@ def main(input_file, route_regexps):
 
     Arguments:
         input_file: a file containing loglines as taken from appengine.
-        route_regexps: An iterable that returns
-            (app_yaml_regexp, wsgi_regexp, list-of-methods),
-            and is passed to url_route().
+        route_map: A list of app-yaml and wsgi-regexps, as returned
+            by route_map.py:generate_route_map(), or by
+            http://www.khanacademy.org/stats/route_map (but with the
+            regexp strings converted to actual regexps).  This is
+            passed as-is to route_for_url().
     """
     for line in input_file:
         match = _LOG_MATCHER.match(line)
@@ -237,14 +221,15 @@ def main(input_file, route_regexps):
 
         # Map the URL to its route.
         sorted_fields.append(('url_route',
-                              url_route(fields['method'], fields['url'],
-                                        route_regexps)))
+                              route_for_url(route_map,
+                                            fields['url'], fields['method'])))
 
         print '\t'.join(v for (k, v) in sorted_fields)
 
 
 if __name__ == '__main__':
     with open('route_map_file.json') as f:
-        route_regexps = convert_stats_route_map_to_route_regexps(json.load(f))
+        route_map = json.load(f)
+        convert_stats_route_map_strings_to_regexps(route_map)
 
-    main(sys.stdin, route_regexps)
+    main(sys.stdin, route_map)
