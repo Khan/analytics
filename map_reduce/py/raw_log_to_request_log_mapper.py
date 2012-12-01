@@ -169,6 +169,9 @@ def route_for_url(route_map, url, method):
     if regexp.startswith('^') and regexp.endswith('$'):
         regexp = regexp[1:-1]
     regexp = regexp.replace(r'\/', '/')
+    # TODO(csilvers): 'canonicalize' the method for flask requests?
+    if method != 'GET':
+        regexp += ' [%s]' % method
     return '%s:%s' % (app_yaml_module, regexp)
 
 
