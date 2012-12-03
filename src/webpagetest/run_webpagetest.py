@@ -211,7 +211,7 @@ def DownloadHARFile(test_id, mongo_dicts, verbose):
         url = ('http://www.webpagetest.org/export.php?test=%s&run=%s&cached=%s'
                % (test_id, median_run_index, cached))
         har_contents = urllib2.urlopen(url).read()
-        runs[median_run]['HAR File'] = har_contents
+        median_run['HAR File'] = har_contents
         if verbose:
             print ('Downloaded HAR file for run %s of %s / %s / %s / %s (%s)'
                    % (median_run['Run'], median_run['URL'],
