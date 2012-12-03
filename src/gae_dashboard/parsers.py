@@ -1,4 +1,5 @@
 from lxml import html
+import re
 
 # TODO(chris): implement more parsers.
 #
@@ -115,7 +116,7 @@ class Instances(BaseParser):
         (version_element, ) = self.doc.cssselect(selector)
         return version_element.text.strip()
 
-    def summary_dict(self):
+    def raw_summary_dict(self):
         """Performance statistics summarized across instances.
 
         Returns:
@@ -140,7 +141,45 @@ class Instances(BaseParser):
             'average_memory': children[3].text.strip()
         }
 
-    def detail_dicts(self):
+    def summary_dict(self):
+        """A parsed representation of performance statistics.
+
+        Raises ValueError if unable to parse elements of the raw
+        summary. For example if input like '180.3 ms' later changes to
+        '0.1803 s' ValueError will be raised and this code will need an
+        update.
+
+        Returns:
+          A dict with (as of App Engine 1.7.2) fields like this:
+
+          {'total_instances': 100,
+           'average_qps': 2.243,
+           'average_latency_ms': 180.3,
+           'average_memory_mb': 134.8}
+        """
+        parsed_summary_dict = {}
+        raw_summary_dict = self.raw_summary_dict()
+        # Validate the raw summary and convert to a parsed
+        # representation using this table of tuples whose fields are:
+        #   (OUTPUT_FIELD, INPUT_FIELD, PATTERN, MATCHED_GROUP_PARSER)
+        fields = (('total_instances', 'total_instances',
+                   r'^(\d+) total.*', int),
+                  ('average_qps', 'average_qps',
+                   r'^(\d+(?:\.\d+)?$)', float),
+                  ('average_latency_ms', 'average_latency',
+                   r'^(\d+(?:\.\d+)?) ms$', float),
+                  ('average_memory_mb', 'average_memory',
+                   r'^(\d+(?:\.\d+)?) MBytes$', float),
+                 )
+        for (out_field, in_field, pattern, fn) in fields:
+            match = re.match(pattern, raw_summary_dict[in_field])
+            if not match:
+                raise ValueError('Summary field %s did not match pattern %s' %
+                                 (in_field, pattern))
+            parsed_summary_dict[out_field] = fn(match.group(1))
+        return parsed_summary_dict
+
+    def raw_detail_dicts(self):
         """Performance statistics specific to each instance.
 
         Returns:

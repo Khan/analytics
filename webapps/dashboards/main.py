@@ -11,12 +11,7 @@ It will house more dashboards for fundamental metrics we want to track.
 """
 
 import datetime
-import gzip
-import json
-import logging
 import optparse
-import os
-import re
 
 import flask
 import pymongo
@@ -192,27 +187,17 @@ def gae_stats_billing_history():
 @app.route('/gae_stats/instances')
 @auth.login_required
 def gae_stats_instances():
-    # tuple (('YYYY', 'MM', 'DD', 'HH', 'mm', 'SS'), num_instances)
-    instance_counts = []
-    for (root, _, files) in os.walk('/home/analytics/kadata/gae_dashboard'):
-        for basename in files:
-            filepath = os.path.join(root, basename)
-            timestamp_tuple = re.findall(
-                r'/(\d\d\d\d)/(\d\d)/(\d\d)/instances-(\d\d):(\d\d):(\d\d)',
-                filepath)
-            if timestamp_tuple:
-                with gzip.open(filepath) as f:
-                    try:
-                        report = json.load(f)
-                    except json.JSONError, e:
-                        logging.warn('skipping file %s: %s' % (filepath, e))
-                        continue
-                # Convert to 0-indexed months for JavaScript Date constructor.
-                date_parts = map(int, timestamp_tuple[0])
-                date_parts[1] = date_parts[1] - 1
-                instance_counts.append((tuple(date_parts), len(report)))
+    def result_iter():
+        """Yield (('YYYY', 'MM', 'DD', 'HH', 'mm', 'SS'), num_instances)."""
+        for doc in data.gae_instance_reports(db):
+            timestamp = doc['utc_datetime']
+            # Convert to 0-indexed months for JavaScript Date constructor.
+            date_parts = (timestamp.year, timestamp.month - 1,
+                          timestamp.day, timestamp.hour,
+                          timestamp.minute, timestamp.second)
+            yield (date_parts, doc['num_instances'])
     return flask.render_template('gae-stats/instances.html',
-                                 instance_counts=instance_counts)
+                                 instance_counts=result_iter())
 
 
 @app.route('/gae_stats/daily_request_log_url_stats')

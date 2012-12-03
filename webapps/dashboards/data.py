@@ -189,6 +189,23 @@ def daily_request_log_urlroute_stats(mongo, dt, limit=100):
     return collection.find({'dt': dt}).limit(limit)
 
 
+def gae_instance_reports(mongo, limit=12 * 24 * 366):
+    """Fetch from the mongo collection gae_dashboard_instance_reports.
+
+    Arguments:
+      mongo: a pymongo connection.
+      limit (optional): the maximum size of the result set. Default is
+        12*24*366 which is about a year.
+
+    Returns:
+      An iterable of documents from the gae_dashboard_instance_reports
+      table in mongo, sorted from newest to oldest.
+    """
+    collection = mongo['report']['gae_dashboard_instance_reports']
+    cursor = collection.find(sort=[('utc_datetime', -1)], limit=limit)
+    return iter(cursor)
+
+
 def gae_usage_reports_for_resource(mongo, resource_name, limit=366,
                                    group_dt_by='day'):
     """Fetch from the mongo collection gae_dashboard_usage_reports.

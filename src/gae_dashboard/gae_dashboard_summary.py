@@ -27,8 +27,8 @@ def fetch_summary(rpcserver, app_id):
     instances_contents = rpcserver.Send('/instances?app_id=%s' % app_id, None)
     instances_parser = parsers.Instances(instances_contents)
     summary['version'] = instances_parser.version()
-    summary['instances_summary'] = instances_parser.summary_dict()
-    summary['instances'] = instances_parser.detail_dicts()
+    summary['instances_summary'] = instances_parser.raw_summary_dict()
+    summary['instances'] = instances_parser.raw_detail_dicts()
     return summary
 
 
