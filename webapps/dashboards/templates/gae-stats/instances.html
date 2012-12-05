@@ -8,6 +8,18 @@ A dashboard showing statistics about active GAE instances.
 <link rel="shortcut icon" href="http://www.khanacademy.org/favicon.ico?leaf">
 <link rel="stylesheet" type="text/css" href="/static/css/third_party/bootstrap.css">
 <link rel="stylesheet" type="text/css" href="/static/css/third_party/jquery/flick/jquery-ui-1.8.20.custom.css">
+<style type="text/css">
+.growth-summary form,
+.growth-summary form label,
+.growth-summary form input {
+    /* Override bootstrap.css's too-aggressive stylings of label and input. */
+    display: inline;
+    margin-right: 5px;
+}
+.growth-summary form label {
+    cursor: pointer;
+}
+</style>
 </head>
 
 <body>
@@ -15,7 +27,11 @@ A dashboard showing statistics about active GAE instances.
 {% include 'navbar.html' %}
 
 <div class="growth-summary" style="width:800px; margin: 40px auto;">
-    <h2>Number of Instances</h2>
+    <h2>Active Instances</h2>
+    <form id="field-selector">
+{% for field in varying_field_values %}
+        <label><input type="radio" name="field" value="{{field['name']}}" {% if field['default'] %}checked{% endif %}>{{field['label']}}</label>{% endfor %}
+    </form>
     <div id='chart_div' style='width: 700px; height: 740px;'></div>
 </div>
 
@@ -26,20 +42,51 @@ A dashboard showing statistics about active GAE instances.
 
 <script type='text/javascript' src='http://www.google.com/jsapi'></script>
 <script type='text/javascript'>
-    google.load('visualization', '1', {'packages':['annotatedtimeline']});
-    google.setOnLoadCallback(drawChart);
+google.load('visualization', '1', {'packages':['annotatedtimeline']});
+
+(function() {
+    var data = null,
+        view = null,
+        chart = null;
+
+    // Match the displayed column to the currently selected field.
+    function showSelectedField() {
+        var columnId = $('#field-selector :checked').val(),
+            numColumns = data.getNumberOfColumns(),
+            columnIndexToShow = 0,
+            i;
+
+        for (i = 1; i < numColumns; i++) {
+            if (data.getColumnId(i) === columnId) {
+                columnIndexToShow = i;
+                break;
+            }
+        }
+
+        view.setColumns([0, columnIndexToShow]);
+        chart.draw(view, {displayAnnotations: true});
+    }
+
+    // Assign data and chart object after charting dependencies load.
     function drawChart() {
-        var data = new google.visualization.DataTable();
+        data = new google.visualization.DataTable();
         data.addColumn('datetime', 'Date');
-        data.addColumn('number', 'number of instances');
+{% for field in varying_field_values %}
+data.addColumn('number', '{{field['label']}}', '{{field['name']}}');{% endfor %}
         data.addRows([
 {% for row in instance_counts %}
-            [new Date{{row[0]}}, {{row[1]}}],{% endfor %}
+[new Date{{row['utc_datetime_parts']}}, {% for field in varying_field_values %}{{row[field['name']]}},{% endfor %}],{% endfor %}
         ]);
 
-        var chart = new google.visualization.AnnotatedTimeLine(document.getElementById('chart_div'));
-        chart.draw(data, {displayAnnotations: true});
+        view = new google.visualization.DataView(data);
+        chart = new google.visualization.AnnotatedTimeLine($('#chart_div').get(0));
+
+        $('#field-selector').change(function(e) { showSelectedField(); });
+        showSelectedField();
     }
+
+    google.setOnLoadCallback(drawChart);
+})();
 </script>
 
 </body>

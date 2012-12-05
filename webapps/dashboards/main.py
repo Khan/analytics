@@ -187,6 +187,15 @@ def gae_stats_billing_history():
 @app.route('/gae_stats/instances')
 @auth.login_required
 def gae_stats_instances():
+    # The tuples are (database_field_name, friendly_label).
+    fields = (('num_instances', 'number of instances'),
+              ('average_qps', 'average qps'),
+              ('average_latency_ms', 'average latency (ms)'),
+              ('average_memory_mb', 'average memory (MB)'))
+    varying_values = [{'name': name, 'label': label, 'default': 0}
+                      for name, label in fields]
+    varying_values[0]['default'] = 1  # for now default to the first field
+
     def result_iter():
         """Yield (('YYYY', 'MM', 'DD', 'HH', 'mm', 'SS'), num_instances)."""
         for doc in data.gae_instance_reports(db):
@@ -195,9 +204,13 @@ def gae_stats_instances():
             date_parts = (timestamp.year, timestamp.month - 1,
                           timestamp.day, timestamp.hour,
                           timestamp.minute, timestamp.second)
-            yield (date_parts, doc['num_instances'])
+            result = {name: doc[name] for name, _ in fields}
+            result['utc_datetime_parts'] = date_parts
+            yield result
+
     return flask.render_template('gae-stats/instances.html',
-                                 instance_counts=result_iter())
+                                 instance_counts=result_iter(),
+                                 varying_field_values=varying_values)
 
 
 @app.route('/gae_stats/daily_request_log_url_stats')
