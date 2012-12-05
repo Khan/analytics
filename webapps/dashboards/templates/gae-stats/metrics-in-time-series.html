@@ -1,10 +1,9 @@
 <!DOCTYPE html>
 <html>
-<!--
-A dashboard showing statistics about active GAE instances.
--->
+<!-- A dashboard showing one or more time series.  -->
 
 <head>
+<title>{{title}}</title>
 <link rel="shortcut icon" href="http://www.khanacademy.org/favicon.ico?leaf">
 <link rel="stylesheet" type="text/css" href="/static/css/third_party/bootstrap.css">
 <link rel="stylesheet" type="text/css" href="/static/css/third_party/jquery/flick/jquery-ui-1.8.20.custom.css">
@@ -27,10 +26,10 @@ A dashboard showing statistics about active GAE instances.
 {% include 'navbar.html' %}
 
 <div class="growth-summary" style="width:800px; margin: 40px auto;">
-    <h2>Active Instances</h2>
+    <h2>{{title}}</h2>
     <form id="field-selector">
-{% for field in varying_field_values %}
-        <label><input type="radio" name="field" value="{{field['name']}}" {% if field['default'] %}checked{% endif %}>{{field['label']}}</label>{% endfor %}
+{% for key, label in metrics %}
+        <label><input type="radio" name="field" value="{{key}}" {% if key == selected_metric %}checked{% endif %}>{{label}}</label>{% endfor %}
     </form>
     <div id='chart_div' style='width: 700px; height: 740px;'></div>
 </div>
@@ -42,6 +41,8 @@ A dashboard showing statistics about active GAE instances.
 
 <script type='text/javascript' src='http://www.google.com/jsapi'></script>
 <script type='text/javascript'>
+{# TODO(chris): encapsulate this pattern of annotated timeline and
+   varying fields as a JS widget. #}
 google.load('visualization', '1', {'packages':['annotatedtimeline']});
 
 (function() {
@@ -71,11 +72,11 @@ google.load('visualization', '1', {'packages':['annotatedtimeline']});
     function drawChart() {
         data = new google.visualization.DataTable();
         data.addColumn('datetime', 'Date');
-{% for field in varying_field_values %}
-data.addColumn('number', '{{field['label']}}', '{{field['name']}}');{% endfor %}
+{% for key, label in metrics %}
+data.addColumn('number', '{{label}}', '{{key}}');{% endfor %}
         data.addRows([
-{% for row in instance_counts %}
-[new Date{{row['utc_datetime_parts']}}, {% for field in varying_field_values %}{{row[field['name']]}},{% endfor %}],{% endfor %}
+{% for js_date, record in date_record_pairs %}
+[new {{js_date}}, {% for key, _ in metrics %}{{record[key]}},{% endfor %}],{% endfor %}
         ]);
 
         view = new google.visualization.DataView(data);
@@ -91,5 +92,3 @@ data.addColumn('number', '{{field['label']}}', '{{field['name']}}');{% endfor %}
 
 </body>
 </html>
-
-

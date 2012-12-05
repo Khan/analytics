@@ -140,9 +140,9 @@ http://www.webpagetest.org
         data.addColumn('number', '{{field.name}}');
 {% endfor %}
         data.addRows([
-{% for row in webpagetest_stats %}
-            [new Date{{row['Date']}},
-             {% for field in varying_field_values %}{{row[field.name]}},{% endfor %}
+{% for js_date, record in webpagetest_date_record_pairs %}
+            [new {{js_date}},
+             {% for field in varying_field_values %}{{record[field.name]}},{% endfor %}
             ],
 {% endfor %}
         ]);

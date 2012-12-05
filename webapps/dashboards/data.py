@@ -189,19 +189,26 @@ def daily_request_log_urlroute_stats(mongo, dt, limit=100):
     return collection.find({'dt': dt}).limit(limit)
 
 
-def gae_instance_reports(mongo, limit=12 * 24 * 366):
-    """Fetch from the mongo collection gae_dashboard_instance_reports.
+def gae_dashboard_reports(mongo, report_name, limit=12 * 24 * 366):
+    """Fetch reports from the mongo collection associated with a given
+    report name.
+
+    The collection is expected to have a "utc_datetime" field that
+    represents when the report data was collected.
 
     Arguments:
       mongo: a pymongo connection.
+      report_name: the name of the dashboard report. This is used to
+        generate the collection name in the format "gae_dashboard_%s_reports"
+        and must have a "utc_datetime" field
       limit (optional): the maximum size of the result set. Default is
         12*24*366 which is about a year.
 
     Returns:
-      An iterable of documents from the gae_dashboard_instance_reports
-      table in mongo, sorted from newest to oldest.
+      An iterable of documents from the report's collection in mongo,
+      sorted from newest to oldest.
     """
-    collection = mongo['report']['gae_dashboard_instance_reports']
+    collection = mongo['report']['gae_dashboard_%s_reports' % report_name]
     cursor = collection.find(sort=[('utc_datetime', -1)], limit=limit)
     return iter(cursor)
 
@@ -225,10 +232,10 @@ def gae_usage_reports_for_resource(mongo, resource_name, limit=366,
 
     Returns:
       The tuple (result_iterator, unit) where unit is the App Engine
-      unit such as "GByte-day" and result_iterator returns (dt, used)
-      tuples where dt is a date string like 'YYYY-MM-DD', used is a
-      numeric amount quantity (float or int). When there are no results,
-      unit is the empty string.
+      unit such as "GByte-day" and result_iterator returns dicts like
+      {'date': datetime.date, 'amount_of_resource_used': ...} where used
+      is a numeric amount quantity (float or int).  When there are no
+      results, unit is the empty string.
     """
     if not group_dt_by in ('day', 'week'):
         raise ValueError('group_dt_by must be one of "day", "week"')
@@ -265,7 +272,9 @@ def gae_usage_reports_for_resource(mongo, resource_name, limit=366,
         for doc in cursor:
             for entry in doc['usage']:
                 if entry['name'] == resource_name:
-                    yield doc['dt'], entry['used']
+                    date = datetime.date(*map(int, doc['dt'].split('-')))
+                    yield {'date': date,
+                           'amount_of_resource_used': entry['used']}
                     break  # break out of the usage items iteration
 
     if group_dt_by == 'day':
@@ -274,16 +283,16 @@ def gae_usage_reports_for_resource(mongo, resource_name, limit=366,
         # Sum daily resource usage into weeks that start on Monday.
         daily = list(result_iter())
         week_buckets = collections.OrderedDict()
-        for dt, used in daily:
-            date = datetime.date(*map(int, dt.split('-')))
+        for date, used in daily:
             date -= datetime.timedelta(date.weekday())  # get to Monday
             monday = '%d-%d-%d' % (date.year, date.month, date.day)
             if monday not in week_buckets:
                 week_buckets[monday] = []
             week_buckets[monday].append(used)
-        weekly = [(monday, sum(used_list))
-                  for monday, used_list in week_buckets.items()]
-        return iter(weekly), unit
+        weekly_iter = ({'date': monday,
+                        'amount_of_resource_used': sum(used_list)}
+                       for monday, used_list in week_buckets.iteritems())
+        return weekly_iter, unit
 
 
 def get_keyed_results(db_collection, total_info, index_key, 

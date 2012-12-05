@@ -53,8 +53,8 @@ A dashboard of App Engine's billing history reports.
         data.addColumn('date', 'Date');
         data.addColumn('number', '{{resource_name}} ({{resource_unit}})');
         data.addRows([
-{% for dt_parts, used in data %}
-            [new Date{{dt_parts}}, {{used}}],{% endfor %}
+{% for js_date, record in date_record_pairs %}
+            [new {{js_date}}, {{record['amount_of_resource_used']}}],{% endfor %}
         ]);
 
         var chart = new google.visualization.AnnotatedTimeLine(document.getElementById('chart_div'));

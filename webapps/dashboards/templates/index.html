@@ -115,16 +115,30 @@ section .row {
         </div>
         <div class="row">
             <span class="span6">
-                <h3><a href="/gae_stats/instances">Active Instances</a></h3>
-                <img src="static/img/appengine.png">
-                <!-- TODO(chris): generate a preview image -->
-                Stats for active instances
-            </span>
-            <span class="span6">
                 <h3><a href="/gae_stats/daily_request_log_url_stats">Top URLs by Count</a></h3>
                 <img src="static/img/appengine.png">
                 <!-- TODO(chris): generate a preview image -->
                 Performance metrics for the most accessed URLs.
+            </span>
+            <span class="span6">
+                <h3><a href="/gae_stats/instances">Instances</a></h3>
+                <img src="static/img/appengine.png">
+                <!-- TODO(chris): generate a preview image -->
+                Summary data over time for App Engine's instance usage.
+            </span>
+        </div>
+        <div class="row">
+            <span class="span6">
+                <h3><a href="/gae_stats/daily_request_log_urlroute_stats">Top URL Routes by Count</a></h3>
+                <img src="static/img/appengine.png">
+                <!-- TODO(chris): generate a preview image -->
+                Performance metrics for the most accessed Flask and webapp2 routes.
+            </span>
+            <span class="span6">
+                <h3><a href="/gae_stats/memcache">Memcache</a></h3>
+                <img src="static/img/appengine.png">
+                <!-- TODO(chris): generate a preview image -->
+                Statistics over time for App Engine's memcache.
             </span>
         </div>
         <div class="row">
@@ -135,18 +149,19 @@ section .row {
                 Performance metrics over time for each URL.
             </span>
             <span class="span6">
-                <h3><a href="/gae_stats/daily_request_log_urlroute_stats">Top URL Routes by Count</a></h3>
+                <h3><a href="/gae_stats/billing_history">Billing History</a></h3>
                 <img src="static/img/appengine.png">
                 <!-- TODO(chris): generate a preview image -->
-                Performance metrics for the most accessed Flask and webapp2 routes.
+                Daily usage reports used for billing by App Engine.
             </span>
         </div>
         <div class="row">
             <span class="span6">
-                <h3><a href="/gae_stats/billing_history">Billing History</a></h3>
+                <h3><a href="/webpagetest/stats">Webpagetest (client) stats</a></h3>
                 <img src="static/img/appengine.png">
                 <!-- TODO(chris): generate a preview image -->
-                App Engine billing history usage reports.
+                Performance metrics over time as seen by a remote client
+                application operated by <a href="http://webpagetest.org">webpagetest.org</a>.
             </span>
         </div>
     </section>

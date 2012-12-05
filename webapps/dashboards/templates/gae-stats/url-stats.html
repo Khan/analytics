@@ -109,12 +109,12 @@ A dashboard of statistics about a URL.
         data.addColumn('number', 'cpu ucents (50th pctile)');
         data.addColumn('number', 'cpu ucents (5th pctile)');
         data.addRows([
-{% for row in url_stats %}
-            [new Date{{row['dt']}},
-             {{row['count']}}, {{row['avg_response_bytes']}},
-             {{row['ms_pct95']}}, {{row['ms_pct50']}}, {{row['ms_pct5']}},
-             {{row['cpu_ms_pct95']}}, {{row['cpu_ms_pct50']}}, {{row['cpu_ms_pct5']}},
-             {{row['cpm_microcents_pct95']}}, {{row['cpm_microcents_pct50']}}, {{row['cpm_microcents_pct5']}}],
+{% for js_date, record in date_record_pairs %}
+            [new {{js_date}},
+             {{record['count']}}, {{record['avg_response_bytes']}},
+             {{record['ms_pct95']}}, {{record['ms_pct50']}}, {{record['ms_pct5']}},
+             {{record['cpu_ms_pct95']}}, {{record['cpu_ms_pct50']}}, {{record['cpu_ms_pct5']}},
+             {{record['cpm_microcents_pct95']}}, {{record['cpm_microcents_pct50']}}, {{record['cpm_microcents_pct5']}}],
 {% endfor %}
         ]);
 

@@ -12,6 +12,7 @@ It will house more dashboards for fundamental metrics we want to track.
 
 import datetime
 import optparse
+import time
 
 import flask
 import pymongo
@@ -167,50 +168,52 @@ def gae_stats_billing_history():
 
     result_iter, resource_unit = data.gae_usage_reports_for_resource(
         db, resource_name, group_dt_by=group_dt_by)
-
-    def result_iter_with_js_date():
-        for dt, used in result_iter:
-            # Convert 2012-10-11 to (2012, 9, 11) for use in the JavaScript
-            # Date constructor where months begin with 0, not 1.
-            dt_parts = map(int, dt.split('-'))
-            dt_parts[1] = dt_parts[1] - 1
-            yield tuple(dt_parts), used
+    date_record_pairs = time_series(result_iter, 'date')
 
     return flask.render_template('gae-stats/billing-history.html',
                                  resource_name=resource_name,
                                  resource_unit=resource_unit,
                                  resources=_billing_resources,
                                  group_dt_by=group_dt_by,
-                                 data=result_iter_with_js_date())
+                                 date_record_pairs=date_record_pairs)
 
 
 @app.route('/gae_stats/instances')
 @auth.login_required
 def gae_stats_instances():
+    selected_metric = flask.request.args.get('metric', 'num_instances')
     # The tuples are (database_field_name, friendly_label).
-    fields = (('num_instances', 'number of instances'),
-              ('average_qps', 'average qps'),
-              ('average_latency_ms', 'average latency (ms)'),
-              ('average_memory_mb', 'average memory (MB)'))
-    varying_values = [{'name': name, 'label': label, 'default': 0}
-                      for name, label in fields]
-    varying_values[0]['default'] = 1  # for now default to the first field
+    metrics = (('num_instances', 'number of instances'),
+               ('average_qps', 'average qps'),
+               ('average_latency_ms', 'average latency (ms)'),
+               ('average_memory_mb', 'average memory (MB)'))
+    records = data.gae_dashboard_reports(db, 'instance')
+    date_record_pairs = time_series(records, 'utc_datetime')
+    return flask.render_template('gae-stats/metrics-in-time-series.html',
+                                 title='Instance Usage',
+                                 date_record_pairs=date_record_pairs,
+                                 metrics=metrics,
+                                 selected_metric=selected_metric)
 
-    def result_iter():
-        """Yield (('YYYY', 'MM', 'DD', 'HH', 'mm', 'SS'), num_instances)."""
-        for doc in data.gae_instance_reports(db):
-            timestamp = doc['utc_datetime']
-            # Convert to 0-indexed months for JavaScript Date constructor.
-            date_parts = (timestamp.year, timestamp.month - 1,
-                          timestamp.day, timestamp.hour,
-                          timestamp.minute, timestamp.second)
-            result = {name: doc[name] for name, _ in fields}
-            result['utc_datetime_parts'] = date_parts
-            yield result
 
-    return flask.render_template('gae-stats/instances.html',
-                                 instance_counts=result_iter(),
-                                 varying_field_values=varying_values)
+@app.route('/gae_stats/memcache')
+@auth.login_required
+def gae_stats_memcache():
+    selected_metric = flask.request.args.get('metric', 'hit_ratio')
+    # The tuples are (database_field_name, friendly_label).
+    metrics = (('hit_ratio', 'hit ratio'),
+               ('hit_count', 'hit count'),
+               ('miss_count', 'miss count'),
+               ('item_count', 'item count'),
+               ('total_cache_size_bytes', 'total cache size (bytes)'),
+               ('oldest_item_age_seconds', 'oldest item age (seconds)'))
+    records = data.gae_dashboard_reports(db, 'memcache')
+    date_record_pairs = time_series(records, 'utc_datetime')
+    return flask.render_template('gae-stats/metrics-in-time-series.html',
+                                 title='Memcache Statistics',
+                                 date_record_pairs=date_record_pairs,
+                                 metrics=metrics,
+                                 selected_metric=selected_metric)
 
 
 @app.route('/gae_stats/daily_request_log_url_stats')
@@ -274,15 +277,7 @@ def gae_stats_url_stats():
     url = flask.request.args.get('url', '/')
     # Get up to 3 years(ish) worth of data.
     url_stats = data.daily_request_log_url_stats(db, url=url, limit=1000)
-
-    def url_stats_iter():
-        """Convert 2012-10-11 to (2012, 9, 11) for use in JavaScript."""
-        for row in url_stats:
-            retval = row.copy()
-            dt_parts = map(int, retval['dt'].split('-'))
-            dt_parts[1] = dt_parts[1] - 1
-            retval['dt'] = tuple(dt_parts)
-            yield retval
+    date_record_pairs = time_series(url_stats, 'dt', '%Y-%m-%d')
 
     # Get a list of all the urls.  Some days this data isn't generated
     # properly, and some days it takes a while for yesterday's report
@@ -300,7 +295,7 @@ def gae_stats_url_stats():
 
     return flask.render_template('gae-stats/url-stats.html',
                                  current_url=url, urls=urls,
-                                 url_stats=url_stats_iter())
+                                 date_record_pairs=date_record_pairs)
 
 
 def _collect_records(records, fixed_keys, varying_key, varying_value):
@@ -596,13 +591,8 @@ def webpagetest_stats():
         varying_values = [{'name': fv, 'default': True}
                           for fv in field_values]
 
-    # Now we need to fix up the date: convert 10/20/2012
-    # to (2012, 9, 20) for use in the JavaScript Date constructor.
-    for record in collated_stats:
-        dt_parts = map(int, record['Date'].split('/'))
-        record['Date'] = (dt_parts[2], dt_parts[0] - 1, dt_parts[1])
-
-    template_dict = {'webpagetest_stats': collated_stats,
+    date_record_pairs = time_series(collated_stats, 'Date', '%m/%d/%Y')
+    template_dict = {'webpagetest_date_record_pairs': date_record_pairs,
                      'varying_field': varying_field_mongodb,
                      'varying_field_values': varying_values,
                      }
@@ -625,6 +615,58 @@ def utc_as_dt(days_ago=0):
     """
     dt = datetime.datetime.utcnow() - datetime.timedelta(days_ago)
     return dt.strftime('%Y-%m-%d')
+
+
+def datetime_as_js_date(dt, strptime_format=None):
+    """Format a date and time as a JavaScript Date constructor.
+
+    Python's datetime class indexes months from 1.  JavaScript starts from 0.
+
+    Arguments:
+      dt: the date and time to convert.  datetime.datetime instances and
+        strings matching "strptime_format" are valid inputs.  Note that
+        if dt is a datetime.datetime then case tzinfo and microseconds
+        are ignored.
+      strptime_format: when "dt" is a string it will be parsed by
+        time.strptime(dt, strptime_format)[0:6].
+
+    Returns:
+      The corresponding JavaScript Date constructor string.  For
+      example, when str(dt) is "2012-12-05 14:22:00" this returns
+      "Date(2012, 11, 5, 14, 22, 00)".
+    """
+    if isinstance(dt, datetime.datetime):
+        args = (dt.year, dt.month - 1, dt.day, dt.hour, dt.minute, dt.second)
+    elif isinstance(dt, datetime.date):
+        args = (dt.year, dt.month - 1, dt.day)
+    elif isinstance(dt, basestring):
+        t = time.strptime(dt, strptime_format)
+        args = (t.tm_year, t.tm_mon - 1, t.tm_mday,
+                t.tm_hour, t.tm_min, t.tm_sec)
+        if args[3:] == (0, 0, 0):
+            args = args[:3]  # they just want the day
+    else:
+        raise ValueError('Unable to convert %s' % type(dt))
+    return 'Date%s' % str(args)
+
+
+def time_series(records, time_index, strptime_format=None):
+    """Generate a standard format from records with a time field.
+
+    Arguments:
+      records: ordered time series data.
+      time_index: the key used to index into each record to access its
+        date field.  Each record should respond to record[time_key] with
+        a value that datetime_as_js_date() can understand.
+      strptime_format (Optional): passed along to datetime_as_js_date().
+
+    Returns:
+      (javascript_date, record) tuples where javascript_date is a string
+      like "Date(2012, 3, 4, 8, 30, 0)".
+    """
+    for record in records:
+        js_date = datetime_as_js_date(record[time_index], strptime_format)
+        yield js_date, record
 
 
 def main():
