@@ -1,3 +1,5 @@
+"""Classes to extract useful data from App Engine admin console pages."""
+
 from lxml import html
 import re
 
@@ -30,12 +32,6 @@ import re
 #   {queue_name: "", max_rate: "", enforced_rate: "", bucket_size: "",
 #    oldest_task: "", in_queue: "", "run_last_minute": "", running: ""}
 #
-# Memcache:
-# - application_id()
-# - statistics_dict()
-#   {hit_count: "", miss_count: "", hit_ratio: "", item_count: "",
-#    total_cache_size: "", oldest_item_age: ""}
-#
 # BillingHistory:
 # - event_dicts() for event types other than usage reports.
 # - filtered_event_dicts(title="")
@@ -53,7 +49,7 @@ class BaseParser(object):
         # There should be exactly one selected application id.
         (app_id_element, ) = self.doc.cssselect(selector)
         value = app_id_element['value']
-        assert(value.startswith('s~'))
+        assert value.startswith('s~'), value
         return value[2:]
 
 
@@ -99,7 +95,7 @@ class BillingHistory(BaseParser):
             else:
                 # An empty first column indicates details for the
                 # preceeding event.
-                assert(len(events))
+                assert len(events) > 0, len(events)
                 last_event = events[-1]
                 if last_event['title'].startswith('Usage Report '):
                     last_event['details'] = self._usage_report_dict(event_elt)
@@ -120,7 +116,7 @@ class Instances(BaseParser):
         """Performance statistics summarized across instances.
 
         Returns:
-          A dict with (as of App Engine 1.7.2) fields like this:
+          A dict with fields like this:
 
           {'total_instances': '100 total (10 Resident)',
            'average_qps': '2.243',
@@ -133,7 +129,7 @@ class Instances(BaseParser):
         children = list(row)
         # Expecting 'Total number of instances', 'Average QPS',
         # 'Average Latency', 'Average Memory'
-        assert len(children) == 4
+        assert len(children) == 4, [child.text for child in children]
         return {
             'total_instances': children[0].text.strip().replace('\n', ' '),
             'average_qps': children[1].text.strip(),
@@ -150,7 +146,7 @@ class Instances(BaseParser):
         update.
 
         Returns:
-          A dict with (as of App Engine 1.7.2) fields like this:
+          A dict with fields like this:
 
           {'total_instances': 100,
            'average_qps': 2.243,
@@ -200,7 +196,7 @@ class Instances(BaseParser):
         selector = '#ae-instances-details-table tbody tr'
         for element in self.doc.cssselect(selector):
             children = list(element)
-            assert len(children) == 9
+            assert len(children) == 9, [child.text for child in children]
             details.append({
                 'instance_id': element.attrib['id'].strip(),
                 'qps': children[0].text.strip(),
@@ -211,3 +207,79 @@ class Instances(BaseParser):
                 'memory': children[5].text.strip()
             })
         return details
+
+
+class Memcache(BaseParser):
+    """An API for the contents of /memcache as structured data."""
+
+    def statistics_dict(self):
+        """A parsed representation of memcache statistics.
+
+        Raises ValueError if unable to parse elements of the raw
+        summary. For example if input like '1024 byte(s)' later changes
+        to '1 kilobyte(s)' a ValueError will be raised.
+
+        Returns:
+          A dict with fields like this:
+
+          {'hit_count': 12345,
+           'miss_count': 123,
+           'hit_ratio': 0.99,
+           'item_count': 678,
+           'total_cache_size': 91011,
+           'oldest_item_age': 26}
+        """
+        raw_dict = self.raw_statistics_dict()
+        parsed_dict = {}
+        # Validate the raw summary and convert to a parsed
+        # representation using this table of tuples whose fields are:
+        #   (OUTPUT_FIELD, INPUT_FIELD, PATTERN, MATCHED_GROUP_PARSER)
+        fields = (('hit_count', 'hit_count', r'^(\d+)$', int),
+                  ('miss_count', 'miss_count', r'^(\d+)$', int),
+                  ('hit_ratio', 'hit_ratio', r'^(\d+)%$', int),
+                  ('item_count', 'item_count', r'^(\d+) item\(s\)$', int),
+                  ('total_cache_size_bytes', 'total_cache_size',
+                   r'^(\d+) byte\(s\)$', int),
+                  ('oldest_item_age_seconds', 'oldest_item_age',
+                   r'^(\d+) second\(s\)$', int),
+                 )
+        for (out_field, in_field, pattern, fn) in fields:
+            match = re.match(pattern, raw_dict[in_field])
+            if not match:
+                raise ValueError('Field "%s" did not match pattern %s' %
+                                 (in_field, pattern))
+            parsed_dict[out_field] = fn(match.group(1))
+        parsed_dict['hit_ratio'] = float(parsed_dict['hit_ratio']) / 100
+        return parsed_dict
+
+    def raw_statistics_dict(self):
+        """Memcache statistics for the current application.
+
+        Returns:
+          A dict with fields like this:
+
+          {'hit_count': '12345',
+           'miss_count': '123',
+           'hit_ratio': '99%',
+           'item_count': '678 item(s)',
+           'total_cache_size': '91011 byte(s)',
+           'oldest_item_age': '26 second(s)'}
+        """
+        stats = {}
+        fields = {'Hit count:': 'hit_count',
+                  'Miss count:': 'miss_count',
+                  'Hit ratio:': 'hit_ratio',
+                  'Item count:': 'item_count',
+                  'Total cache size:': 'total_cache_size',
+                  'Oldest item age:': 'oldest_item_age'}
+        selector = '#ae-stats-table tr'
+        for element in self.doc.cssselect(selector):
+            children = list(element)
+            assert len(children) == 2, [child.text for child in children]
+            if children[0].text and children[0].text.strip() in fields:
+                # skip rows with invalid or empty cells
+                field_name = fields[children[0].text.strip()]
+                stats[field_name] = children[1].text.strip()
+        # Ensure all fields were filled.
+        assert len(stats) == len(fields), (fields.keys(), stats.keys())
+        return stats
