@@ -283,12 +283,12 @@ def gae_usage_reports_for_resource(mongo, resource_name, limit=366,
         # Sum daily resource usage into weeks that start on Monday.
         daily = list(result_iter())
         week_buckets = collections.OrderedDict()
-        for date, used in daily:
-            date -= datetime.timedelta(date.weekday())  # get to Monday
-            monday = '%d-%d-%d' % (date.year, date.month, date.day)
+        for record in daily:
+            date = record['date']
+            monday = date - datetime.timedelta(date.weekday())
             if monday not in week_buckets:
                 week_buckets[monday] = []
-            week_buckets[monday].append(used)
+            week_buckets[monday].append(record['amount_of_resource_used'])
         weekly_iter = ({'date': monday,
                         'amount_of_resource_used': sum(used_list)}
                        for monday, used_list in week_buckets.iteritems())
