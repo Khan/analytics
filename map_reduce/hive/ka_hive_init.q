@@ -300,6 +300,17 @@ LOCATION 's3://ka-mapreduce/summary_tables/user_growth';
 ALTER TABLE user_growth RECOVER PARTITIONS;
 
 
+-- Stores monthly time series of registrations, long-term users
+-- and engagement.  Populated in company_metrics.q
+DROP TABLE company_metrics;
+CREATE EXTERNAL TABLE IF NOT EXISTS company_metrics(
+  month STRING,
+  total INT)
+PARTITIONED BY (series STRING)
+LOCATION 's3://ka-mapreduce/summary_tables/company_metrics';
+ALTER TABLE company_metrics RECOVER PARTITIONS;
+
+
 -- Defined in userdata_info.q
 -- is_coached: if user is coached
 -- is_student: if user is coached by a coach who coached

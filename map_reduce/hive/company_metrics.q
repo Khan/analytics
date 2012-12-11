@@ -1,14 +1,6 @@
 -- This script comptues 3 of the 4 company-wide growth metrics for 2012 Q3.
 
-
--- First, create a table to store the 3 monthly time series of interest.
--- Each time series will be store in it's own parition.
-DROP TABLE company_metrics;
-CREATE EXTERNAL TABLE IF NOT EXISTS company_metrics(
-  month STRING,
-  total INT)
-PARTITIONED BY (series STRING)
-LOCATION 's3://ka-mapreduce/summary_tables/company_metrics';
+-- For the definition of the company_metrics table, see ka_hive_init
 
 
 -- Note: Metric 1 (Unique visitors) is easily pulled from Google analytics
