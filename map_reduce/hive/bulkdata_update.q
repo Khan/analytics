@@ -51,6 +51,12 @@ SELECT key, json FROM VideoP
 WHERE dt = '${dt}';
 
 
+-- TODO(jace): the topic mapping code below is broken due to hg changeset
+-- d38a55ea7d3d, which converted topic_string_keys to an @property.  Newer 
+-- Video entities will be skipped by and not classified correctly below.
+-- We need to build a tool to create a topic mapping available in Hive
+-- based on the info in the Topic entities.
+
 -- Updating video_topic table
 ADD FILE s3://ka-mapreduce/code/py/ka_udf.py;
         
@@ -61,7 +67,7 @@ LOCATION 's3://ka-mapreduce/summary_tables/video_topic';
             
 FROM (       
   FROM Video SELECT TRANSFORM(Video.json)
-  USING 'ka_udf.py split topic_string_keys "<tab>" key,title 0' as
+  USING 'ka_udf.py split topic_string_keys "<tab>" key,title 0 0' as
   topic_key, vid_key, vid_title
 ) exploded_video JOIN Topic ON
   (exploded_video.topic_key = Topic.key)

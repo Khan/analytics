@@ -11,12 +11,16 @@ import sys
 sys.stdout = codecs.getwriter('utf8')(sys.stdout)
 
 
-def split(split_field, delimiter, selected, output_json=False):
+def split(split_field, delimiter, selected, 
+            output_json=False, split_field_required=True):
     """Running split on the split_field from the json string.
 
        Split based on the split_field and delimiter from a json string from
        sys.stdin. Select extra json fields based on "selected" where fields are
        seprated by ",".  Output the original json string if output_json = True.
+
+       If the split_field is not found in the json document, an error will be
+       thrown if split_field_required==True, otherwise the line is skipped.
     """
     if delimiter == '<tab>':
         # Have to do this to get around hive oddness
@@ -24,6 +28,10 @@ def split(split_field, delimiter, selected, output_json=False):
     for line in sys.stdin:
         line = line.strip()
         doc = json.loads(line)
+
+        if split_field not in doc and not split_field_required:
+            continue
+
         split_f = doc[split_field]
         exploded = split_f.split(delimiter)
         selected_fields = []
@@ -137,11 +145,17 @@ def main():
 
     if sys.argv[1] == "split":
         split_usage_str = ("Usage: ka_udf.py split " +
-            "<split_field> <delim> <extra_fields> <output_json>")
-        if len(sys.argv) != 6:
+            "<split_field> <delim> <extra_fields> <output_json: 0 or 1>"
+            " [split_field_required: 0 or 1]")
+        if len(sys.argv) == 6:
+            split(sys.argv[2], sys.argv[3], sys.argv[4],
+                    bool(int(sys.argv[5])))
+        elif len(sys.argv) == 7:
+            split(sys.argv[2], sys.argv[3], sys.argv[4],
+                    bool(int(sys.argv[5])), bool(int(sys.argv[6])))
+        else:
             print >> sys.stderr, split_usage_str
             exit(1)
-        split(sys.argv[2], sys.argv[3], sys.argv[4], int(sys.argv[5]))
         exit(0)
 
     if sys.argv[1] == "explode":
