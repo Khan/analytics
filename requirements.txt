@@ -20,4 +20,5 @@ configobj==4.7.2
 hipchat==0.0.1
 
 # For gae_dashboard scripts
+GChartWrapper==0.9
 lxml==2.3.6

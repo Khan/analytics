@@ -102,6 +102,44 @@ class BillingHistory(BaseParser):
         return events
 
 
+class Dashboard(BaseParser):
+    """An API for the contents of /dashboard as structured data."""
+
+    def charts(self, time_span=None):
+        """The labels and URLs of dashboard charts.
+
+        These are the charts at the top of the dashboard page,
+        selected by the dropdown menu.
+
+        Arguments:
+          time_span (optional): return only charts matching this time
+            span. Possible values are "6 hrs", "12 hrs", "24 hrs". By
+            default, all charts are returned.
+
+        Returns:
+          (label, url) pairs. For example, ('Requests/Second', ...).
+          When returning all charts, the time span is included in the
+          chart label, e.g., ('Requests/Second (6 hrs)', ...).
+          
+        NOTE: Other time spans are not supported yet and those chart
+        URLs are not in the HTML of /dashboard on initial page load.
+        """
+        assert time_span in (None, '6 hrs', '12 hrs', '24 hrs'), time_span
+        selector = '#chart option'
+        for element in self.doc.cssselect(selector):
+            label = element.text.strip()
+            chart_id = element.attrib['value']
+            hidden_input = self.doc.get_element_by_id('ae-dash-graph-' +
+                                                      chart_id)
+            url = hidden_input.attrib['value']
+            if not url:
+                continue
+            if time_span is None:
+                yield label, url
+            else:
+                yield label.replace(' (%s)' % time_span, ''), url
+
+
 class Instances(BaseParser):
     """An API for the contents of /instances as structured data."""
 

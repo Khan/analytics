@@ -1,6 +1,5 @@
 #!/bin/sh
 
-timestamp=`date +%s`
 srcdir="${HOME}/analytics/src/gae_dashboard"
 private_pw="${HOME}/private_pw"
 username="khanbackups@gmail.com"
@@ -13,10 +12,17 @@ if [ ! -e "${private_pw}" ]; then
     exit 1
 fi
 
+timestamp=`date +%s`
 "${curl_app}" "${base_url}/instances?app_id=${app_id}" "${username}" \
     < "${private_pw}" \
     | "${srcdir}/instance_report.py" ${timestamp}
 
+timestamp=`date +%s`
 "${curl_app}" "${base_url}/memcache?app_id=${app_id}" "${username}" \
     < "${private_pw}" \
     | "${srcdir}/memcache_report.py" ${timestamp}
+
+timestamp=`date +%s`
+"${curl_app}" "${base_url}/dashboard?app_id=${app_id}" "${username}" \
+    < "${private_pw}" \
+    | "${srcdir}/dashboard_report.py" ${timestamp}
