@@ -136,7 +136,7 @@ class Dashboard(BaseParser):
                 continue
             if time_span is None:
                 yield label, url
-            else:
+            elif label.endswith(' (%s)' % time_span):
                 yield label.replace(' (%s)' % time_span, ''), url
 
 
