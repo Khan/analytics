@@ -10,6 +10,7 @@ This hosts the following dashboards:
 It will house more dashboards for fundamental metrics we want to track.
 """
 
+import collections
 import datetime
 import optparse
 import time
@@ -176,6 +177,65 @@ def gae_stats_billing_history():
                                  resources=_billing_resources,
                                  group_dt_by=group_dt_by,
                                  date_record_pairs=date_record_pairs)
+
+
+# Entries have the same order as on the App Engine dashboard and map
+# to either a string (the field name of the only series in the graph)
+# or a dict that maps series labels to field names.
+_dashboard_chart_fields = collections.OrderedDict([
+    ('Requests/Second', 'requests_per_second'),
+    ('Requests by Type/Second', {
+        'Static Requests': 'static_requests_per_second',
+        'Dynamic Requests': 'dynamic_requests_per_second',
+        'Cached Requests': 'cached_requests_per_second',
+        'PageSpeed Requests': 'pagespeed_requests_per_second',
+        }),
+    ('Milliseconds/Request', {
+        'Dynamic Requests': 'milliseconds_per_dynamic_request',
+        }),
+    ('Errors/Second', 'errors_per_second'),
+    ('Bytes Received/Second', 'bytes_received_per_second'),
+    ('Bytes Sent/Second', 'bytes_sent_per_second'),
+    ('CPU Seconds Used/Second', {
+        'Total CPU': 'total_cpu_seconds_used_per_second',
+        'API Calls CPU': 'api_cpu_seconds_used_per_second',
+        }),
+    ('Milliseconds Used/Second', 'milliseconds_used_per_second'),
+    ('Number of Quota Denials/Second', {
+        'Quota Denials': 'quota_denials_per_second',
+        'DOS API Denials': 'dos_api_denials_per_second',
+        }),
+    ('Instances', {
+        'Total': 'total_instance_count',
+        'Active': 'active_instance_count',
+        'Billed': 'billed_instance_count',
+        }),
+    ('Memory Usage (MB)', 'memory_usage_mb'),
+    ])
+
+
+@app.route('/gae_stats/dashboard_charts')
+@auth.login_required
+def gae_stats_dashboard_charts():
+    chart_name = flask.request.args.get('chart', 'Requests/Second')
+    if chart_name not in _dashboard_chart_fields:
+        return flask.current_app.response_class(
+            'Unrecognized chart name: "%s"' % chart_name, status=400)
+
+    if isinstance(_dashboard_chart_fields[chart_name], basestring):
+        chart_fields = [_dashboard_chart_fields[chart_name]]
+    else:
+        chart_fields = _dashboard_chart_fields[chart_name].values()
+    records = data.gae_dashboard_reports(db, 'chart')
+    date_record_pairs = time_series(records, 'utc_datetime')
+    # TODO(chris): add support for grouping metrics to
+    # gae-stats/metrics-in-time-series.html and then use that.
+    return flask.render_template('gae-stats/dashboard-charts.html',
+                                 title='Dashboard Charts',
+                                 date_record_pairs=date_record_pairs,
+                                 record_fields=chart_fields,
+                                 chart_names=_dashboard_chart_fields.keys(),
+                                 selected_chart=chart_name)
 
 
 @app.route('/gae_stats/instances')
