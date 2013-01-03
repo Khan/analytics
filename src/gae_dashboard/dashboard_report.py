@@ -6,15 +6,15 @@ and store them in the analytics database.
 This script considers the most recently added records in the database
 and only adds records that are more recent, up to 6 hours of data.
 
-NOTE: there is an issue where the same data points are logged as
-multiple records.  The heart of the problem is that the x-axis of the
+CAVEAT: sometimes a subsequent run will log the same data points as a
+new record.  The heart of the problem is that the x-axis of the
 scraped 6-hour graphs covers 21,600 seconds, but the charting data may
 only span 4095 values.  Thus each data point is roughly within a
-bucket of 21,600 / 4095 ~= 5 seconds.  Furthermore, since the data may
-be downloaded at any time and "now" is considered to be when the page
-download started, there is also an additional skew of a few seconds.
-
-TODO(chris): fix issue with saving storing the same record multiple times.
+bucket of 21,600 / 4095 ~= 5 seconds.  Furthermore, when unpacking
+data from different graphs, the timestamps do not necessarily line up
+with each other.  A single data point might appear in one record on
+one run and in another record on a different run since we batch data
+points into records by timestamp.
 
 Records are stored in the collection "gae_dashboard_chart_reports",
 and each has the structure:
