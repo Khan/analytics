@@ -19,7 +19,7 @@ A user-facing request:
 91.174.232.10 - chris [24/Jul/2012:17:00:09 -0700] "GET /assets/images/thumbnails/Rothko-13.jpg HTTP/1.1" 200 572 "http://smarthistory.khanacademy.org/" "Mozilla/5.0" "smarthistory.khanacademy.org" ms=65 cpu_ms=35 cpm_usd=0.000001 pending_ms=0 instance=00c61b117c5f1f26699563074cdd44e841096e
 
 A homagepage request, with no referer:
-68.202.49.17 - - [29/Oct/2012:17:00:09 -0700] "GET / HTTP/1.1" 200 11377 - "Mozilla/5.0 (Windows NT 6.0; WOW64) AppleWebKit/537.4 (KHTML, like Gecko) Chrome/22.0.1229.94 Safari/537.4" "www.khanacademy.org" ms=200 cpu_ms=103 cpm_usd=0.000001 pending_ms=0 instance=00c61b117c4811eae292cd1ee62739468526
+68.202.49.17 - - [29/Oct/2012:17:00:09 -0700] "GET / HTTP/1.1" 200 11377 - "Mozilla/5.0 (Windows NT 6.0; WOW64) AppleWebKit/537.4 (KHTML, like Gecko) Chrome/22.0.1229.94 Safari/537.4" "www.khanacademy.org" ms=200 cpu_ms=103 cpm_usd=0.000001 pending_ms=0 instance=00c61b117c4811eae292cd1ee62739468526  @Nolint
 
 A task queue request, initiated by App Engine:
 
@@ -32,8 +32,15 @@ and cpm_usd is occasionally, unexpectedly, 0.000000:
 
 174.211.15.119 - - [06/Oct/2012:16:00:09 -0700] "GET /images/featured-actions/campbells-soup.png HTTP/1.1" 204 154518 "http://www.khanacademy.org/" "Mozilla/5.0 (iPhone; CPU iPhone OS 5_0_1 like Mac OS X) AppleWebKit/534.46 (KHTML, like Gecko) Version/5.1 Mobile/9A405 Safari/7534.48.3" "www.khanacademy.org" ms=19 cpu_ms=0 cpm_usd=0.000017 pending_ms=0 instance=None
 
+Other lines in stdin hold the application logs, of which a maximum of one may
+be a KALOG in the format KALOG;(key(:value)?;)*
 
-Output is one record per line. Each record contains tab-separated
+ie:
+        0:1356120009.94 KALOG;pageload;testempty:;bingo.param:scratchpad_all_bi
+nary;bingo.param:scratchpad_all_count;id.bingo:_gae_bingo_random%3AL4oWrCzmmgZb
+7UAbCtT7T9NzFQKVQ5MhlJpE4uBo;
+
+Output is one record per request log. Each record contains tab-separated
 values whose fields are, in order with examples from the above logs:
 
   ip              # 91.174.232.10
@@ -52,6 +59,10 @@ values whose fields are, in order with examples from the above logs:
   pending_ms      # 0
   url_route       # (an identifier that rolls up multiple similar URLs,
                   #  e.g., video page URLs)
+  bingo_id        # _gae_bingo_random:L4oWrCzmmgZb7UAbCtT7T9NzFQKVQ5MhlJpE4uBo
+                  # (the bingo_id found in a KALOG within the applogs following
+                  # the request log)
+  kalog           # the full kalog line
 
 These fields could also be extracted from the logs but aren't because they're
 big and we can't figure out how they would be useful. If they do turn out to be
@@ -77,14 +88,14 @@ _LOG_MATCHER = re.compile(r"""
     ^(?P<ip>\S+)\s
     (?P<logname>\S+)\s
     (?P<user>\S+)\s
-    \[(?P<time_stamp>[^]]+)\]\s
+    \[(?P<time_stamp>[^\]]+)\]\s
     "(?P<method>\S+)\s
      (?P<url>\S+)\s
      (?P<protocol>[^"]+)"\s
     (?P<status>\S+)\s
     (?P<bytes>\S+)\s
     (?:"(?P<referer>[^"\\]*(?:\\.[^"\\]*)*)"|-)\s
-    "(?P<user_agent>[^"\\]*(?:\\.[^"\\]*)*)"\s
+    (?:"(?P<user_agent>[^"\\]*(?:\\.[^"\\]*)*)"|-)\s
 
     # Apache combined log format is above, custom fields are below.
 
@@ -100,12 +111,17 @@ _LOG_MATCHER = re.compile(r"""
     instance=(?P<instance>\S+)$
 """, re.X)
 
-
 # We emit just these fields, and in this order.
 _FIELDS_TO_KEEP = ('ip', 'user', 'time_stamp', 'method', 'url',
                    'protocol', 'status', 'bytes', 'referer',
                    'ms', 'cpu_ms', 'cpm_usd', 'queue_name',
                    'pending_ms')
+
+_KA_LOG_MATCHER = re.compile(r"""
+    ^\s*[\d.\:]*\s*
+    KALOG;(?P<keyvalues>(?:[^\:;]+(?:\:[^;]*)?;)*)
+    id.bingo:(?P<bingo_id>[^;]+);$
+""", re.X) 
 
 
 def route_for_url(route_map, url, method):
@@ -184,11 +200,52 @@ def convert_stats_route_map_strings_to_regexps(route_map):
             wsgi_info[0] = re.compile(wsgi_info[0])
 
 
+class RequestLogIterator:
+    """Iterates over each logline together with its app logs.
+
+    Performs a match on each request_log and returns a tuple of the line, the
+    match, and all subsequent lines that don't match a request_log (ie. the app
+    logs)
+    """
+
+    sentinel = object()  # Used to mark the end of the file
+
+    def __init__(self, input_file):
+        self._iter = iter(input_file)
+        self._set_next_line()
+        
+    def __iter__(self):
+        return self
+
+    def _set_next_line(self):
+        try:
+            self.next_line = self._iter.next()
+            self.next_match = _LOG_MATCHER.match(self.next_line)
+        except StopIteration:
+            self.next_line = self.sentinel
+            self.next_match = None
+
+    def next(self):
+        request_log_line = self.next_line
+        request_log_match = self.next_match
+        if request_log_line == self.sentinel:
+            raise StopIteration
+
+        app_log_lines = []
+        while True: 
+            self._set_next_line()
+            if (self.next_line == self.sentinel or self.next_match):
+                return (request_log_line, request_log_match, app_log_lines)
+            else:
+                app_log_lines.append(self.next_line)
+
+
 def main(input_file, route_map):
-    """Print a converted logline for each logline in input_file.
+    """Print a converted logline for each request logline in input_file.
 
     Also adds a few derived fields, such as the url_route (the
-    wsgi route that this url tickled).
+    wsgi route that this url tickled) and the bingo_id and other key_values
+    from the ka_log
 
     Arguments:
         input_file: a file containing loglines as taken from appengine.
@@ -198,37 +255,46 @@ def main(input_file, route_map):
             regexp strings converted to actual regexps).  This is
             passed as-is to route_for_url().
     """
-    for line in input_file:
-        match = _LOG_MATCHER.match(line)
-        if not match:
-            # Ignore non-request logs. It's possible, but unlikely,
-            # that we'll get a false positive: something that looks
-            # like a request log but was written to the application
-            # logs during a request.
-            continue
 
-        if '\t' in line:
+    for (request_log_line, request_log_match, app_log_lines) in (
+         RequestLogIterator(input_file)):
+
+        if '\t' in request_log_line:
             raise RuntimeError(
                 'The output to Hive is tab-separated. Field values must not '
-                'contain tabs, but this log does: %s' % line)
+                'contain tabs, but this log does: %s' % request_log_line)
 
-        fields = {}
-        for f in _FIELDS_TO_KEEP:
-            fields[f] = match.group(f) or ''
-
-        # Get a copy of the field-values in _FIELDS_TO_KEEP order.
-        sorted_fields = sorted(fields.items(),
-                               key=lambda kv: _FIELDS_TO_KEEP.index(kv[0]))
-
+        sorted_fields = [(f, request_log_match.group(f) or '') 
+                         for f in _FIELDS_TO_KEEP]
         # -- Now we add derived fields.
 
         # Map the URL to its route.
         sorted_fields.append(('url_route',
                               route_for_url(route_map,
-                                            fields['url'], fields['method'])))
+                                  request_log_match.group('url'),
+                                  request_log_match.group('method'))))
+
+        # Add the bingo_id and kalog if it exists in the app logs
+        for line in app_log_lines:
+            kalog_match = _KA_LOG_MATCHER.match(line)
+            if kalog_match:
+                
+                # We extract out the bingo_id and unquote it now for ease of 
+                # searching the lines by bingo_id (note bingo_ids will still
+                # be put into hive urllib quoted.
+                sorted_fields.append(('bingo_id', 
+                                      kalog_match.group("bingo_id")))
+                sorted_fields.append(('kalog', 
+                                      kalog_match.group("keyvalues")))
+
+                # There seems to be a bug that very occassionally the kalog
+                # line gets duplicated such as on  07/Jan/2013:18:06:09
+                # There could also be second kalog in app_log_lines if the 
+                # request_log_matcher fails to match a true request log in
+                # which case we will ignore the second one
+                break
 
         print '\t'.join(v for (k, v) in sorted_fields)
-
 
 if __name__ == '__main__':
     with open('route_map_file.json') as f:
