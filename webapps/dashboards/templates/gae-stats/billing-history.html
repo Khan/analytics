@@ -26,7 +26,7 @@ A dashboard of App Engine's billing history reports.
 {% include 'navbar.html' %}
 
 <div class="growth-summary" style="width:800px; margin: 40px auto;">
-    <form onchange="this.submit()">
+    <form id="option-picker">
         <h2>App Engine Billing History for
             <select name="resource">{% for name in resources %}
                 <option value="{{name}}" {%if resource_name == name %}selected{% endif %}>{{name}}</option>{% endfor %}
@@ -46,6 +46,9 @@ A dashboard of App Engine's billing history reports.
 
 <script type='text/javascript' src='http://www.google.com/jsapi'></script>
 <script type='text/javascript'>
+    $('#option-picker').change(function() {
+        $(this).submit();
+    });
     google.load('visualization', '1', {'packages':['annotatedtimeline']});
     google.setOnLoadCallback(drawChart);
     function drawChart() {

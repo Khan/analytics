@@ -39,8 +39,8 @@ Arguments
 
 <div class="growth-summary" style="width:800px; margin: 40px auto;">
     <h2>{{title}}</h2>
-    <form onchange="this.submit()" method="GET">
-        <select name="chart">
+    <form method="GET">
+        <select name="chart" onchange="this.form.submit()">
 {% for chart_name in chart_names %}
             <option value="{{chart_name}}" {% if chart_name == selected_chart %}selected{% endif %}>{{chart_name}}</option>{% endfor %}
         </select>
