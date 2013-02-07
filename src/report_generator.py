@@ -38,6 +38,8 @@ g_logger = util.get_logger()
 def parse_command_line_args():
     parser = optparse.OptionParser(USAGE)
     parser.add_option("-c", "--config", help="Config file. REQUIRED")
+    parser.add_option("-i", "--num_instances", type="int", default=5,
+                       help="Number of nodes to use in a Hive cluster")
     parser.add_option("-m", "--hive_masternode", default="ka-hive",
                        help="Hive master node alias")
     parser.add_option("-w", "--max_wait", type="float", default=24.0,
@@ -121,7 +123,7 @@ def wait_for_data(wait_for_config, options):
                 time.sleep(60)
 
 
-def run_hive_jobs(jobname, steps):
+def run_hive_jobs(jobname, steps, num_instances):
     """Run hive steps."""
     jobflow = emr.create_hive_cluster(jobname, {})
     for step in steps:
@@ -130,7 +132,7 @@ def run_hive_jobs(jobname, steps):
         # and not run any hive script.
         if 'hive_script' not in step:
             continue
-        emr.add_hive_step(jobflow, {},
+        emr.add_hive_step(jobflow, {"num_instances": num_instances},
                           hive_script=step["hive_script"],
                           script_args=step["hive_args"])
 
@@ -190,7 +192,7 @@ def main():
     wait_for_data(config['wait_for'], options)
 
     g_logger.info("Step 2: Run hive jobs and wait for completion.")
-    run_hive_jobs(config['name'], config['steps'])
+    run_hive_jobs(config['name'], config['steps'], options.num_instances)
 
     g_logger.info("Step 3: Load data from hive to mongo with report importer.")
     run_report_importer(options.hive_masternode, config['steps'])
