@@ -181,7 +181,7 @@ def get_option_parser():
     parser.add_option('--num_instances', type='int', default=3,
         help='Number of instances (machines) to use (default: %default)')
     parser.add_option('--master_instance_type', type='string',
-        default='m1.small',
+        default='m2.xlarge',
         help='The type of master instance to launch (default: %default')
     parser.add_option('--slave_instance_type', type='string',
         default='m2.xlarge',
