@@ -233,11 +233,11 @@ CREATE EXTERNAL TABLE IF NOT EXISTS bingo_alternative_infoP (
     hashable_name string,  -- Family or canonical name
     weight INT,
     dt_start string,
-    live BOOLEAN
-  )
-  PARTITIONED BY (dt string)
-  ROW FORMAT DELIMITED FIELDS TERMINATED BY '\t'
-  LOCATION '${INPATH}/bingo_alternative_infoP';
+    live BOOLEAN)
+PARTITIONED BY (dt string)
+ROW FORMAT DELIMITED FIELDS TERMINATED BY '\t'
+LOCATION '${INPATH}/bingo_alternative_infoP';
+ALTER TABLE bingo_alternative_infoP RECOVER PARTITIONS;
 
 -- The entire set is snapshotted each day, and a VIEW is created for the
 -- latest one (synced with UserData partition snapshots).
