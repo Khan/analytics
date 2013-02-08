@@ -125,14 +125,15 @@ def wait_for_data(wait_for_config, options):
 
 def run_hive_jobs(jobname, steps, num_instances):
     """Run hive steps."""
-    jobflow = emr.create_hive_cluster(jobname, {})
+    jobflow = emr.create_hive_cluster(
+            jobname, {"num_instances": num_instances})
     for step in steps:
         # It's possible to leave out hive_script and hive_args, for
         # when the step just wants to move data from hive into mongo,
         # and not run any hive script.
         if 'hive_script' not in step:
             continue
-        emr.add_hive_step(jobflow, {"num_instances": num_instances},
+        emr.add_hive_step(jobflow, {},
                           hive_script=step["hive_script"],
                           script_args=step["hive_args"])
 
