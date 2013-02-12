@@ -49,7 +49,7 @@ var getExerciseName = (function() {
 
     // Use the KA API to get pretty display names for exercises
     $(function() {
-        $.getJSON("http://www.khanacademy.org/api/v1/exercises",
+        $.getJSON("https://www.khanacademy.org/api/v1/exercises",
                 function(exercises) {
             _.each(exercises, function(ex) {
                 displayNameMap[ex.name] = ex.display_name;
@@ -92,7 +92,7 @@ var makeMarker = function(pinColor, options) {
 window.setInterval(function() {
 
     // TODO(david): Eventually add other types of activity, such as videos
-    $.getJSON("http://www.khanacademy.org/exercisestats/recentproblemlog",
+    $.getJSON("https://www.khanacademy.org/exercisestats/recentproblemlog",
             function(problemlog) {
 
         // Don't show again if last problem log was just shown
