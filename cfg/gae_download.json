@@ -5,7 +5,7 @@
   "max_logs": 1000, # max number of entities from gae for each pbuf call
   "dbhost": "localhost",
   "dbport": 12345,
-  "emails": ["jace@khanacademy.org", "yunfang@khanacademy.org"],
+  "emails": ["jace@khanacademy.org"],
   # entity to (save interval, fetch interval, mutable, is_ndb, json key) mapping.
   "kinds": {
             "VideoLog" : [300, 15, 0, 0, "user"] ,
@@ -17,8 +17,8 @@
             "Feedback": [1800, 1800, 1, 1, "key"],
             "TopicVersion": [1800, 1800, 1, 0, "key"],
             "_GAEBingoIdentityRecord": [600, 150, 1, 0, "identity"],
-            "Scratchpad": [1800, 100, 1, 0, "key"],
-            "ScratchpadRevision": [1800, 100, 0, 0, "key"],
+            "Scratchpad": [1800, 100, 1, 1, "key"],
+            "ScratchpadRevision": [1800, 100, 0, 1, "key"],
 
             # The following are also duplicated in the bulk download process.
             # We include them here for posterity; if one is interested in the

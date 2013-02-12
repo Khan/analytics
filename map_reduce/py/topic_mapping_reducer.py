@@ -38,9 +38,13 @@ def main():
             ancestor_titles.append(topic_title)
             ancestor_keys_str = json.dumps({'keys': ancestors})
             ancestor_title_str = json.dumps({'titles': ancestor_titles})
-            print "%s\t%s\t%s\t%s" % (topic_key, topic_title,
+            s = u"%s\t%s\t%s\t%s" % (topic_key, topic_title,
                                       ancestor_keys_str, ancestor_title_str)
 
+            # some titles, like L'Hopitals rule use non-ASCII characters.
+            # Not UTF-8 encoding can throw "UnicodeEncodeError: 'ascii' codec
+            # can't encode character u'\xf4' in position..".
+            print s.encode("UTF-8")
 
 if __name__ == '__main__':
     main()

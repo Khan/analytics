@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html>
+<!--
+A replication of the charts shown on App Engine's /dashboard
+
+Arguments
+  title: page title.
+  date_record_pairs: ("Date(...)", record) pairs of chart data. The
+    "Date(...)" string is used as a JavaScript date constructor.
+  record_fields: list of fields to look up in the record.
+  chart_names: the names of all available charts.
+  selected_chart: the name of the currently displayed chart.
+-->
+
+<head>
+<title>{{title}}</title>
+<link rel="shortcut icon" href="http://www.khanacademy.org/favicon.ico?leaf">
+<link rel="stylesheet" type="text/css" href="/static/css/third_party/bootstrap.css">
+<link rel="stylesheet" type="text/css" href="/static/css/third_party/jquery/flick/jquery-ui-1.8.20.custom.css">
+<style type="text/css">
+.growth-summary h2,
+.growth-summary form,
+.growth-summary form select {
+    /* Override bootstrap.css's too-aggressive stylings of label and input. */
+    display: inline;
+}
+.growth-summary form select {
+    margin-left: 20px;
+}
+.growth-summary .alert {
+    width: 650px;
+}
+</style>
+</head>
+
+<body>
+
+{% include 'navbar.html' %}
+
+<div class="growth-summary" style="width:800px; margin: 40px auto;">
+    <h2>{{title}}</h2>
+    <form method="GET">
+        <select name="chart" onchange="this.form.submit()">
+{% for chart_name in chart_names %}
+            <option value="{{chart_name}}" {% if chart_name == selected_chart %}selected{% endif %}>{{chart_name}}</option>{% endfor %}
+        </select>
+    </form>
+    <p class="alert alert-error"><strong>Warning:</strong> data is approximate and not as precise as it appears.  This is because it was extracted from URLs built for the Google Charts API which map the full range of displayed values onto a fixed number of buckets.
+    </p>
+    <div id='chart_div' style='width: 700px; height: 740px;'></div>
+</div>
+
+<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
+<script src="/static/js/third_party/jquery-ui-1.8.20.custom.min.js"></script>
+<script src="/static/js/third_party/underscore-min.js"></script>
+<script src="/static/js/third_party/bootstrap-dropdown.js"></script>
+
+<script type='text/javascript' src='http://www.google.com/jsapi'></script>
+<script type='text/javascript'>
+google.load('visualization', '1', {'packages':['annotatedtimeline']});
+
+(function() {
+    // Assign data and chart object after charting dependencies load.
+    function drawChart() {
+        var data = new google.visualization.DataTable();
+        data.addColumn('datetime', 'Date');
+{% for field_name in record_fields %}
+data.addColumn('number', '{{field_name}}');{% endfor %}
+        data.addRows([
+{% for js_date, record in date_record_pairs %}
+[new {{js_date}}, {% for field_name in record_fields %}{{record[field_name]}},{% endfor %}],{% endfor %}
+        ]);
+
+        var chart = new google.visualization.AnnotatedTimeLine($('#chart_div').get(0));
+        chart.draw(data, {displayAnnotations: true, legendPosition: 'newRow'});
+    }
+
+    google.setOnLoadCallback(drawChart);
+})();
+</script>
+
+</body>
+</html>
