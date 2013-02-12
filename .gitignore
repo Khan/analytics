@@ -37,6 +37,9 @@ secrets.py
 # or non-production instances of the main webserver
 dev_consts.py
 
+# File that permissions individual email accounts (e.g., for board members) to access the dashboards
+auth_whitelist.py
+
 # Common developer tools
 .project
 .pydevproject
