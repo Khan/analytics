@@ -89,8 +89,9 @@ ALTER TABLE ScratchpadRevision RECOVER PARTITIONS;
 --------------------------------------------------------------------------------
 -- Incrementally fetched entities
 
--- UserData and _GAEBingoIdentityRecord entities are downloaded daily in
--- incremental updates, and collected periodically into snapshots. The latest
+-- UserData entities (and _GAEBingoIdentityRecord, etc, up to "Summary Tables"
+-- below) entities are downloaded daily in incremental updates,
+-- and collected periodically into snapshots. The latest
 -- snapshot version is defined in the following file:
 -- (see userdata_update.q for generation of these partitions)
 ADD FILE s3://ka-mapreduce/conf/userdata_ver.q;
@@ -217,6 +218,26 @@ DROP TABLE IF EXISTS Scratchpad;
 DROP VIEW IF EXISTS Scratchpad;
 CREATE VIEW Scratchpad
 AS SELECT * FROM ScratchpadP
+WHERE dt = '${userdata_partition}';
+
+-- UserAssessment...
+CREATE EXTERNAL TABLE IF NOT EXISTS UserAssessmentIncr (key string, json string)
+COMMENT 'Daily incremental UserAssessment updates'
+PARTITIONED BY (dt string)
+ROW FORMAT DELIMITED FIELDS TERMINATED BY '\t'
+LOCATION 's3://ka-mapreduce/entity_store_incr/UserAssessment';
+ALTER TABLE UserAssessmentIncr RECOVER PARTITIONS;
+
+CREATE EXTERNAL TABLE IF NOT EXISTS UserAssessmentP (key string, json string)
+COMMENT 'UserAssessment snapshots (created from multiple UserAssessmentIncr partitions)'
+PARTITIONED BY (dt string)
+LOCATION '${INPATH}/UserAssessmentP';
+ALTER TABLE UserAssessmentP RECOVER PARTITIONS;
+
+DROP TABLE IF EXISTS UserAssessment;
+DROP VIEW IF EXISTS UserAssessment;
+CREATE VIEW UserAssessment
+AS SELECT * FROM UserAssessmentP
 WHERE dt = '${userdata_partition}';
 
 

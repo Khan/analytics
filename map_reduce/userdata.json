@@ -30,14 +30,14 @@
    }
 },
 {
-    "Name": "Loading <end_dt> Incr Scratchpad into EMR",
+    "Name": "Loading <end_dt> Incr UserAssessment into EMR",
     "ActionOnFailure": "CONTINUE",
     "HadoopJarStep": {
       "Jar": "/home/hadoop/contrib/streaming/hadoop-streaming.jar",
       "Args": [
          "-D", "mapred.output.compress=true",
-         "-input",    "s3n://ka-mapreduce/rawdata/<end_dt>/Scratchpad/*.json.gz",
-         "-output",   "s3n://ka-mapreduce/entity_store_incr/Scratchpad/dt=<end_dt>/",
+         "-input",    "s3n://ka-mapreduce/rawdata/<end_dt>/UserAssessment/*.json.gz",
+         "-output",   "s3n://ka-mapreduce/entity_store_incr/UserAssessment/dt=<end_dt>/",
          "-mapper",   "/bin/cat",
          "-reducer",  "/bin/cat",
          "-numReduceTasks", "16"
@@ -58,6 +58,21 @@
          "-numReduceTasks", "16"
       ]
     }
+},
+{
+    "Name": "Loading <end_dt> Incr Scratchpad into EMR",
+    "ActionOnFailure": "CONTINUE",
+    "HadoopJarStep": {
+      "Jar": "/home/hadoop/contrib/streaming/hadoop-streaming.jar",
+      "Args": [
+         "-D", "mapred.output.compress=true",
+         "-input",    "s3n://ka-mapreduce/rawdata/<end_dt>/Scratchpad/*.json.gz",
+         "-output",   "s3n://ka-mapreduce/entity_store_incr/Scratchpad/dt=<end_dt>/",
+         "-mapper",   "/bin/cat",
+         "-reducer",  "/bin/cat",
+         "-numReduceTasks", "16"
+      ]
+   }
 },
 {
     "Name": "Setup Hive",
