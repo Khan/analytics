@@ -259,6 +259,10 @@ def main(input_file, route_map):
     for (request_log_line, request_log_match, app_log_lines) in (
          RequestLogIterator(input_file)):
 
+        if request_log_match is None:
+            # RequestLogIterator encountered the 'sentinel'
+            continue
+
         if '\t' in request_log_line:
             raise RuntimeError(
                 'The output to Hive is tab-separated. Field values must not '
