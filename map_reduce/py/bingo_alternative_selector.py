@@ -6,7 +6,7 @@ bucket the user belongs to.
 
 Input:
     Rows with tab delimited column values of
-    [user, user_id, user_email, gae_bingo_identity, participating_tests,
+    [bingo_identity, participating_tests,
         canonical_name, hashable_name, alternative_name, alternative_weight].
 
     Note that every single row will have the same canonical_name and
@@ -14,7 +14,7 @@ Input:
 
 Output:
     For each experiment a user is in, emits
-    [user, user_id, user_email, canonical_name, alternative_name]
+    [bingo_identity, canonical_name, alternative_name]
     for the alternative_name that the user belongs in. Users who are not
     participating in the test are ignored.
 """
@@ -25,9 +25,7 @@ import sys
 
 
 def main():
-    current_user = None
-    current_user_id = None
-    current_user_email = None
+
     current_bingo_identity = None
     current_user_tests = None
     current_alternatives = None  # ordered tuples of (alt_name, weight)
@@ -36,24 +34,18 @@ def main():
     hashable_name = None
 
     for line in sys.stdin:
-        (user, user_id, user_email, bingo_identity, participating_tests,
+        (bingo_identity, participating_tests,
                 canonical_name, hashable_name, alternative_name, weight) = (
                         line.rstrip('\n').split('\t'))
 
-        if user != current_user:
-            if current_user:
+        if bingo_identity != current_bingo_identity:
+            if current_bingo_identity:
                 emit_alternative_for_user(
-                        current_user,
-                        current_user_id,
-                        current_user_email,
                         current_bingo_identity,
                         canonical_name,
                         hashable_name,
                         current_alternatives)
 
-            current_user = user
-            current_user_id = user_id
-            current_user_email = user_email
             current_bingo_identity = bingo_identity
 
             # participating_tests is a list of test names in the form of
@@ -67,13 +59,10 @@ def main():
         if canonical_name not in current_user_tests:
             continue
 
-        current_alternatives.append((alternative_name, float(weight)))
+        current_alternatives.append((alternative_name, long(weight)))
 
-    if current_user:
+    if current_bingo_identity:
         emit_alternative_for_user(
-                current_user,
-                current_user_id,
-                current_user_email,
                 current_bingo_identity,
                 canonical_name,
                 hashable_name,
@@ -81,8 +70,7 @@ def main():
 
 
 def emit_alternative_for_user(
-        user, user_id, user_email, bingo_identity,
-        canonical_name, hashable_name, alternatives):
+            bingo_identity, canonical_name, hashable_name, alternatives):
     """Determines the experiment alternative for the given user and prints it.
 
     This *must* be consistent with modulo_choose in gae_bingo.py.
@@ -100,6 +88,11 @@ def emit_alternative_for_user(
 
     current_weight = alternatives_weight
     selected_alternative = None
+    
+    # TODO(jace): Change the sorting to be keyed off name instead of weight.
+    # Python sorts are stable, but the initial ordering may be different here
+    # than on GAE, causing bad mappings.
+    # The corresponding change must be made in gae_bingo.py, though!
     for alternative, weight in sorted(alternatives,
                                       key=lambda (name, weight): weight,
                                       reverse=True):
@@ -114,9 +107,7 @@ def emit_alternative_for_user(
         return
 
     print "\t".join([
-            user,
-            user_id,
-            user_email,
+            bingo_identity,
             canonical_name,
             selected_alternative
         ])
