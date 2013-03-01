@@ -121,11 +121,10 @@ section .row {
                 Performance metrics for the most accessed URLs.
             </span>
             <span class="span6">
-                <h3><a href="/gae_stats/dashboard_charts">Dashboard Charts</a></h3>
+                <h3><a href="/gae_stats/url_stats">Stats for One URL</a></h3>
                 <img src="static/img/appengine.png">
                 <!-- TODO(chris): generate a preview image -->
-                Replication (with history) of the charts on App
-                Engine's dashboard.
+                Performance metrics over time for each URL.
             </span>
         </div>
         <div class="row">
@@ -136,18 +135,19 @@ section .row {
                 Performance metrics for the most accessed Flask and webapp2 routes.
             </span>
             <span class="span6">
-                <h3><a href="/gae_stats/instances">Instances</a></h3>
+                <h3><a href="/gae_stats/urlroute_stats">Stats for One URL Route</a></h3>
                 <img src="static/img/appengine.png">
                 <!-- TODO(chris): generate a preview image -->
-                Summary data over time for App Engine's instance usage.
+                Performance metrics over time for each URL route.
             </span>
         </div>
         <div class="row">
             <span class="span6">
-                <h3><a href="/gae_stats/url_stats">Stats for One URL</a></h3>
+                <h3><a href="/gae_stats/dashboard_charts">Dashboard Charts</a></h3>
                 <img src="static/img/appengine.png">
                 <!-- TODO(chris): generate a preview image -->
-                Performance metrics over time for each URL.
+                Replication (with history) of the charts on App
+                Engine's dashboard.
             </span>
             <span class="span6">
                 <h3><a href="/gae_stats/memcache">Memcache</a></h3>
@@ -169,6 +169,14 @@ section .row {
                 <img src="static/img/appengine.png">
                 <!-- TODO(chris): generate a preview image -->
                 Daily usage reports used for billing by App Engine.
+            </span>
+        </div>
+        <div class="row">
+            <span class="span6">
+                <h3><a href="/gae_stats/instances">Instances</a></h3>
+                <img src="static/img/appengine.png">
+                <!-- TODO(chris): generate a preview image -->
+                Summary data over time for App Engine's instance usage.
             </span>
         </div>
     </section>

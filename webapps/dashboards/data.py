@@ -76,6 +76,32 @@ def daily_request_log_url_stats(mongo, dt=None, url=None, fields=None,
     return collection.find(spec, fields).limit(limit)
 
 
+def daily_request_log_urlroute_stats(mongo, dt=None, url_route=None,
+                                     fields=None, limit=100):
+    """Fetch from the mongo collection daily_request_log_urlroute_stats.
+
+    Arguments:
+      mongo: a pymongo connection.
+      dt (optional): a date string like 'YYYY-MM-DD'. If specified, fetch only
+        documents whose "dt" field matches.
+      url_route (optional): fetch only documents with this "url_route" field.
+      fields (optional): a list of field names to return in the result set.
+      limit (optional): the maximum size of the result set. Default is 100.
+
+    Returns:
+      A list of dicts, each containing the fields specified in the "fields"
+      argument, or all fields defined in the daily_request_log_urlroute_stats
+      table in map_reduce/hive/ka_hive_init.q
+    """
+    collection = mongo['report']['daily_request_log_urlroute_stats']
+    spec = {}
+    if dt is not None:
+        spec['dt'] = dt
+    if url_route is not None:
+        spec['url_route'] = url_route
+    return collection.find(spec, fields).limit(limit)
+
+
 def _median_of_maps(maps):
     """Given a list of maps with the same keys, return a 'median' map.
 
@@ -170,23 +196,6 @@ def webpagetest_stats(mongo, dt=None,
         run = entry_map[key]
         retval.append(_median_of_maps(run))
     return retval[:limit]
-
-
-def daily_request_log_urlroute_stats(mongo, dt, limit=100):
-    """Fetch from the mongo collection daily_request_log_urlroute_stats.
-
-    Arguments:
-      mongo: a pymongo connection.
-      dt: a date string like 'YYYY-MM-DD'. Fetch only documents whose "dt"
-        field matches.
-      limit (optional): the maximum size of the result set. Default is 100.
-
-    Returns:
-      A list of dicts, each containing the fields of the
-      daily_request_log_urlroute_stats table in map_reduce/hive/ka_hive_init.q
-    """
-    collection = mongo['report']['daily_request_log_urlroute_stats']
-    return collection.find({'dt': dt}).limit(limit)
 
 
 def gae_dashboard_reports(mongo, report_name, limit=12 * 24 * 366):
