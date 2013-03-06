@@ -422,21 +422,29 @@ CREATE EXTERNAL TABLE IF NOT EXISTS website_request_logs (
   LOCATION 's3://ka-mapreduce/rawdata_tables/request_logs/website/';
 ALTER TABLE website_request_logs RECOVER PARTITIONS;
 
+DROP TABLE IF EXISTS daily_request_log_url_stats;
 CREATE EXTERNAL TABLE IF NOT EXISTS daily_request_log_url_stats (
     count INT, url STRING, avg_response_bytes INT,
     ms_pct5 INT, ms_pct50 INT, ms_pct95 INT,
     cpu_ms_pct5 INT, cpu_ms_pct50 INT, cpu_ms_pct95 INT,
-    cpm_microcents_pct5 INT, cpm_microcents_pct50 INT, cpm_microcents_pct95 INT
+    cpm_microcents_pct5 INT, cpm_microcents_pct50 INT, cpm_microcents_pct95 INT,
+    ms_pct25 INT, ms_pct75 INT,
+    cpu_ms_pct25 INT, cpu_ms_pct75 INT,
+    cpm_microcents_pct25 INT, cpm_microcents_pct75 INT
   )
   PARTITIONED BY (dt STRING)
   LOCATION 's3://ka-mapreduce/summary_tables/daily_request_log_url_stats';
 ALTER TABLE daily_request_log_url_stats RECOVER PARTITIONS;
 
+DROP TABLE IF EXISTS daily_request_log_urlroute_stats;
 CREATE EXTERNAL TABLE IF NOT EXISTS daily_request_log_urlroute_stats (
     count INT, url_route STRING, avg_response_bytes INT,
     ms_pct5 INT, ms_pct50 INT, ms_pct95 INT,
     cpu_ms_pct5 INT, cpu_ms_pct50 INT, cpu_ms_pct95 INT,
-    cpm_microcents_pct5 INT, cpm_microcents_pct50 INT, cpm_microcents_pct95 INT
+    cpm_microcents_pct5 INT, cpm_microcents_pct50 INT, cpm_microcents_pct95 INT,
+    ms_pct25 INT, ms_pct75 INT,
+    cpu_ms_pct25 INT, cpu_ms_pct75 INT,
+    cpm_microcents_pct25 INT, cpm_microcents_pct75 INT
   )
   PARTITIONED BY (dt STRING)
   LOCATION 's3://ka-mapreduce/summary_tables/daily_request_log_urlroute_stats';

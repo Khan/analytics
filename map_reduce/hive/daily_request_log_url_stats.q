@@ -21,15 +21,24 @@ SELECT
   ROUND(stats.cpu_ms_pct[2]) as cpu_ms_pct95,
   ROUND(stats.cpm_microcents_pct[0]) as cpm_microcents_pct5,
   ROUND(stats.cpm_microcents_pct[1]) as cpm_microcents_pct50,
-  ROUND(stats.cpm_microcents_pct[2]) as cpm_microcents_pct95
+  ROUND(stats.cpm_microcents_pct[2]) as cpm_microcents_pct95,
+  -- The columns for the 25th, 75th percentiles were added late and are
+  -- listed last to match the table's column ordering.
+  ROUND(stats.ms_pct[3]) as ms_pct25,
+  ROUND(stats.ms_pct[4]) as ms_pct75,
+  ROUND(stats.cpu_ms_pct[3]) as cpu_ms_pct25,
+  ROUND(stats.cpu_ms_pct[4]) as cpu_ms_pct75,
+  ROUND(stats.cpm_microcents_pct[3]) as cpm_microcents_pct25,
+  ROUND(stats.cpm_microcents_pct[4]) as cpm_microcents_pct75
 FROM (
   SELECT
     COUNT(*) AS count,
     url,
     AVG(bytes) AS avg_response_bytes,
-    PERCENTILE(ms, array(0.05, 0.50, 0.95)) AS ms_pct,
-    PERCENTILE(cpu_ms, array(0.05, 0.50, 0.95)) AS cpu_ms_pct,
-    PERCENTILE(cpm_usd * 100000000, array(0.05, 0.50, 0.95)) AS cpm_microcents_pct
+    PERCENTILE(ms, array(0.05, 0.50, 0.95, 0.25, 0.75)) AS ms_pct,
+    PERCENTILE(cpu_ms, array(0.05, 0.50, 0.95, 0.25, 0.75)) AS cpu_ms_pct,
+    PERCENTILE(cpm_usd * 100000000, array(0.05, 0.50, 0.95, 0.25, 0.75))
+      AS cpm_microcents_pct
   FROM website_request_logs
   WHERE dt = '${dt}'
   GROUP BY url
@@ -61,15 +70,24 @@ SELECT
   ROUND(stats.cpu_ms_pct[2]) as cpu_ms_pct95,
   ROUND(stats.cpm_microcents_pct[0]) as cpm_microcents_pct5,
   ROUND(stats.cpm_microcents_pct[1]) as cpm_microcents_pct50,
-  ROUND(stats.cpm_microcents_pct[2]) as cpm_microcents_pct95
+  ROUND(stats.cpm_microcents_pct[2]) as cpm_microcents_pct95,
+  -- The columns for the 25th, 75th percentiles were added late and are
+  -- listed last to match the table's column ordering.
+  ROUND(stats.ms_pct[3]) as ms_pct25,
+  ROUND(stats.ms_pct[4]) as ms_pct75,
+  ROUND(stats.cpu_ms_pct[3]) as cpu_ms_pct25,
+  ROUND(stats.cpu_ms_pct[4]) as cpu_ms_pct75,
+  ROUND(stats.cpm_microcents_pct[3]) as cpm_microcents_pct25,
+  ROUND(stats.cpm_microcents_pct[4]) as cpm_microcents_pct75
 FROM (
   SELECT
     COUNT(*) AS count,
     url_route,
     AVG(bytes) AS avg_response_bytes,
-    PERCENTILE(ms, array(0.05, 0.50, 0.95)) AS ms_pct,
-    PERCENTILE(cpu_ms, array(0.05, 0.50, 0.95)) AS cpu_ms_pct,
-    PERCENTILE(cpm_usd * 100000000, array(0.05, 0.50, 0.95)) AS cpm_microcents_pct
+    PERCENTILE(ms, array(0.05, 0.50, 0.95, 0.25, 0.75)) AS ms_pct,
+    PERCENTILE(cpu_ms, array(0.05, 0.50, 0.95, 0.25, 0.75)) AS cpu_ms_pct,
+    PERCENTILE(cpm_usd * 100000000, array(0.05, 0.50, 0.95, 0.25, 0.75))
+      AS cpm_microcents_pct
   FROM website_request_logs
   WHERE dt = '${dt}'
   GROUP BY url_route
