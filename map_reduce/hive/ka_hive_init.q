@@ -411,6 +411,7 @@ LOCATION 's3://ka-mapreduce/summary_tables/accuracy_deltas_summary';
 ALTER TABLE accuracy_deltas_summary RECOVER PARTITIONS;
 
 -- Website request logs
+DROP TABLE IF EXISTS website_request_logs;
 CREATE EXTERNAL TABLE IF NOT EXISTS website_request_logs (
     ip STRING, user STRING, time_stamp STRING, method STRING, url STRING,
     protocol STRING, status INT, bytes INT, referer STRING,
