@@ -3,7 +3,10 @@
     1. Waiting for data partitions
     2. Kick off EMR jobs and wait for completion
     3. Kick off report importer to load data from Hive to MongoDB
-Example: ./report_generator.py -c ../cfg/daily_report.json '<dt>=2012-08-25'
+
+For example:
+  ./report_generator.py -c ../cfg/daily_report.json \
+      '<day>=2012-08-25' '<day_before>=2012-08-24' '<day_after>=2012-08-26'
 """
 
 USAGE = """%prog [options] [parameters]
@@ -44,6 +47,13 @@ def parse_command_line_args():
                        help="Hive master node alias")
     parser.add_option("-w", "--max_wait", type="float", default=24.0,
                        help="Max # hours we will wait for the data")
+    parser.add_option("--skip_hive_scripts", action="store_true",
+        dest="skip_hive_scripts", default=False,
+        help=("Do not execute steps 1 and 2, waiting on Hive tables and "
+              "running Hive scripts, respectively"))
+    parser.add_option("--skip_report_import", action="store_true",
+        dest="skip_report_import", default=False,
+        help="Do not execute step 3, loading generated reports into MongoDB")
     parser.add_option("-s", '--ssh_keyfile',
         help=('A location of an SSH pem file to use for SSH connections '
               'to the specified Hive machine'))
@@ -124,7 +134,19 @@ def wait_for_data(wait_for_config, options):
 
 
 def run_hive_jobs(jobname, steps, num_instances):
-    """Run hive steps."""
+    """Run hive steps.
+
+    Arguments:
+      jobname: Name for the Amazon EMR job.
+      steps: A sequence of dictionaries describing the job steps to add.
+        Each step may specify the keys "hive_script" and "hive_args". If
+        "hive_script" is missing, no job step will be added. These steps
+        usually come directly from a configuration file.
+      num_instances: The number of instances to run this job on. Equivalent
+        to the EMR CLI option --num-instances.
+
+    Calls sys.exit() when a job does not complete successfully.
+    """
     jobflow = emr.create_hive_cluster(
             jobname, {"num_instances": num_instances})
     for step in steps:
@@ -189,14 +211,24 @@ def main():
         config_str = config_str.replace(name, val)
     config = json.loads(config_str)
 
-    g_logger.info("Step 1: Wait for data.")
-    wait_for_data(config['wait_for'], options)
+    step1 = "Step 1: Wait for data."
+    step2 = "Step 2: Run hive jobs and wait for completion."
+    if options.skip_hive_scripts:
+        g_logger.info("Skipping " + step1)
+        g_logger.info("Skipping " + step2)
+    else:
+        g_logger.info(step1)
+        wait_for_data(config['wait_for'], options)
 
-    g_logger.info("Step 2: Run hive jobs and wait for completion.")
-    run_hive_jobs(config['name'], config['steps'], options.num_instances)
+        g_logger.info(step2)
+        run_hive_jobs(config['name'], config['steps'], options.num_instances)
 
-    g_logger.info("Step 3: Load data from hive to mongo with report importer.")
-    run_report_importer(options.hive_masternode, config['steps'])
+    step3 = "Step 3: Load data from hive to mongo with report importer."
+    if options.skip_report_import:
+        g_logger.info("Skipping " + step3)
+    else:
+        g_logger.info(step3)
+        run_report_importer(options.hive_masternode, config['steps'])
 
     g_logger.info("Report generation finished.")
 
