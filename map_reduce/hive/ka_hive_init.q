@@ -478,7 +478,7 @@ CREATE EXTERNAL TABLE IF NOT EXISTS video_stats (
 ) PARTITIONED BY (duration STRING, dt STRING,
                   user_category STRING, aggregation STRING)
 LOCATION 's3://ka-mapreduce/summary_tables/video_stats';
-ALTER TABLE daily_video_stats RECOVER PARTITIONS;
+ALTER TABLE video_stats RECOVER PARTITIONS;
 
 
 CREATE EXTERNAL TABLE IF NOT EXISTS daily_exercise_stats (
