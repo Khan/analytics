@@ -88,7 +88,7 @@ def emit_alternative_for_user(
 
     current_weight = alternatives_weight
     selected_alternative = None
-    
+
     # TODO(jace): Change the sorting to be keyed off name instead of weight.
     # Python sorts are stable, but the initial ordering may be different here
     # than on GAE, causing bad mappings.
@@ -110,7 +110,7 @@ def emit_alternative_for_user(
             bingo_identity,
             canonical_name,
             selected_alternative
-        ])
+            ])
 
 
 if __name__ == '__main__':
