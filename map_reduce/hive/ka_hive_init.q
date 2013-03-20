@@ -246,15 +246,15 @@ WHERE dt = '${userdata_partition}';
 
 -- Mirror of _GAEBingoAlternative and _GAEBingoExperiment entities on
 -- prod (denormalized so that experiment info is in each alternative).
--- NOTE: the ordering of these alternatives in the table is important, and it's
--- implicitly used for determining which alternative a user belongs to.
-CREATE EXTERNAL TABLE IF NOT EXISTS bingo_alternative_infoP (
+DROP TABLE IF EXISTS bingo_alternative_infoP;
+CREATE EXTERNAL TABLE IF NOT EXISTS bingo_alternative_infoP(
     canonical_name string,  -- Canonical name of the experiment
     name string,  -- Name of the alternative
     hashable_name string,  -- Family or canonical name
     weight INT,
     dt_start string,
-    live BOOLEAN)
+    live BOOLEAN,
+    number INT)
 PARTITIONED BY (dt string)
 ROW FORMAT DELIMITED FIELDS TERMINATED BY '\t'
 LOCATION '${INPATH}/bingo_alternative_infoP';

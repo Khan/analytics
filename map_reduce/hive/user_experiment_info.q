@@ -49,7 +49,8 @@ FROM
         alt.canonical_name AS canonical_name,
         alt.hashable_name AS hashable_name,
         alt.name AS alternative_name,
-        alt.weight AS alternative_weight
+        alt.weight AS alternative_weight,
+        alt.number AS alternative_number
     FROM bingo_alternative_infop alt
     INNER JOIN GAEBingoIdentityRecord bir
       ON True   -- Simulate a CROSS JOIN (only available on Hive v0.10+)

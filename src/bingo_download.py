@@ -78,6 +78,7 @@ def dump_alternatives(experiment, fout=sys.stdout):
                 str(alternative['weight']),
                 dt_started,
                 str(live),
+                str(alternative['number'])
             ]) + "\n")
     fout.flush()
 

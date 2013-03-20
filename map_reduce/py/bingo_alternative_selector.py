@@ -35,7 +35,8 @@ def main():
 
     for line in sys.stdin:
         (bingo_identity, participating_tests,
-                canonical_name, hashable_name, alternative_name, weight) = (
+                canonical_name, hashable_name, alternative_name, weight,
+                alternative_number) = (
                         line.rstrip('\n').split('\t'))
 
         if bingo_identity != current_bingo_identity:
@@ -59,7 +60,8 @@ def main():
         if canonical_name not in current_user_tests:
             continue
 
-        current_alternatives.append((alternative_name, long(weight)))
+        current_alternatives.append((alternative_name, long(weight), 
+                                      alternative_number))
 
     if current_bingo_identity:
         emit_alternative_for_user(
@@ -89,12 +91,12 @@ def emit_alternative_for_user(
     current_weight = alternatives_weight
     selected_alternative = None
 
-    # TODO(jace): Change the sorting to be keyed off name instead of weight.
-    # Python sorts are stable, but the initial ordering may be different here
-    # than on GAE, causing bad mappings.
-    # The corresponding change must be made in gae_bingo.py, though!
+    # Sorting by weight and then number keeps the sort stable. 
+    # We sort by name last, which keeps the sort stable for records
+    # created before the number was created.
     for alternative, weight in sorted(alternatives,
-                                      key=lambda (name, weight): weight,
+                                      key=lambda (name, weight, number):
+                                             (weight, number, name)
                                       reverse=True):
 
         current_weight -= weight
@@ -109,9 +111,9 @@ def emit_alternative_for_user(
     print "\t".join([
             bingo_identity,
             canonical_name,
-            selected_alternative
+            selected_alternative    
             ])
 
-
+    
 if __name__ == '__main__':
     main()
