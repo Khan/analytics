@@ -61,7 +61,11 @@ A dashboard of App Engine's billing history reports.
         ]);
 
         var chart = new google.visualization.AnnotatedTimeLine(document.getElementById('chart_div'));
-        chart.draw(data, {displayAnnotations: true});
+        chart.draw(data, {
+            displayAnnotations: true,
+            min: 0,
+            scaleType: 'maximized'
+        });
     }
 </script>
 

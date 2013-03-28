@@ -65,7 +65,11 @@ google.load('visualization', '1', {'packages':['annotatedtimeline']});
         }
 
         view.setColumns([0, columnIndexToShow]);
-        chart.draw(view, {displayAnnotations: true});
+        chart.draw(view, {
+            displayAnnotations: true,
+            min: 0,
+            scaleType: 'maximized'
+        });
     }
 
     // Assign data and chart object after charting dependencies load.

@@ -72,7 +72,12 @@ data.addColumn('number', '{{field_name}}');{% endfor %}
         ]);
 
         var chart = new google.visualization.AnnotatedTimeLine($('#chart_div').get(0));
-        chart.draw(data, {displayAnnotations: true, legendPosition: 'newRow'});
+        chart.draw(data, {
+            displayAnnotations: true,
+            legendPosition: 'newRow',
+            min: 0,
+            scaleType: 'maximized'
+        });
     }
 
     google.setOnLoadCallback(drawChart);
