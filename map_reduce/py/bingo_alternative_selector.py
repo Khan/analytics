@@ -96,7 +96,7 @@ def emit_alternative_for_user(
     # created before the number was created.
     for alternative, weight in sorted(alternatives,
                                       key=lambda (name, weight, number):
-                                             (weight, number, name)
+                                             (weight, number, name),
                                       reverse=True):
 
         current_weight -= weight
