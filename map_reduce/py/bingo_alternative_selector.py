@@ -60,7 +60,7 @@ def main():
         if canonical_name not in current_user_tests:
             continue
 
-        current_alternatives.append((alternative_name, long(weight), 
+        current_alternatives.append((alternative_name, long(weight),
                                       alternative_number))
 
     if current_bingo_identity:
@@ -82,7 +82,7 @@ def emit_alternative_for_user(
         # No alternative info - user must not be participating in the test.
         return
 
-    alternatives_weight = sum([weight for (name, weight) in alternatives])
+    alternatives_weight = sum([weight for (name, weight, num) in alternatives])
 
     sig = hashlib.md5(hashable_name + str(bingo_identity)).hexdigest()
     sig_num = int(sig, base=16)
@@ -91,10 +91,10 @@ def emit_alternative_for_user(
     current_weight = alternatives_weight
     selected_alternative = None
 
-    # Sorting by weight and then number keeps the sort stable. 
+    # Sorting by weight and then number keeps the sort stable.
     # We sort by name last, which keeps the sort stable for records
     # created before the number was created.
-    for alternative, weight in sorted(alternatives,
+    for alternative, weight, num in sorted(alternatives,
                                       key=lambda (name, weight, number):
                                              (weight, number, name),
                                       reverse=True):
@@ -111,9 +111,9 @@ def emit_alternative_for_user(
     print "\t".join([
             bingo_identity,
             canonical_name,
-            selected_alternative    
+            selected_alternative
             ])
 
-    
+
 if __name__ == '__main__':
     main()
