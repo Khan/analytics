@@ -65,14 +65,6 @@
       "importer_args": "",
       "drop": true,
       "hive_init": true
-    },
-    { "hive_script": "s3://ka-mapreduce/code/hive/company_metrics.q",
-      "hive_args": {"start_dt": "<day>", "end_dt": "<day_after>"},
-      "hive_table": "company_metrics",
-      "mongo_collection":  "company_metrics",
-      "importer_args": "",
-      "drop": true,
-      "hive_init": true
     }
 
   ]
