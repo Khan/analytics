@@ -5,7 +5,15 @@ Currently the MIRT training outputs data as a npz (NumPy) file.  This
 script can convert it to JSON suitable for uploading to App Engine via
 mirt_upload.py.
 
+USAGE:
+
+  python mirt_npz_to_json.py NPZFILE >out.json
+
+The program will prompt for input on stderr, to avoid conflicting with
+the written JSON on stdout.
+
 TODO(jace): make the MIRT training output JSON and eliminate this script
+
 """
 
 import json
@@ -50,14 +58,18 @@ def mirt_npz_to_json(npz_file):
 
     slug = ""
     while not slug:
-        slug = raw_input("Enter the slug (required): ")
+        print >>sys.stderr, "Enter the slug (required): ",
+        slug = raw_input()
     
-    print "Title can be left blank if you will be updating an existing model."
-    title = raw_input("Enter the title (or hit enter for none): ")
+    print >>sys.stderr, ("Title can be left blank if you will be updating "
+                         "an existing model.")
+    print >>sys.stderr, "Enter the title (or hit enter for none): ",
+    title = raw_input()
     
-    print ("Description can be left blank if you will be updating an existing "
-          "model.")
-    description = raw_input("Enter the description (or hit enter for none): ")
+    print >>sys.stderr, ("Description can be left blank if you will be "
+                         "updating an existing model.")
+    print >>sys.stderr, "Enter the description (or hit enter for none): ",
+    description = raw_input()
 
     if slug:
         out_data["slug"] = slug

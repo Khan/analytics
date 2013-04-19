@@ -1,5 +1,18 @@
 """This script trains, and then emits features generated using,
 a multidimensional item response theory model.
+
+USAGE:
+
+  The KA website root and analytics directory must be on PYTHONPATH, e.g.,
+
+  export PYTHONPATH=~/khan/website/stable:~/khan/analytics/src 
+  python mirt_train_EM.py -a 1 -n 75 -f PROD_RESPONSES -w 0 -o MIRT_NEW &> LOG
+
+  Where PROD_RESPONSES is a number of UserAssessment data as formatted
+  by get_user_assessment_data.py, MIRT_NEW is the root filename for
+  output, and LOG is a logfile containing the stderr and stdout of
+  this process.
+
 """
 
 import multiprocessing
@@ -69,34 +82,42 @@ def sample_abilities_diffusion(args):
 
 def get_cmd_line_options():
     parser = optparse.OptionParser()
-    # Number of hidden ability units
-    parser.add_option("-a", "--num_abilities", type=int, default=1)
-    # Number of sampling steps to use for sample_abilities_diffusion
-    parser.add_option("-s", "--sampling_num_steps", type=int, default=50)
-    # The length scale to use for sampling update proposals
-    parser.add_option("-l", "--sampling_epsilon", type=float, default=0.1)
-    # The number of EM iterations to do during learning
-    parser.add_option("-n", "--num_epochs", type=int, default=10000)
-    # The number of copies of the data to train on.  If there is too little
-    # training data, increase this number in order to maintain multiple samples
-    # from the abilities vector for each student.  A sign that there is too
-    # little training data is if the update step length ||dcouplings|| remains
-    # large.
-    parser.add_option("-q", "--num_replicas", type=int, default=1)
-    # The number of LBFGS descent steps to do per EM iteration
-    parser.add_option("-m", "--max_pass_lbfgs", type=int, default=5)
-    # The weight for an L2 regularizer on the parameters.  This can be very
-    # small, but keeps the weights from running away in a weakly constrained
-    # direction.
-    parser.add_option("-p", "--regularization", default=1e-5)
-    # The number of processes to use to parallelize this.  Set this to 0 to
-    # use one process, and make debugging easier.
-    parser.add_option("-w", "--workers", type=int, default=6)
-    # the source data file
+    parser.add_option("-a", "--num_abilities", type=int, default=1,
+                      help=("Number of hidden ability units"))
+    parser.add_option("-s", "--sampling_num_steps", type=int, default=50,
+                      help=("Number of sampling steps to use for "
+                            "sample_abilities_diffusion"))
+    parser.add_option("-l", "--sampling_epsilon", type=float, default=0.1,
+                      help=("The length scale to use for sampling update "
+                            "proposals"))
+    parser.add_option("-n", "--num_epochs", type=int, default=10000,
+                      help=("The number of EM iterations to do during "
+                            "learning"))
+    parser.add_option("-q", "--num_replicas", type=int, default=1,
+                      help=("The number of copies of the data to train "
+                            "on.  If there is too little training data, "
+                            "increase this number in order to maintain "
+                            "multiple samples from the abilities vector "
+                            "for each student.  A sign that there is too "
+                            "little training data is if the update step "
+                            "length ||dcouplings|| remains large."))
+    parser.add_option("-m", "--max_pass_lbfgs", type=int, default=5,
+                      help=("The number of LBFGS descent steps to do per "
+                            "EM iteration"))
+    parser.add_option("-p", "--regularization", default=1e-5,
+                      help=("The weight for an L2 regularizer on the "
+                            "parameters.  This can be very small, but "
+                            "keeps the weights from running away in a "
+                            "weakly constrained direction."))
+    parser.add_option("-w", "--workers", type=int, default=6,
+                      help=("The number of processes to use to parallelize "
+                            "this.  Set this to 0 to use one process, and "
+                            "make debugging easier."))
     parser.add_option("-f", "--file", type=str,
-            default='user_assessment.responses')
-    # the root filename for output
-    parser.add_option("-o", "--output", type=str, default='')
+                      default='user_assessment.responses',
+                      help=("The source data file"))
+    parser.add_option("-o", "--output", type=str, default='',
+                      help=("The root filename for output"))
     options, _ = parser.parse_args()
 
     if options.output == '':
