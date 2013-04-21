@@ -53,7 +53,7 @@ def main():
             # "some canonical name (conversion name)". We only care about the
             # canonical name here.
             parsed_tests = json.loads(participating_tests)
-            current_user_tests = set([t.split('(')[0].strip()
+            current_user_tests = set([t.rsplit('(', 1)[0].strip()
                                       for t in parsed_tests])
             current_alternatives = []
 
