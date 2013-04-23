@@ -9,7 +9,7 @@ a tab character or binary value of 1, followed by a JSON-encoded (via
 api.jsonify) UserAssessment object as defined in
 website/assessment/assessment_models.py. E.g.,
 
-'73feb9c8c\t{"type":"UserAssessment","exercise":"addition_1",...'
+ag5zhIVFcnjQM\t{"slug":"algebra","history":"[{\"exercise\":\"addition_1\",...
 
 Note that the value of the UserAssessment's "history" field is itself
 JSON-encoded.
