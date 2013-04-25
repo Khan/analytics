@@ -28,7 +28,7 @@ def monitor_jobflow(jobflow_id):
 
     failures = ["FAILED", "CANCELLED", "TERMINATED"]
     if any(s in listing for s in failures):
-        subject = "Step Failed: " + subject
+        subject = "STEP FAILED: " + subject
         notify.send_hipchat(subject)
 
     # Until we get more confident, always send email, even on success
