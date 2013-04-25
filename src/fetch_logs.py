@@ -131,7 +131,7 @@ def get_cmd_line_args():
                             "fetching the logs against those versions "
                             "until one returns non-zero results.  The "
                             "file should have text like "
-                            "appengine_versions=v1,v2,v3"))
+                            "appengine_versions: v1,v2,..."))
     #TODO: Figure out a better way to get the backend versions that were active
     #during the time period.
     parser.add_option("-b", "--backend", action="store_true", default=False,
@@ -145,7 +145,7 @@ def get_cmd_line_args():
     options, extra_args = parser.parse_args()
     if extra_args:
         sys.exit('Unknown arguments %s. See --help.' % extra_args)
- 
+
     return options
 
 
@@ -213,9 +213,9 @@ def main():
             appengine_versions.remove(None)
         except ValueError:
             pass
-        appengine_versions = ["mapreducebackend-" + v 
+        appengine_versions = ["mapreducebackend-" + v
                               for v in appengine_versions]
-        
+
     print >>sys.stderr, ('Looking at these appengine versions: %s'
                          % [v or '(default)' for v in appengine_versions])
 
