@@ -5,7 +5,7 @@ USAGE:
 
   The KA website root and analytics directory must be on PYTHONPATH, e.g.,
 
-  export PYTHONPATH=~/khan/website/stable:~/khan/analytics/src 
+  export PYTHONPATH=~/khan/website/stable:~/khan/analytics/src
   python mirt_train_EM.py -a 1 -n 75 -f PROD_RESPONSES -w 0 -o MIRT_NEW &> LOG
 
   Where PROD_RESPONSES is a number of UserAssessment data as formatted
@@ -286,7 +286,7 @@ def main():
             mn_a += state['abilities'][:, 0].T / float(len(user_states))
             cov_a += (state['abilities'][:, 0] ** 2).T / (
                         float(len(user_states)))
-        print >>sys.stderr, "<abilities>", mn_a, 
+        print >>sys.stderr, "<abilities>", mn_a,
         print >>sys.stderr, ", <abilities^2>", cov_a, ", ",
 
         # Maximization step
@@ -305,6 +305,17 @@ def main():
                 np.sqrt(np.sum(couplings ** 2))),
         print >>sys.stderr, "||dcouplings|| %f" % (
                 np.sqrt(np.sum((couplings - old_couplings) ** 2)))
+
+        # Maintain a consistent directional meaning of a
+        # high/low ability esimtate.  We always prefer higher ability to
+        # mean better performance; therefore, we prefer positive couplings.
+        # So, compute the sign of the average coupling for each dimension.
+        coupling_sign = np.sign(np.mean(couplings[:, :-1], axis=0))
+        coupling_sign = coupling_sign.reshape((1, -1))
+        # Then, flip ability and coupling sign for dimenions w/ negative mean.
+        couplings[:, :-1] *= coupling_sign
+        for user_state in user_states:
+            user_state['abilities'] *= coupling_sign
 
         # save state as a .npz
         np.savez("%s_epoch=%d.npz" % (options.output, epoch),
