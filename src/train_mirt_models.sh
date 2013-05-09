@@ -20,8 +20,8 @@ set -vx
 
 : ${tmpdir:=$(mktemp -u /tmp/mirt.XXX)}
 : ${dt:=$(date -v-2d "+%Y-%m-%d")}  # default to data from 2 days ago
-: ${website_dir:=~/khan/website/stable}
-: ${analytics_dir:=~/khan/analytics}
+: ${website_dir:=~/stable}
+: ${analytics_dir:=~/analytics}
 : ${skip_fetch:=}  # non-empty to skip S3 download. Useful for data re-use
 : ${json_outfile:="${tmpdir}/mirt_model.json"}
 
@@ -35,7 +35,7 @@ mkdir -p "${data_dir}"
 
 # 1. Run UserAssessment data through get_user_assessment_data.py to
 # create the training data set.
-gzcat "${data_dir}"/*.gz | python get_user_assessment_data.py >"${assessment_responses}"
+zcat "${data_dir}"/*.gz | python get_user_assessment_data.py >"${assessment_responses}"
 
 # 2. Run the output data file from (1) through mirt_train_EM.py.
 mkdir -p "${mirt_train_dir}"
