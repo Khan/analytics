@@ -76,6 +76,12 @@ def learning_dashboard():
     return flask.render_template('learning-stats.html')
 
 
+@app.route('/exercise-summary')
+@auth.login_required
+def exercise_summary_dashboard():
+    return flask.render_template('exercise-summary.html')
+
+
 @app.route('/data/topic_summary')
 @auth.login_required
 def topic_summary_data():
@@ -104,6 +110,48 @@ def video_title_summary_data():
     duration = flask.request.args.get('time_scale', 'month')
     results = data.video_title_summary(db, title, duration, start_dt, end_dt)
     return flask.jsonify({'results': results})
+
+
+@app.route('/data/exercise-summary/<exercise>')
+@auth.login_required
+def exercise_summary(exercise):
+    start_dt = flask.request.args.get('start_date')
+    end_dt = flask.request.args.get('end_date')
+    problem_type = flask.request.args.get('problem_type')
+    exercise_data = data.summary_for_exercise(db, exercise,
+                                start_dt, end_dt, problem_type)
+    return flask.jsonify({
+        "exercise_data": exercise_data
+    })
+
+
+@app.route('/db/exercise-summary/<exercise>/problem_types')
+@auth.login_required
+def exercise_summary_problem_type(exercise):
+    types = db.report.exercise_summary.find({
+        "exercise": exercise
+    }).distinct('problem_type')
+    return flask.jsonify({
+        "problem_types": types
+    })
+
+
+@app.route('/db/exercise-summary/date-ranges')
+@auth.login_required
+def exercise_summary_dates():
+    dates = db.report.exercise_summary.distinct('dt')
+    return flask.jsonify({
+        "dates": dates
+    })
+
+
+@app.route('/db/exercise-summary/exercises')
+@auth.login_required
+def exercise_summary_exercises():
+    exercises = db.report.exercise_summary.distinct('exercise')
+    return flask.jsonify({
+        "exercises": exercises
+    })
 
 
 # TODO(david): Add to analytics homepage after I get a nice screenshot
@@ -609,7 +657,7 @@ class WebpagetestInputs(object):
         return [fi for fi in self.field_info if fi.url_name == url_name][0]
 
     def all_url_names(self):
-        return [fi.url_name for fi in self.field_info]        
+        return [fi.url_name for fi in self.field_info]
 
     def all_mongodb_names(self):
         """A list of all the input field names, as keys to mongodb."""
@@ -644,7 +692,7 @@ class WebpagetestInputs(object):
         info = [fi for fi in self.field_info if fi.current_value == '(all)'][0]
         return (info.url_name, info.all_values)
 
-        
+
 @app.route('/webpagetest/stats')
 @auth.login_required
 def webpagetest_stats():

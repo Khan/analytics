@@ -28,7 +28,7 @@ def topic_summary(mongo, dt, duration):
 def top_videos(mongo, dt, duration):
     """Get the top videos based on dt and duration"""
     db_collection = mongo['report']['video_stats']
-    findCriteria = {"dt": dt, "duration": duration, "aggregation": "video"} 
+    findCriteria = {"dt": dt, "duration": duration, "aggregation": "video"}
     sortCriteria = [("seconds_watched", -1)]
     return get_keyed_results(db_collection, {}, 'title', findCriteria,
                              sortCriteria)
@@ -118,7 +118,7 @@ def _median_of_maps(maps):
             if len(values) % 2:
                 retval[k] = values[(len(values) - 1) / 2]
             else:
-                retval[k] = (values[len(values) / 2] + 
+                retval[k] = (values[len(values) / 2] +
                              values[len(values) / 2 - 1]) / 2
         except TypeError:    # m[k] is not a number
             retval[k] = maps[0][k]
@@ -237,7 +237,7 @@ def gae_usage_reports_for_resource(mongo, resource_name, limit=366,
         Specifying "week" means that the result's "dt" field is the
         Monday of that week and the "used" field is the sum for the days
         in the week. Incomplete weeks (those with less than 7 days) are
-        ignored. 
+        ignored.
 
     Returns:
       The tuple (result_iterator, unit) where unit is the App Engine
@@ -304,7 +304,7 @@ def gae_usage_reports_for_resource(mongo, resource_name, limit=366,
         return weekly_iter, unit
 
 
-def get_keyed_results(db_collection, total_info, index_key, 
+def get_keyed_results(db_collection, total_info, index_key,
                       findCriteria, sortCriteria=None):
     """Get the video statistics by index_key based on db criteria"""
     results = {}
@@ -342,3 +342,40 @@ def update_row(row, db_row, total_info=None):
     row["visits_per_user" + suffix] = float("%.2f" % (
         float(db_row["visits"]) / db_row["users"]))
     return row
+
+
+def summary_for_exercise(mongo, exercise, begin_date=None,
+                        end_date=None, problem_type=None):
+    """Extract summary for given exercises and problem type.
+    Supports date ranges.
+
+    """
+
+    select_params = {}
+    select_params["exercise"] = exercise
+
+    if begin_date is not None:
+        select_params["dt"] = {"$gte": begin_date}
+    if end_date is not None:
+        select_params.setdefault("dt", {})
+        select_params["dt"]["$lt"] = end_date
+    if problem_type is not None and problem_type != '':
+        select_params["problem_type"] = problem_type
+
+    metrics_initial = {"time_spent": 0, "correct_attempts": 0,
+                      "earned_proficiency": 0, "total_attempts": 0}
+
+    reduce_js = """function(curr, result) {
+                result.time_spent += curr.time_spent;
+                result.correct_attempts += curr.correct_attempts;
+                result.earned_proficiency += curr.earned_proficiency;
+                result.total_attempts += curr.total_attempts;
+            }"""
+
+    exercise_data = mongo.report.exercise_summary.group(
+            {"exercise": 1, "problem_type": 1},
+            select_params, metrics_initial,
+            reduce_js
+    )
+
+    return exercise_data
