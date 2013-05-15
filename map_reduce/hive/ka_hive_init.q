@@ -451,6 +451,27 @@ CREATE EXTERNAL TABLE IF NOT EXISTS daily_request_log_urlroute_stats (
   LOCATION 's3://ka-mapreduce/summary_tables/daily_request_log_urlroute_stats';
 ALTER TABLE daily_request_log_urlroute_stats RECOVER PARTITIONS;
 
+DROP TABLE IF EXISTS exercise_summary;
+CREATE EXTERNAL TABLE IF NOT EXISTS exercise_summary (
+    exercise STRING,
+    problem_type STRING,
+    correct_attempts INT,
+    wrong_attempts INT,
+    time_taken INT
+  )
+  PARTITIONED BY (dt STRING)
+  LOCATION 's3://ka-mapreduce/summary_tables/exercise_summary';
+ALTER TABLE exercise_summary RECOVER PARTITIONS;
+
+DROP TABLE IF EXISTS exercise_proficiency_summary;
+CREATE EXTERNAL TABLE IF NOT EXISTS exercise_proficiency_summary (
+    exercise STRING,
+    earned_proficiency INT,
+    total_users INT
+  )
+  LOCATION 's3://ka-mapreduce/summary_tables/exercise_proficiency_summary';
+
+
 -- TODO(yunfang): deprecate the following table and move to video_stats
 CREATE EXTERNAL TABLE IF NOT EXISTS daily_video_stats (
   title STRING,

@@ -40,11 +40,6 @@ def mirt_npz_to_json(npz_file):
     # the rest are junk/blank/.
     couplings = couplings[:num_exs, ]
 
-    # TODO(jace): This is a HACK to flip sign of all the weights except the
-    # one that matches the bias unit.  This should be removed once training
-    # process is fixed always output the model with the natural sign.
-    couplings[:, :-1] *= -1.0
-
     out_data = {
         "engine_class": "MIRTEngine",
 
@@ -60,12 +55,12 @@ def mirt_npz_to_json(npz_file):
     while not slug:
         print >>sys.stderr, "Enter the slug (required): ",
         slug = raw_input()
-    
+
     print >>sys.stderr, ("Title can be left blank if you will be updating "
                          "an existing model.")
     print >>sys.stderr, "Enter the title (or hit enter for none): ",
     title = raw_input()
-    
+
     print >>sys.stderr, ("Description can be left blank if you will be "
                          "updating an existing model.")
     print >>sys.stderr, "Enter the description (or hit enter for none): ",

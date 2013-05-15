@@ -1,6 +1,6 @@
 {
   "name": "Daily report generation for <day>",
-  "wait_for": [ 
+  "wait_for": [
     { "table_name": "website_request_logs",
       "partitions": [ "dt=<day>" ]
     },
@@ -62,6 +62,21 @@
       "hive_args": {"start_dt": "2011-01-01", "end_dt": "<day_after>"},
       "hive_table": "user_growth",
       "mongo_collection":  "user_growth",
+      "importer_args": "",
+      "drop": true,
+      "hive_init": true
+    },
+    { "hive_script": "s3://ka-mapreduce/code/hive/exercise_summary.q",
+      "hive_table": "exercise_summary",
+      "hive_args": {"start_dt": "<day>", "end_dt": "<day_after>" },
+      "mongo_collection":  "exercise_summary",
+      "importer_args": "dt=<day>",
+      "hive_init": true
+    },
+    { "hive_script": "s3://ka-mapreduce/code/hive/exercise_prof_summary.q",
+      "hive_table": "exercise_proficiency_summary",
+      "hive_args": {"end_dt": "<day_after>" },
+      "mongo_collection":  "exercise_proficiency_summary",
       "importer_args": "",
       "drop": true,
       "hive_init": true
