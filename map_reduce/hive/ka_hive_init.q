@@ -332,7 +332,7 @@ LOCATION 's3://ka-mapreduce/summary_tables/company_metrics';
 ALTER TABLE company_metrics RECOVER PARTITIONS;
 
 
--- Defined in userdata_info.q
+-- Defined in userdata_update.q
 -- is_coached: if user is coached
 -- is_student: if user is coached by a coach who coached
 --             >= 10 people
