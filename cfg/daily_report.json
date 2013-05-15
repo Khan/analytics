@@ -42,8 +42,7 @@
       "hive_args": {"dt": "<day>", "branch": "/"},
       "hive_table": "daily_exercise_stats",
       "mongo_collection":  "daily_exercise_stats",
-      "importer_args": "",
-      "drop": true,
+      "importer_args": "dt=<day>",
       "hive_init": true
     },
     { "hive_script": "s3://ka-mapreduce/code/hive/daily_request_log_url_stats.q",
