@@ -193,6 +193,8 @@ def start_data_process(config, start_dt_arg, end_dt_arg):
 
     processes = []
     for kind, fetch_intervals in config['kinds'].iteritems():
+        # fetch_intervals is an array with format [int, int, bool, bool, str]
+        # [Save interval, fetch interval, isMutable, is_ndb, json key]
         interval = dt.timedelta(seconds=int(fetch_intervals[0]))
         fetch_interval = fetch_intervals[1]
         start_dt = start_dt_arg
@@ -209,7 +211,7 @@ def start_data_process(config, start_dt_arg, end_dt_arg):
                 start_dt = next_dt
             else:
                 monitor(config, processes)
-            #wait for 2 secs to space out the queries
+            # wait for 2 secs to space out the queries
             time.sleep(2)
     while len(active_children()) > 0:
         monitor(config, processes)
