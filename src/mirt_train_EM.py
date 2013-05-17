@@ -42,35 +42,6 @@ idx_pl = acc_util.FieldIndexer(acc_util.FieldIndexer.plog_fields)
 current_ind = 0
 
 
-class Parameters(object):
-    """
-    Holds the parameters for a MIRT model.
-    """
-    def __init__(self, num_abilities, num_exercises=None, vals=None):
-        """ vals is a 1d array holding the flattened parameters """
-        self.num_abilities = num_abilities
-        if vals == None:
-            # the couplings to correct/incorrect (+1 for bias unit)
-            self.W_correct = np.zeros((num_exercises, num_abilities + 1))
-            # the couplings to time taken (+1 for bias unit)
-            self.W_time = np.zeros((num_exercises, num_abilities + 1))
-            # the standard deviation for the response time Gauusian
-            self.sigma_time = np.ones((num_exercises))
-            self.num_exercises = num_exercises
-        else:
-            # the couplings to correct/incorrect (+1 for bias unit)
-            nn = num_exercises*(num_abilities + 1)
-            self.W_correct = vals[:nn].copy().reshape((-1, num_abilities + 1))
-            # the couplings to time taken (+1 for bias unit)
-            self.W_time = vals[nn:2*nn].copy().reshape((-1, num_abilities + 1))
-            # the standard deviation for the response time Gauusian
-            self.sigma_time = vals[2*nn:].reshape((-1))
-            self.num_exercises = self.sigma_time.shape[0]
-
-    def flat(self):
-        return np.concatenate((self.W_correct.ravel(), self.W_time.ravel()))
-
-
 def generate_exercise_ind():
     """Assign the next available index to an exercise name."""
     global current_ind
@@ -98,12 +69,14 @@ def sample_abilities_diffusion(args):
     theta, state, options, user_index = args
     abilities = state['abilities']
     correct = state['correct']
+    log_time_taken = state['log_time_taken']
     exercises_ind = state['exercises_ind']
 
     num_steps = options.sampling_num_steps
 
     abilities, Eabilities, _, _ = mirt_util.sample_abilities_diffusion(
-            theta, exercises_ind, correct, abilities, num_steps)
+            theta, exercises_ind, correct, log_time_taken,
+            abilities, num_steps)
 
     return abilities, Eabilities, user_index
 
