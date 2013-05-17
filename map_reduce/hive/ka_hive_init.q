@@ -369,6 +369,14 @@ CREATE EXTERNAL TABLE IF NOT EXISTS user_coach_summary(
   max_coach_students INT
 ) LOCATION 's3://ka-mapreduce/summary_tables/user_coach_summary';
 
+-- Number of students and teachers on a given day
+DROP TABLE IF EXISTS student_teacher_count;
+CREATE EXTERNAL TABLE IF NOT EXISTS student_teacher_count (
+    teacher_count INT,
+    student_count INT,
+    dt STRING
+) LOCATION 's3://ka-mapreduce/summary_tables/student_teacher_count';
+
 CREATE EXTERNAL TABLE IF NOT EXISTS video_topic(
   vid_key STRING, vid_title STRING, topic_key STRING,
   topic_title STRING, topic_desc STRING)
