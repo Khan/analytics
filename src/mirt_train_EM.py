@@ -37,16 +37,16 @@ linesplit = acc_util.linesplit
 idx_pl = acc_util.FieldIndexer(acc_util.FieldIndexer.plog_fields)
 
 
-# current_ind and generate_exercise_ind are used in the creation of a
+# num_exercises and generate_exercise_ind are used in the creation of a
 # defaultdict for mapping exercise names to an unique integer index
-current_ind = 0
+num_exercises = 0
 
 
 def generate_exercise_ind():
     """Assign the next available index to an exercise name."""
-    global current_ind
-    current_ind += 1
-    return current_ind - 1
+    global num_exercises
+    num_exercises += 1
+    return num_exercises - 1
 
 
 def sample_abilities_diffusion(args):
@@ -169,11 +169,11 @@ def L_dL_singleuser(arg):
         for single user """
     theta, state, options = arg
 
-    dL = Parameters(theta.num_abilities, num_exercises=len(exercises_ind))
-
     abilities = state['abilities'].copy()
     correct = state['correct']
     exercises_ind = state['exercises_ind']
+
+    dL = mirt_util.Parameters(theta.num_abilities, len(exercises_ind))
 
     # pad the abilities vector with a 1 to act as a bias
     abilities = np.append(abilities.copy(),
@@ -196,22 +196,26 @@ def L_dL_singleuser(arg):
     log_time_taken = state['log_time_taken']
     # the abilities to time coupling parameters for this exercise
     W_time = theta.W_time[exercises_ind, :]
-    Y = np.dot(exercise_W_time, abilities)
-    err = (Y - log_time_taken)
-    L += sum(err**2)/2./sigma**2
+    sigma = theta.sigma_time[exercises_ind].reshape((-1,1))
+    Y = np.dot(W_time, abilities)
+    err = (Y - log_time_taken.reshape((-1,1)))
+    L += np.sum(err**2/sigma**2)/2.
     dLdY = -err / sigma**2
+    #print dL.W_time.shape, dL.W_correct.shape, dLdY.shape
     dL.W_time = -np.dot(dLdY, abilities.T)
-    dL.sigma_time = -err**2 / sigma**3
+    dL.sigma_time = (-err**2 / sigma**3).ravel()
+
+    #print L.shape
 
     return L, dL, exercises_ind
 
 
-def L_dL(theta_flat, user_states, options, pool):
+def L_dL(theta_flat, user_states, num_exercises, options, pool):
     """ calculate log likelihood and gradient wrt couplings of mIRT model """
 
     L = 0.
-    theta = Parameters(options.num_abilities, vals=theta_flat)
-    dL = Parameters(theta.num_abilities, num_exercises=theta.num_exercises)
+    theta = mirt_util.Parameters(options.num_abilities, num_exercises, vals=theta_flat)
+    dL = mirt_util.Parameters(theta.num_abilities, theta.num_exercises)
 
     # TODO(jascha) this would be faster if user_states was divided into
     # minibatches instead of single students
@@ -224,6 +228,7 @@ def L_dL(theta_flat, user_states, options, pool):
                         chunksize=100)
     for r in rslts:
         Lu, dLu, exercise_indu = r
+        #print L, Lu, float(len(user_states))
         L += Lu / float(len(user_states))
         dL.W_correct[exercise_indu, :] += dLu.W_correct / float(len(user_states))
         dL.W_time[exercise_indu, :] += dLu.W_time / float(len(user_states))
@@ -237,6 +242,10 @@ def L_dL(theta_flat, user_states, options, pool):
 
     L += options.regularization * sum(theta_flat ** 2)
     dL_flat += 2. * options.regularization * theta_flat
+
+    #print L
+    #print dL_flat
+
 
     return L, dL_flat
 
@@ -339,7 +348,7 @@ def main():
     print >>sys.stderr, "loaded %d user assessments" % len(user_states)
 
     # initialize the parameters
-    theta = Parameters(options.num_abilities, current_ind)
+    theta = mirt_util.Parameters(options.num_abilities, num_exercises)
     # we won't be adding any more exercises
     exercise_ind_dict = dict(exercise_ind_dict)
 
@@ -394,10 +403,10 @@ def main():
         theta_flat, L, _ = scipy.optimize.fmin_l_bfgs_b(
             L_dL,
             theta.flat(),
-            args=(user_states, options, pool),
+            args=(user_states, num_exercises, options, pool),
             disp=0,
             maxfun=options.max_pass_lbfgs, m=100)
-        theta = Parameters(options.num_abilities, vals=theta_flat)
+        theta = mirt_util.Parameters(options.num_abilities, num_exercises, vals=theta_flat)
 
         # Print debugging info on the progress of the training
         print >>sys.stderr, "M conditional log L %f, " % (-L),
