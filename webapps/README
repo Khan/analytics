@@ -1,2 +1,11 @@
 This folder contains subfolders, each of which should be a fully
-self-contained and deployable web app (such as a dashboard)
+self-contained and deployable web app (such as a dashboards).
+
+To start the dashboards web server run this command to start the webserver on port 5000
+    analytics/webapps/dashboards/main.py -d
+
+TIPS:
+- You may want to create a seperate virtualenv for the analytics repo
+- Make sure you have run `pip install -r requirements.txt` from the root of the analytics repo
+--- If this doesn't work, you can try installing items one-at-time until it works
+- If you get an error about a Fortran installer, try this page:  http://stackoverflow.com/questions/11442970/numpy-and-scipy-for-preinstalled-python-2-6-7-on-mac-os-lion

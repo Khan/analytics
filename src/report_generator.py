@@ -159,7 +159,7 @@ def run_hive_jobs(jobname, steps, num_instances):
                           hive_script=step["hive_script"],
                           script_args=step["hive_args"])
 
-    status = emr.wait_for_completion(jobflow)
+    status = emr.wait_for_completion(jobflow, logger=g_logger)
     listing = emr.list_steps(jobflow)
     failures = ["FAILED", "CANCELLED", "TERMINATED"]
     if any(s in listing for s in failures):
@@ -189,11 +189,21 @@ def run_report_importer(hive_masternode, steps):
             options += ' --drop'
         if step.get('hive_init', False):
             options += ' --hive_init'
-        #TODO(benkomalo): Make the report_importer callable
+
+        # TODO(benkomalo): Make the report_importer callable
+        # An example of the arg-string composition below is something like:
+        # --drop --hive_init ka-hive my_tbl report my_tbl dt=2013-05 name=hello
+        # %s = --drop --hive_init (named options parsed by report_importer.py)
+        # %s = ka-hive (args[0] in report_importer.py)
+        # %s = my_tbl
+        # report (which is the hard-coded mongodb)
+        # %s = my_tbl
+        # %s = dt='2013-05' name='hello'
         command = ('python /home/analytics/analytics/src/report_importer.py'
                    ' %s %s %s report %s %s') % (
                    options, hive_masternode, step['hive_table'],
                    step['mongo_collection'], step['importer_args'])
+
         g_logger.info("Running command: \n%s" % (command))
         proc = subprocess.Popen(command.split(),
             stdout=subprocess.PIPE, stderr=subprocess.PIPE)

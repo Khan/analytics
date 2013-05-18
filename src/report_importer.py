@@ -82,6 +82,12 @@ def main(table_location,
         # Even though the option is called 'drop', I am instead
         # calling 'remove', because it leaves any indexes while deleting data.
         mongo_collection.remove()
+    else if options.drop_partition:
+        print ("\nDropping existing data in collection {0} "
+                "on partition spec {1}".format(
+                    target_collection, partition_cols)
+
+        mongo_collection.remove(base_partition_values)
 
     # Open our input connections.
     s3conn = boto.connect_s3()
@@ -226,11 +232,16 @@ def parse_command_line_args():
         help=('Number of documents to insert in a single database call. '
               'Will only do bulk inserts if no key index is specified, '
               'because pymongo does not currently support bulk upserts.'))
-    parser.add_option("--drop", action="store_true", 
+    parser.add_option("--drop", action="store_true",
         dest="drop", default=False,
         help=('This flag will delete the entire target collection before '
               'inserting the new data.  Use with caution!'))
-    parser.add_option("--hive_init", action="store_true", 
+    parser.add_option("--drop_partition", action="store_true",
+        dest="drop_partition", default=False,
+        help=('This flag will delete the all rows in the target collection '
+              'that match the value(s) passed in for the partition(s) before '
+              'inserting the new data.  Use with caution!'))
+    parser.add_option("--hive_init", action="store_true",
         dest="hive_init", default=False,
         help=('If True, this script will execute ka_hive_init.q on the '
               'hive_masternode before attempting the import.  This is useful '
@@ -278,16 +289,18 @@ def print_locations(table_location, column_info, partition_cols,
 if __name__ == '__main__':
     start_dt = datetime.datetime.now()
 
+    # Named arguments appear as properties on the options object
+    # Unnamed arguments appears as elements in the args array
     options, args = parse_command_line_args()
 
     # Step 1 - read meta data.
-    hive_masternode = args[0]
+    hive_masternode = args[0]  # Generally, 'ka-hive'
     hive_mysql_connector.configure(hive_masternode, options.ssh_keyfile)
-        
+
     if options.hive_init:
         hive_mysql_connector.run_hive_init()
 
-    table_name = args[1]
+    table_name = args[1]  # Generally == target_collection = args[3]
     print "Fetching table info..."
     table_location = hive_mysql_connector.get_table_location(table_name)
 
@@ -298,9 +311,9 @@ if __name__ == '__main__':
         raise Exception("Can only import from s3://ka-mapreduce for now")
     column_info = hive_mysql_connector.get_table_columns(table_name)
 
-    target_db = args[2]
-    target_collection = args[3]
-    partition_cols = args[4:]
+    target_db = args[2]  # Always 'report'
+    target_collection = args[3]  # Generally == table_name = args[1]
+    partition_cols = args[4:]  # Something like ['dt=2013-05', user='hello']
 
     # TODO(benkomalo): prompt/dry-run flags?
     # Step 2 - print locations

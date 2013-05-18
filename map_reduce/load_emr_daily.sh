@@ -16,6 +16,22 @@ day_as_path=$(date --date=${day} '+%Y/%m/%d')
 day_before=$(date --date=${day}-1day '+%Y-%m-%d')
 day_after=$(date --date=${day}+1day '+%Y-%m-%d')
 
+# Calculate the first and last day of the current month for monthly rollup scripts
+# Note that these calculations are based on yesterday, which is done collecting data
+today_day=$(date +%d)
+days_to_subtract=$((${today_day}-1))
+month=$(date --date=${day}-1day '+%Y-%m')
+
+if [ "${days_to_subtract}" = "0" ]; then
+    # If today is the first day of a new month, we want last month
+    month_first_day=$(date --date "-1 month" '+%Y-%m-%d')
+    month_last_day=$(date --date "-1 day" '+%Y-%m-%d')
+else
+    # Else, we can just do the math on today since it works the same as yesterday
+    month_first_day=$(date --date "-${days_to_subtract} days" '+%Y-%m-%d')
+    month_last_day=$(date --date "+1 month -${today_day} days" '+%Y-%m-%d')
+fi
+
 current_dir=`dirname $0`
 archive_dir="$HOME/kabackup/daily_new"
 
@@ -60,7 +76,7 @@ echo "$status"
 jobid=$(echo "$status" | awk '{print $4}')
 ${current_dir}/../src/monitor_jobflow.py $jobid &
 
-# UserData update
+# Update *Incr and *P tables, for example UserDataIncr and UserDataP
 echo "Updating the UserData"
 status=$(elastic-mapreduce --create --name "${day} UserDataP" \
   --num-instances 3 --master-instance-type m1.small \
@@ -87,9 +103,11 @@ echo "$status"
 jobid=$(echo "$status" | awk '{print $4}')
 ${current_dir}/../src/monitor_jobflow.py $jobid &
 
-# Daily reports 
+# Daily reports
 echo "Generating daily reports"
 ${current_dir}/../src/report_generator.py \
   -c ${current_dir}/../cfg/daily_report.json \
-  "<day>=${day}" "<day_before>=${day_before}" "<day_after>=${day_after}" 2>&1
+  "<day>=${day}" "<day_before>=${day_before}" "<day_after>=${day_after}" \
+  "<month_first_day>=${month_first_day}" "<month_last_day>=${month_last_day}" \
+  "<month>=${month}" 2>&1
 

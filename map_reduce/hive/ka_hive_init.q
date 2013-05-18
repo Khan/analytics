@@ -323,11 +323,12 @@ ALTER TABLE user_growth RECOVER PARTITIONS;
 
 -- Stores monthly time series of registrations, long-term users
 -- and engagement.  Populated in company_metrics.q
-DROP TABLE company_metrics;
+DROP TABLE IF EXISTS company_metrics;
 CREATE EXTERNAL TABLE IF NOT EXISTS company_metrics(
-  month STRING,
-  total INT)
-PARTITIONED BY (series STRING)
+  registrations_this_month INT,
+  long_term_users_active_this_month INT,
+  highly_engaged_users_active_this_month INT)
+PARTITIONED BY (activity_month STRING)
 LOCATION 's3://ka-mapreduce/summary_tables/company_metrics';
 ALTER TABLE company_metrics RECOVER PARTITIONS;
 

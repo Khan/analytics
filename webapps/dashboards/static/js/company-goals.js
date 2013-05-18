@@ -76,18 +76,33 @@ var fetchGrowthData = function() {
  */
 var handleGrowthData = function(data) {
 
-    series = {};
+    series = {
+        "registrations": {
+            "name": "registrations",
+            "data": []
+        },
+        "long term users": {
+            "name": "long term users",
+            "data": []
+        },
+        "highly engaged users": {
+            "name": "highly engaged users",
+            "data": []
+        }
+    };
+
+    // Sort based on month
+    data = _.sortBy(data, "activity_month");
 
     _.each(data, function(record) {
-        var curr_series = record["series"];
-        if (!(curr_series in series)) {
-            series[curr_series] = {
-                "name": curr_series,
-                "data": []
-            };
-        }
-        series[curr_series]["data"].push(
-            [monthStringToDate(record["month"]), record["total"]]
+        series["registrations"]["data"].push(
+            [monthStringToDate(record["activity_month"]), record["registrations_this_month"]]
+        );
+        series["long term users"]["data"].push(
+            [monthStringToDate(record["activity_month"]), record["long_term_users_active_this_month"]]
+        );
+        series["highly engaged users"]["data"].push(
+            [monthStringToDate(record["activity_month"]), record["highly_engaged_users_active_this_month"]]
         );
     });
 

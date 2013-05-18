@@ -1,8 +1,7 @@
 <!DOCTYPE html>
 <html>
 <!--
-A simple dashboard monthly timeseries corresponding to the company growth goals 
-for Q3 2012
+A simple dashboard monthly timeseries corresponding to the company growth goals.
 -->
 
 <head>
@@ -16,48 +15,40 @@ for Q3 2012
 {% include 'navbar.html' %}
 
 <div class="goal-summary" style="width:800px; margin: 40px auto;">
-    <h2>Q3 2012 Growth Goals Dashboard</h2>
+    <h2>Company Growth Metrics</h2>
+    Updated nightly.
     <div id="goal-summary-graph-container">
     </div>
-    <h3>Goal Definitions</h3>
+    <h3>Metric Definitions</h3>
     <table class="table table-bordered table-striped">
         <thead>
-            <th>Focus</th>
-            <th>Goal</th>
+            <th>Metric</th>
+            <th>Definition</th>
         </thead>
         <tr>
-            
-            <td><font color=gray>Awareness</font></td>
-            <td><font color=gray>
-                6M unique visitors in September. (Progress on this goal must be  
-                monitored through Google Analytics-- it is not covered by 
-                this page.)
-            </font></td>
-        </tr>
-        <tr>
             <td>Registrations</td>
-            <td>400,000 new user registrations in September.
+            <td>The number of users who registered in this month.
             </td>
         </tr>
         <tr>
-            <td>Long-term users.</td>
-            <td>300,000 users who performed an activity in September that was 
-                at least 30 days after their registration date.
+            <td>Long-Term Users</td>
+            <td>The number of long-term users who completed an activity during
+                this month.  A long-term user is one who has completed an activity
+                at least 28 days after registering.
             </td>
         </tr>
         <tr>
-            <td>Engagement</td>
-            <td>150,000 users who performed an activity on four or more days
-                in September.
+            <td>Highly-Engaged Users</td>
+            <td>The number of users who completed an activity on >=4 distinct
+                days within this month.
             </td>
         </tr>
     </table>
     <font color=gray>
-    Note:  For the 3rd and 4th goals, an "activity" is currently defined as  
-    any of the following: starting a video, attempting a problem, or posting a 
-    comment, question or answer.  This definition will change over time to 
-    include more diverse activities, but will not change for the calculation
-    of Q3 goal performance.
+    Note that an "activity" is currently defined as
+    any of the following: starting a video, attempting a problem, or posting a
+    comment, question or answer.  This definition will change over time to
+    include more diverse activities.
     </font>
 </div>
 

@@ -102,7 +102,7 @@ def create_hive_cluster(job_name, options, hive_script=None, script_args={}):
     return jobflow_id
 
 
-def add_hive_step(jobflow_id, options, 
+def add_hive_step(jobflow_id, options,
                   hive_script, script_args={},
                   step_name=None):
     """Add a Hive jobflow step to the specififed jobflow.
@@ -121,12 +121,12 @@ def add_hive_step(jobflow_id, options,
     options.update(overrides)
 
     if not step_name:
-        script_base_name = hive_script.split("/")[-1].split(".")[0] 
+        script_base_name = hive_script.split("/")[-1].split(".")[0]
         step_name = script_base_name + ": " + str(script_args)
 
     args = ['elastic-mapreduce',
             '--jobflow', jobflow_id,
-            '--hive-script', 
+            '--hive-script',
             '--step-name', step_name,
             '--arg', hive_script,
             '--args', '-i,"s3://ka-mapreduce/code/hive/ka_hive_init.q"'
@@ -151,8 +151,17 @@ def list_steps(jobflow_id=None):
     return popen_results(args)[0].strip()
 
 
-def wait_for_completion(jobflow_id, sleep=60):
-    """Use polling to wait until a jobflow is complete and report status."""
+def wait_for_completion(jobflow_id, sleep=60, logger=None):
+    """Use polling to wait until a jobflow is complete and report status.
+
+    Arguments:
+        jobflow_id - the Hive job flow id
+        sleep - time in seconds to sleep between status queries
+        logger - a util.get_logger() that implements an .info() method
+
+    Returns:
+        The final job status (Generally 'COMPLETE', 'FAILED' or 'TERMINATED')
+    """
 
     complete = False
     while not complete:
@@ -163,6 +172,9 @@ def wait_for_completion(jobflow_id, sleep=60):
                     % jobflow_id)
         job_info = listing.split("\n")[0]
         job_status = job_info.split()[1]
+
+        if logger:
+            logger.info(job_status)
 
         if job_status not in ['STARTING', 'RUNNING', 'SHUTTING_DOWN']:
             # job complete, probably with the status
