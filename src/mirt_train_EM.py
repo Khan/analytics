@@ -20,6 +20,7 @@ from multiprocessing import Pool
 import fileinput
 import numpy as np
 from collections import defaultdict
+import copy
 import optparse
 import sys
 import time
@@ -199,6 +200,33 @@ def L_dL(couplings_flat, user_states, options, pool):
     return L, dL.ravel()
 
 
+def emit_features(user_states, couplings, options, split_desc):
+    """Emit a CSV data file of correctness, prediction, and abilities."""
+    f = open("%s_split=%s.csv" % (options.output, split_desc), 'w+')
+
+    for user_state in user_states:
+        # initialize
+        abilities = np.zeros((options.num_abilities, 1))
+        correct = user_state['correct']
+        exercises_ind = user_state['exercises_ind']
+
+        # NOTE: I currently do not output features for the first problem
+        for i in xrange(1, correct.size):
+
+            # TODO(jace) this should probably be the marginal estimation
+            _, _, abilities, _ = mirt_util.sample_abilities_diffusion(
+                    couplings, exercises_ind[:i], correct[:i],
+                    abilities_init=abilities, num_steps=200)
+            prediction = mirt_util.conditional_probability_correct(
+                    abilities, couplings, exercises_ind[i:(i + 1)])
+
+            print >>f, "%d," % correct[i],
+            print >>f, "%.4f," % prediction[-1],
+            print >>f, ",".join(["%.4f" % a for a in abilities])
+
+    f.close()
+
+
 def main():
     options = get_cmd_line_options()
     print >>sys.stderr, "Starting main.", options  # DEBUG
@@ -210,23 +238,26 @@ def main():
     if options.workers > 0:
         pool = Pool(options.workers)
 
-    prev_user = None
-    attempts = []
-
     exercise_ind_dict = defaultdict(generate_exercise_ind)
 
     user_states = []
+    user_states_train = []
+    user_states_test = []
 
     print >>sys.stderr, "loading data"
-    for _ in range(options.num_replicas):
+    prev_user = None
+    attempts = []
+    for replica_num in range(options.num_replicas):
         # loop through all the training data, and create user objects
         for line in fileinput.input(options.file):
             # split on either tab or \x01 so the code works via Hive or pipe
             row = linesplit.split(line.strip())
-            # the user and timestamp are shared by all row types.
-            # load the user
+
+            # TODO(jace): If training on UserAssessment data, the 'user'
+            # field here is probably populated with the UserAssessment key.
+            # Fix the naming.
             user = row[idx_pl.user]
-            if user != prev_user and len(attempts) > 0:
+            if prev_user and user != prev_user and len(attempts) > 0:
                 # We're getting a new user, so perform the reduce operation
                 # on our previous user
                 user_states.append(create_user_state(
@@ -247,11 +278,40 @@ def main():
             # flush the data for the final user, too
             user_states.append(create_user_state(
                     attempts, exercise_ind_dict, options))
+            attempts = []
 
         fileinput.close()
+        # Reset prev_user so we have equal user_states from each replica
+        prev_user = None
+
+        # split into training and test
+        if options.training_set_size < 1.0:
+            training_cutoff = int(len(user_states) * options.training_set_size)
+            user_states_train += copy.deepcopy(user_states[:training_cutoff])
+            print >>sys.stderr, len(user_states_train)
+            if replica_num == 0:
+                # we don't replicate the test data (only training data)
+                user_states_test = copy.deepcopy(user_states[training_cutoff:])
+            user_states = []
+
+    # if splitting data into test/training sets, set user_states to training
+    user_states = user_states_train if user_states_train else user_states
+
+    # DEBUG(jace)
+    print >>sys.stderr, "loaded %d user assessments" % len(user_states)
 
     # trim couplings to include only the used rows
     couplings = couplings[:current_ind, :]
+
+    if options.resume_from_file:
+        # HACK(jace): I need a cheap way
+        # to output features from a previously trained model.  To use this
+        # hacky version, pass --num_epochs 0 and you must pass the same
+        # data file the model in resume_from_file was trained on.
+        resume_from_model = np.load(options.resume_from_file)
+        couplings = resume_from_model['couplings']
+        exercise_ind_dict = resume_from_model['exercise_ind_dict']
+        print >>sys.stderr, "Loaded couplings of shape:" + str(couplings.shape)
 
     # now do num_epochs EM steps
     for epoch in range(options.num_epochs):
@@ -299,8 +359,10 @@ def main():
             maxfun=options.max_pass_lbfgs, m=100)
         couplings = couplings_flat.reshape(couplings.shape)
 
-        # Print debuggin info on the progress of the training
+        # Print debugging info on the progress of the training
         print >>sys.stderr, "M conditional log L %f, " % (-L),
+        print >>sys.stderr, "reg penalty %f, " % (
+                options.regularization * sum(couplings_flat ** 2)),
         print >>sys.stderr, "||couplings|| %f, " % (
                 np.sqrt(np.sum(couplings ** 2))),
         print >>sys.stderr, "||dcouplings|| %f" % (
@@ -338,6 +400,14 @@ def main():
                 print >>f1, t[0][ii], ',',
             print >>f1, t[2]
         f1.close()
+
+    if options.emit_features:
+        if options.training_set_size < 1.0:
+            emit_features(user_states_train, couplings, options, "train")
+            emit_features(user_states_test, couplings, options, "test")
+        else:
+            emit_features(user_states, couplings, options, "full")
+
 
 if __name__ == '__main__':
     main()
