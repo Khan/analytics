@@ -119,6 +119,19 @@ def get_cmd_line_options():
                       help=("The source data file"))
     parser.add_option("-o", "--output", type=str, default='',
                       help=("The root filename for output"))
+    parser.add_option("-t", "--training_set_size", type=float, default=1.0,
+                      help=("The fraction (expressed as a number beteween 0.0 "
+                            "and 1.0) of the data to be used for training. "
+                            "The remainder is held out for testing."))
+    parser.add_option("-e", "--emit_features", action="store_true",
+                      default=False,
+                      help=("Boolean flag indicating whether to output "
+                            "feature and prediction data. Often used to "
+                            "analyze accuracy of predictions after model "
+                            "training."))
+    parser.add_option("-r", "--resume_from_file", default='',
+                      help=("Name of a .npz file to bootstrap the couplings."))
+
     options, _ = parser.parse_args()
 
     if options.output == '':
