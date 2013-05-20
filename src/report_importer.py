@@ -82,10 +82,10 @@ def main(table_location,
         # Even though the option is called 'drop', I am instead
         # calling 'remove', because it leaves any indexes while deleting data.
         mongo_collection.remove()
-    else if options.drop_partition:
+    elif options.drop_partition:
         print ("\nDropping existing data in collection {0} "
                 "on partition spec {1}".format(
-                    target_collection, partition_cols)
+                    target_collection, partition_cols))
 
         mongo_collection.remove(base_partition_values)
 
