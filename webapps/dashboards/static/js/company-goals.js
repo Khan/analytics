@@ -41,7 +41,8 @@ var createGoalGraph = function(dataSeries) {
             dateTimeLabelFormats: { day: "%a %e %b" }
         },
         yAxis: {
-            title: { text: "" }
+            title: { text: "" },
+            min: 0
         },
         series: dataSeries,
         credits: { enabled: false }
