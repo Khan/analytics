@@ -62,7 +62,7 @@ var fetchGrowthData = function() {
 
     var params = {
         "batch_size": 15000,
-        "sort": JSON.stringify({"month": 1})
+        "sort": JSON.stringify({"activity_month": 1})
     };
     $.getJSON(url, params, function(data) {
         handleGrowthData(data["results"] || []);
@@ -92,8 +92,7 @@ var handleGrowthData = function(data) {
         }
     };
 
-    // Sort based on month
-    data = _.sortBy(data, "activity_month");
+    // data should already be sorted by month
 
     _.each(data, function(record) {
         series["registrations"]["data"].push(

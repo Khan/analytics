@@ -187,6 +187,8 @@ def run_report_importer(hive_masternode, steps):
         options = ''
         if step.get('drop', False):
             options += ' --drop'
+        if step.get('drop_partition', False):
+            options += ' --drop_partition'
         if step.get('hive_init', False):
             options += ' --hive_init'
 

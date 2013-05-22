@@ -218,7 +218,13 @@ def parse_command_line_args():
               'reporting value. If not specified, the reporting '
               'table will auto-generate ids (but note then that '
               'you may have duplicate data if you re-import)'))
-    # TODO(benkomalo): add in a flag to delete existing data.
+
+    # NOTE: If you add an option here, you will probably also want to add a
+    # line in report_generator.py to translate the parameters in the JSON file
+    # into command-line arguments passed to this script. Ex:
+    # if step.get('hive_init', False):
+    #         options += ' --hive_init'
+
     parser.add_option('--report_db_host',
         default='107.21.23.204',
         help='The hostname of the reporting db')
