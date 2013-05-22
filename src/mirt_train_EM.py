@@ -188,8 +188,8 @@ def L_dL_singleuser(arg):
     Zt = correct.reshape(Z.shape)  # true correctness value
     pdata = Zt * Z + (1 - Zt) * (1 - Z)  # = 2*Zt*Z - Z + const
     dLdY = ((2 * Zt - 1) * Z * (1 - Z)) / pdata
-    dL.W_correct = -np.dot(dLdY, abilities.T)
     L = -np.sum(np.log(pdata))
+    dL.W_correct = -np.dot(dLdY, abilities.T)
 
     # TODO(jascha) put the response time code here
     # calculate the probability of taking time response_time to answer
@@ -200,9 +200,9 @@ def L_dL_singleuser(arg):
     Y = np.dot(W_time, abilities)
     err = (Y - log_time_taken.reshape((-1,1)))
     L += np.sum(err**2/sigma**2)/2.
-    dLdY = -err / sigma**2
+    dLdY = err / sigma**2
     #print dL.W_time.shape, dL.W_correct.shape, dLdY.shape
-    dL.W_time = -np.dot(dLdY, abilities.T)
+    dL.W_time = np.dot(dLdY, abilities.T)
     dL.sigma_time = (-err**2 / sigma**3).ravel()
 
     #print L.shape
@@ -230,6 +230,7 @@ def L_dL(theta_flat, user_states, num_exercises, options, pool):
         Lu, dLu, exercise_indu = r
         #print L, Lu, float(len(user_states))
         L += Lu / float(len(user_states))
+        #print dL.W_correct[exercise_indu, :].shape, dLu.W_correct.shape, Lu
         dL.W_correct[exercise_indu, :] += dLu.W_correct / float(len(user_states))
         dL.W_time[exercise_indu, :] += dLu.W_time / float(len(user_states))
         dL.sigma_time[exercise_indu, :] += dLu.sigma_time / float(len(user_states))
@@ -347,8 +348,11 @@ def main():
     # DEBUG(jace)
     print >>sys.stderr, "loaded %d user assessments" % len(user_states)
 
+    print >>sys.stderr, "Training dataset, %d students"%(len(user_states))
+
     # initialize the parameters
     theta = mirt_util.Parameters(options.num_abilities, num_exercises)
+    theta.sigma_time[:] = 1.
     # we won't be adding any more exercises
     exercise_ind_dict = dict(exercise_ind_dict)
 
@@ -400,6 +404,7 @@ def main():
 
         # Maximization step
         old_theta_flat = theta.flat()
+        #print "about to minimize"
         theta_flat, L, _ = scipy.optimize.fmin_l_bfgs_b(
             L_dL,
             theta.flat(),
@@ -422,12 +427,11 @@ def main():
         # mean better performance; therefore, we prefer positive couplings.
         # So, compute the sign of the average coupling for each dimension.
         coupling_sign = np.sign(np.mean(theta.W_correct[:, :-1], axis=0))
-        coupling_sign = coupling_sign.reshape((1, -1))
         # Then, flip ability and coupling sign for dimenions w/ negative mean.
-        theta.W_correct[:, :-1] *= coupling_sign
-        theta.W_time[:, :-1] *= coupling_sign
+        theta.W_correct[:, :-1] *= coupling_sign.reshape((1, -1))
+        theta.W_time[:, :-1] *= coupling_sign.reshape((1, -1))
         for user_state in user_states:
-            user_state['abilities'] *= coupling_sign
+            user_state['abilities'] *= coupling_sign.reshape((-1,1))
 
         # save state as a .npz
         np.savez("%s_epoch=%d.npz" % (options.output, epoch),
