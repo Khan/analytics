@@ -114,7 +114,7 @@ def get_cmd_line_options():
                       help=("The number of processes to use to parallelize "
                             "this.  Set this to 0 to use one process, and "
                             "make debugging easier."))
-    parser.add_option("-t", "--max_time", type=int,
+    parser.add_option("-b", "--max_time", type=int,
                       default=1e3,
                       help=("The maximum response time."))
     parser.add_option("-f", "--file", type=str,
@@ -251,7 +251,7 @@ def L_dL(theta_flat, user_states, num_exercises, options, pool):
     return L, dL_flat
 
 
-def emit_features(user_states, couplings, options, split_desc):
+def emit_features(user_states, theta, options, split_desc):
     """Emit a CSV data file of correctness, prediction, and abilities."""
     f = open("%s_split=%s.csv" % (options.output, split_desc), 'w+')
 
@@ -259,17 +259,20 @@ def emit_features(user_states, couplings, options, split_desc):
         # initialize
         abilities = np.zeros((options.num_abilities, 1))
         correct = user_state['correct']
+        log_time_taken = user_state['log_time_taken']
         exercises_ind = user_state['exercises_ind']
+
+        #print ".",
 
         # NOTE: I currently do not output features for the first problem
         for i in xrange(1, correct.size):
 
             # TODO(jace) this should probably be the marginal estimation
             _, _, abilities, _ = mirt_util.sample_abilities_diffusion(
-                    couplings, exercises_ind[:i], correct[:i],
+                    theta, exercises_ind[:i], correct[:i], log_time_taken[:i],
                     abilities_init=abilities, num_steps=200)
             prediction = mirt_util.conditional_probability_correct(
-                    abilities, couplings, exercises_ind[i:(i + 1)])
+                    abilities, theta, exercises_ind[i:(i + 1)])
 
             print >>f, "%d," % correct[i],
             print >>f, "%.4f," % prediction[-1],
@@ -416,11 +419,11 @@ def main():
         # Print debugging info on the progress of the training
         print >>sys.stderr, "M conditional log L %f, " % (-L),
         print >>sys.stderr, "reg penalty %f, " % (
-                options.regularization * sum(couplings_flat ** 2)),
+                options.regularization * sum(theta_flat ** 2)),
         print >>sys.stderr, "||couplings|| %f, " % (
                 np.sqrt(np.sum(theta.flat() ** 2))),
         print >>sys.stderr, "||dcouplings|| %f" % (
-                np.sqrt(np.sum((theta.flat() - old_theta_flat) ** 2)))
+                np.sqrt(np.sum((theta_flat - old_theta_flat) ** 2)))
 
         # Maintain a consistent directional meaning of a
         # high/low ability esimtate.  We always prefer higher ability to
@@ -462,10 +465,10 @@ def main():
 
     if options.emit_features:
         if options.training_set_size < 1.0:
-            emit_features(user_states_train, couplings, options, "train")
-            emit_features(user_states_test, couplings, options, "test")
+            emit_features(user_states_train, theta, options, "train")
+            emit_features(user_states_test, theta, options, "test")
         else:
-            emit_features(user_states, couplings, options, "full")
+            emit_features(user_states, theta, options, "full")
 
 
 if __name__ == '__main__':
