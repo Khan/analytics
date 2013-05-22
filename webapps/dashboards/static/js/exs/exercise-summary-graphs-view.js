@@ -182,7 +182,7 @@
          */
         render: function() {
             this._cleanup();
-            if (this.exerciseColl.length === 0) {
+            if (!this.exerciseColl.length) {
                 $(this.template({empty: true}).trim()).appendTo(this.$el);
             } else {
                 // Draw dashboard DOM

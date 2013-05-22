@@ -22,7 +22,9 @@
         // Convert dates to moment objects
         parse: function(response, options) {
             return {
-                dates: _.map(response.dates, moment)
+                dates: _.map(response.dates, function(date) {
+                    return moment(date);
+                })
             };
         },
 
