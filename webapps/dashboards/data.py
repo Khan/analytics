@@ -3,6 +3,7 @@
 import collections
 import datetime
 import itertools
+from bson.code import Code
 
 
 def topic_summary(mongo, dt, duration):
@@ -344,38 +345,63 @@ def update_row(row, db_row, total_info=None):
     return row
 
 
-def summary_for_exercise(mongo, exercise, begin_date=None,
-                        end_date=None, problem_type=None):
+def exercise_summary(mongo, begin_date=None, end_date=None,
+                        exercise=None, problem_type=None):
     """Extract summary for given exercises and problem type.
     Supports date ranges.
 
+    Return format depends on passed parameters.
+    {"time_taken": ...,
+     "correct_attempts": ...,
+     "wrong_attempts": ...,
+     "exercise": ...,
+     "problem_type": ... (if exercise isn't None)}
     """
 
     select_params = {}
-    select_params["exercise"] = exercise
+    group_params = {"exercise": 1}
 
+    if exercise is not None:
+        select_params["exercise"] = exercise
+        group_params["problem_type"] = 1
+        if problem_type is not None and problem_type != '':
+            select_params["problem_type"] = problem_type
     if begin_date is not None:
         select_params["dt"] = {"$gte": begin_date}
     if end_date is not None:
         select_params.setdefault("dt", {})
         select_params["dt"]["$lt"] = end_date
-    if problem_type is not None and problem_type != '':
-        select_params["problem_type"] = problem_type
 
-    metrics_initial = {"time_spent": 0, "correct_attempts": 0,
-                      "earned_proficiency": 0, "total_attempts": 0}
+    metrics_initial = {"time_taken": 0,
+                       "correct_attempts": 0,
+                       "wrong_attempts": 0}
 
-    reduce_js = """function(curr, result) {
-                result.time_spent += curr.time_spent;
+    reduce_js = Code("""function(curr, result) {
+                result.time_taken += curr.time_taken;
                 result.correct_attempts += curr.correct_attempts;
-                result.earned_proficiency += curr.earned_proficiency;
-                result.total_attempts += curr.total_attempts;
-            }"""
+                result.wrong_attempts += curr.wrong_attempts;
+            }""")
 
-    exercise_data = mongo.report.exercise_summary.group(
-            {"exercise": 1, "problem_type": 1},
-            select_params, metrics_initial,
-            reduce_js
-    )
+    exercise_data = mongo.report.exercise_summary.group(group_params,
+                        select_params, metrics_initial, reduce_js)
 
     return exercise_data
+
+
+def proficiency_summary(mongo, exercise=None):
+    """Proficiency value for a given exercise
+    {"total_users": ...,
+     "earned_proficiency": ...,
+     "exercise": ...}
+    """
+    select_params = {}
+
+    if exercise is not None:
+        select_params["exercise"] = exercise
+
+    # Omit synthetic mongo _id since it's not serializable
+    result_cursor = mongo.report.exercise_proficiency_summary.find(
+        select_params, {"_id": 0})
+    result = [item for item in result_cursor]
+
+    return result

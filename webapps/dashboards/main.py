@@ -112,16 +112,45 @@ def video_title_summary_data():
     return flask.jsonify({'results': results})
 
 
+@app.route('/data/exercise-summary/all')
+@auth.login_required
+def exercise_summary_top():
+    start_dt = flask.request.args.get('start_date')
+    end_dt = flask.request.args.get('end_date')
+    all_ex = data.exercise_summary(db, start_dt, end_dt)
+    return flask.jsonify({
+        "exercise_data": all_ex
+    })
+
+
 @app.route('/data/exercise-summary/<exercise>')
 @auth.login_required
 def exercise_summary(exercise):
     start_dt = flask.request.args.get('start_date')
     end_dt = flask.request.args.get('end_date')
     problem_type = flask.request.args.get('problem_type')
-    exercise_data = data.summary_for_exercise(db, exercise,
-                                start_dt, end_dt, problem_type)
+    exercise_data = data.exercise_summary(db, start_dt, end_dt,
+                                exercise, problem_type)
     return flask.jsonify({
         "exercise_data": exercise_data
+    })
+
+
+@app.route('/data/exercise-proficiency-summary/all')
+@auth.login_required
+def exercise_proficiency_summary_all():
+    proficiency = data.proficiency_summary(db)
+    return flask.jsonify({
+        "proficiency_data": proficiency
+    })
+
+
+@app.route('/data/exercise-proficiency-summary/<exercise>')
+@auth.login_required
+def exercise_proficiency_summary(exercise):
+    proficiency = data.proficiency_summary(db, exercise)
+    return flask.jsonify({
+        "proficiency_data": proficiency[0]
     })
 
 
