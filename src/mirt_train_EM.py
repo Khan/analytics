@@ -365,9 +365,9 @@ def main():
         # hacky version, pass --num_epochs 0 and you must pass the same
         # data file the model in resume_from_file was trained on.
         resume_from_model = np.load(options.resume_from_file)
-        couplings = resume_from_model['couplings']
+        theta = resume_from_model['theta'][()]
         exercise_ind_dict = resume_from_model['exercise_ind_dict']
-        print >>sys.stderr, "Loaded couplings of shape:" + str(couplings.shape)
+        print >>sys.stderr, "Loaded parameters frpom %s"%(options.resume_from_file)
 
     # now do num_epochs EM steps
     for epoch in range(options.num_epochs):
