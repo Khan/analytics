@@ -337,11 +337,13 @@ ALTER TABLE company_metrics RECOVER PARTITIONS;
 -- is_coached: if user is coached
 -- is_student: if user is coached by a coach who coached
 --             >= 10 people
+DROP TABLE IF EXISTS userdata_info_p;
 CREATE EXTERNAL TABLE IF NOT EXISTS userdata_info_p(
   user STRING,
   user_id STRING,
   user_email STRING,
   user_nickname STRING,
+  bingo_id STRING,
   joined DOUBLE,
   registered BOOLEAN,
   is_coached BOOLEAN,
