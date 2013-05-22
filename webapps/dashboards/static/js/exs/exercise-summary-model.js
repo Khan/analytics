@@ -22,7 +22,9 @@
         // Convert dates to moment objects
         parse: function(response, options) {
             return {
-                dates: _.map(response.dates, moment)
+                dates: _.map(response.dates, function(date) {
+                    return moment(date);
+                })
             };
         },
 
@@ -46,11 +48,12 @@
             correct_attempts: 0,
             wrong_attempts: 0,
             total_attempts: 0,
-            exercise: ""
+            exercise: "",
+            isPerseus: false
         },
 
         initialize: function(attr, options) {
-            Backbone.Model.prototype.initialize.call(this, options);
+            Backbone.Model.prototype.initialize.call(this, attr, options);
             this.set({
                 total_attempts: this.get("correct_attempts") +
                     this.get("wrong_attempts"),
@@ -70,8 +73,25 @@
             correct_attempts: 0,
             wrong_attempts: 0,
             total_attempts: 0,
-            problem_type: "",
-            exercise: ""
+            sub_exercise_type: "",
+            exercise: "",
+            isPerseus: false
+        },
+
+        initialize: function(attr, options) {
+            SummaryModel.prototype.initialize.call(this, attr, options);
+            // TODO(robert): Remove once the hive query populates this value
+            this.set({
+                isPerseus: this.get("sub_exercise_type")
+                    .search(/^x[0-9a-f]{8}$/) !== -1
+            });
+            // Some static exercises might have null seed. Maybe old data?
+            // TODO(robert): investigate null seed value for static exercises
+            if(!this.get("sub_exercise_type")) {
+                this.set({
+                    sub_exercise_type: "0"
+                });
+            }
         }
     });
 
@@ -106,7 +126,7 @@
     });
 
     /**
-     * Collection holding ProblemType models
+     * Collection holding SubExerciseClassificationModel models
      * Represents Exercise summary as returned by the server
      * @param {string} exercise name of the exercise for which the data
      *     is to be fetched. Passed in options object.
@@ -138,12 +158,13 @@
          * It's not possible for this collection to be empty
          *  as long as only valid requests are executed
          */
-        prepareSummary: function() {
-            var summData = this.reduce(function(acc, problemType) {
-                acc.time_taken += problemType.get("time_taken");
-                acc.correct_attempts += problemType.get("correct_attempts");
-                acc.wrong_attempts += problemType.get("wrong_attempts");
-                acc.total_attempts += problemType.get("total_attempts");
+         prepareSummary: function() {
+            var summData = this.reduce(function(acc, subExerciseGroup) {
+                acc.time_taken += subExerciseGroup.get("time_taken");
+                acc.correct_attempts +=
+                    subExerciseGroup.get("correct_attempts");
+                acc.wrong_attempts += subExerciseGroup.get("wrong_attempts");
+                acc.total_attempts += subExerciseGroup.get("total_attempts");
                 return acc;
             }, {
                 time_taken: 0,
@@ -152,25 +173,27 @@
                 total_attempts: 0
             });
             summData.exercise = this.at(0).get("exercise");
+            summData.isPerseus = this.at(0).get("isPerseus");
             return new SummaryModel(summData);
         },
 
         // Function to map models to format that fits graphing functions
-        _graphDataMap: function(problemType) {
+        _graphDataMap: function(subExerciseGroup) {
             var dataSeries = [{
-                    name: "correct",
-                    attempts: problemType.get("correct_attempts")
-                },
-                {
-                    name: "wrong",
-                    attempts: problemType.get("wrong_attempts")
+                name: "correct",
+                attempts: subExerciseGroup.get("correct_attempts")
+            },
+            {
+                name: "wrong",
+                attempts: subExerciseGroup.get("wrong_attempts")
             }];
             var dataObject = {
-                total: problemType.get("total_attempts"),
-                timeTaken: problemType.get("time_taken"),
+                isPerseus: subExerciseGroup.get("isPerseus"),
+                total: subExerciseGroup.get("total_attempts"),
+                timeTaken: subExerciseGroup.get("time_taken"),
                 series: dataSeries,
-                exercise: problemType.get("exercise"),
-                problemType: problemType.get("problem_type")
+                exercise: subExerciseGroup.get("exercise"),
+                subExerciseGroup: subExerciseGroup.get("sub_exercise_type")
             };
             return dataObject;
         },

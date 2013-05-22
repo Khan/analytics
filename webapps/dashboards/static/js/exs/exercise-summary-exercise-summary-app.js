@@ -49,6 +49,18 @@
             this.listenTo(this.totals, "click:row", _.bind(function() {
                 $(".carousel", this.$el).carousel("next");
             }, this));
+
+            $(window).on("hashchange", _.bind(this._restoreUsingHash, this));
+        },
+
+        // Provides notion of state to dashboard.
+        // User coming back will be presented appropriate exercise
+        _restoreUsingHash: function() {
+            hash = window.location.hash;
+            if(hash) {
+                this.state.set({"exercise": hash.slice(1)});
+                $(".carousel", this.$el).carousel(0);
+            }
         },
 
         render: function() {
@@ -62,6 +74,7 @@
                 // Don't auto rotate the items
                 interval: false
             });
+            this._restoreUsingHash();
             return this;
         }
     });

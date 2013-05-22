@@ -121,28 +121,45 @@
                 </a>
             </span>
             <span class="span6">
-                <a href="http://sandcastle.khanacademy.org/media/castles/Khan:master/exercises/{{originalExerciseName}}.html"
+                <a href={{#if isPerseus}}
+                    "https://www.khanacademy.org/devadmin/content/exercises"
+                    {{else}}
+                    "http://sandcastle.khanacademy.org/media/castles/Khan:master/exercises/{{originalExerciseName}}.html"
+                    {{/if}}
                     class="btn btn-awesome btn-large btn-block">
-                        See Exercise in Sandcastle
+                    Edit Exercise
                 </a>
             </span>
         </div>
-        <h1 class="standalone">Breakdown By Problem Type</h1>
-        <div id="breakdown-graphs"></div>
+        <h1 class="standalone">Breakdown By Problem</h1>
+        <ul id="breakdown-tabs" class="nav nav-tabs">
+            <li class="active">
+                <a href="#breakdown-tab-table">Table</a>
+            </li>
+            <li>
+                <a href="#breakdown-graphs">Graphs</a>
+            </li>
+        </ul>
+        <div class="tab-content">
+            <div class="tab-pane fade active in" id="breakdown-tab-table">
+                {{createTable breakdownData breakdownOrder units "breakdown-table"}}
+            </div>
+            <div class="tab-pane fade in" id="breakdown-graphs"></div>
+        </div>
     {{else}}
         {{noResultsHeader}}
     {{/unless}}
 </script>
 
 <script id="problem-type-graph" type="text/x-handlebars-template">
-    <h1 class="standalone">{{problemName}}</h1>
+    <h1 class="standalone">{{displayName}}</h1>
     <div class="row exercise-stats">
-        <div class="span3" id="problem-type-graph-{{problemName}}"></div>
+        <div class="span3" id="problem-type-graph-{{subGroupName}}"></div>
         <div class="span3 center-elements">
             <h2 class="double-height">Total Attempts</h2>
-            <p>{{totalAttempts}}</p>
+         <p>{{totalAttempts}}</p>
         </div>
-        <div class="span3 center-elements" id="problem-attempts-graph-{{problemName}}">
+        <div class="span3 center-elements" id="problem-attempts-graph-{{subGroupName}}">
             <h2>Attempt Breakdown</h2>
         </div>
         <div class="span3 center-elements">

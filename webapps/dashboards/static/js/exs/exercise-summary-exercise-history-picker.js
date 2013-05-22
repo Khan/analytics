@@ -84,6 +84,7 @@
 
         // Update current exercise name to the one selected by user
         _updateExercise: function(ev, datum) {
+             window.location.hash = datum.originalValue;
             this.syncOn.set({
                 exercise: datum.originalValue
             });

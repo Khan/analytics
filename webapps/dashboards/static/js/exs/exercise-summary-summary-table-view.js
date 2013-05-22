@@ -10,15 +10,7 @@
         templateTable: window.ExS.Templates.totalTable,
         templateError: window.ExS.Templates.error,
         templateProf: window.ExS.Templates.profTable,
-        dataTableConfig: {
-            "sDom": ["<'row'<'span6'l><'span6'f>r>t",
-                    "<'row'<'span6'i><'span6'p>>"].join(""),
-            "sPaginationType": "bootstrap",
-            "oLanguage": {
-                "sLengthMenu": "_MENU_ records per page"
-            },
-            "aaSorting": [[1,'desc']]
-        },
+        dataTableConfig: window.ExS.dataTableConfig,
         requestDateFormat: "YYYY-MM-DD",
         displayDateFormat: "MMMM D, YYYY",
 
@@ -109,10 +101,12 @@
 
         // Show detailed report for exercise - "graph" view
         _onTableRowClick: function(ev) {
+            var exerciseName = $(ev.currentTarget).data("originalname");
             this.syncOn.set({
-                exercise:  $(ev.currentTarget).data("originalname")
+                exercise: exerciseName
             });
             this.trigger("click:row");
+            window.location.hash = exerciseName;
         },
 
         // Fetch data set for different date
@@ -158,9 +152,7 @@
             });
         },
 
-        _percentageValue: function(value, total) {
-            return (value * 100 / total).toFixed(2);
-        },
+        _percentageValue: window.ExS.percentageValue,
 
         _convertAttemptsForDisplay: function(models) {
             return _.map(models, _.bind(function(row) {

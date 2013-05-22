@@ -6,6 +6,7 @@
         template: window.ExS.Templates.graphDecoration,
         templateProblemType: window.ExS.Templates.graphProblem,
         templateError: window.ExS.Templates.error,
+        dataTableConfig: window.ExS.dataTableConfig,
 
         events: {
             "click #breakdown-graphs h1": "_toggleProblemVisibility"
@@ -123,30 +124,65 @@
         /**
          * Extract data from generated summary for display template
          */
-        _gatherSummaryTemplateData: function(summaryData, profData) {
-            return {
-                exerciseName: window.ExS.normalizeName(summaryData.exercise),
-                originalExerciseName: summaryData.exercise,
-                proficient: (profData.earned_proficiency * 100 /
-                    profData.total_users).toFixed(1),
+        _gatherSummaryTemplateData:
+            function(summaryData, profData, breakdownData) {
+                return {
+                    exerciseName: window.ExS.normalizeName(
+                        summaryData.exercise),
+                    originalExerciseName: summaryData.exercise,
+                    proficient: (profData.earned_proficiency * 100 /
+                        profData.total_users).toFixed(1),
 
-                averageTime: Math.round(summaryData.timeTaken /
-                    summaryData.total),
+                    isPerseus: summaryData.isPerseus,
 
-                totalAttempts: d3.format(".3s")(summaryData.total)
-            };
+                    averageTime: Math.round(summaryData.timeTaken /
+                        summaryData.total),
+
+                    totalAttempts: d3.format(".3s")(summaryData.total),
+
+                    units: ["", "", "%", "%", "s"],
+
+                    breakdownOrder: ["sub_group_name", "total_attempts",
+                        "correct_attempts", "wrong_attempts",
+                        "time_taken"],
+
+                    breakdownData: this._dataForBreakdownTable(breakdownData)
+                };
+        },
+
+        // Compute values for breakdown table. Same data as on summary-table.
+        _dataForBreakdownTable: function(breakdownData) {
+            return _.map(breakdownData, _.bind(function(problem) {
+                var breakdownTableRow = {};
+                _.each(problem.series, _.bind(function(series) {
+                    breakdownTableRow[series.name + "_attempts"] =
+                    this._percentageValue(
+                        series.attempts, problem.total);
+                }, this));
+
+                breakdownTableRow.time_taken = Math.round(problem.timeTaken /
+                    problem.total);
+
+                breakdownTableRow.sub_group_name = window.ExS.normalizeName(
+                    problem.subExerciseGroup);
+
+                breakdownTableRow.total_attempts = problem.total;
+                return breakdownTableRow;
+            }, this));
         },
 
         /**
-         * Extract data from generated summary for display template
-         */
-        _gatherProblemTypeTemplateData: function(problemTypeData) {
+        * Extract data from generated summary for display template
+        */
+        _gatherProblemTypeTemplateData: function(subExerciseData) {
             return {
-                problemName: problemTypeData.problemType,
-                averageTime: Math.round(problemTypeData.timeTaken /
-                    problemTypeData.total),
+                displayName: window.ExS.normalizeName(
+                    subExerciseData.subExerciseGroup),
+                subGroupName: subExerciseData.subExerciseGroup,
+                averageTime: Math.round(subExerciseData.timeTaken /
+                    subExerciseData.total),
 
-                totalAttempts: d3.format(".3s")(problemTypeData.total)
+                totalAttempts: d3.format(".3s")(subExerciseData.total)
             };
         },
 
@@ -165,15 +201,19 @@
                 var generatedTemplate = this.templateProblemType(
                     this._gatherProblemTypeTemplateData(dataSeries)
                 );
+
                 $(generatedTemplate.trim()).appendTo(appendElem);
 
                 this._drawExercisePieChart(dataSeries.series,
-                    "#problem-type-graph-" + dataSeries.problemType, 225, 260);
+                    "#problem-type-graph-" +
+                    dataSeries.subExerciseGroup, 225, 260);
 
                 this._drawExerciseBarChart(dataSeries.series,
-                    "#problem-attempts-graph-" + dataSeries.problemType);
+                    "#problem-attempts-graph-" + dataSeries.subExerciseGroup);
             }, this);
         },
+
+        _percentageValue: window.ExS.percentageValue,
 
         /**
          * Extremely messy render.
@@ -187,8 +227,23 @@
             } else {
                 // Draw dashboard DOM
                 $(this.template(this._gatherSummaryTemplateData(
-                    this.summaryData, this.proficiencyModel.attributes)
+                    this.summaryData, this.proficiencyModel.attributes,
+                    this.breakdownData)
                 ).trim()).appendTo(this.$el);
+
+                // Make table as a quick summary for graphs
+                $("#breakdown-table", this.$el).dataTable(_.extend(
+                    _.clone(this.dataTableConfig),
+                    {
+                        "aoColumns": [
+                            null,
+                            null,
+                            { "sType": "percent" },
+                            { "sType": "percent" },
+                            { "sType": "sec" }
+                        ]
+                    }
+                ));
 
                 // Draw main pie chart and append it to DOM
                 this._drawExercisePieChart(
@@ -206,8 +261,6 @@
                 _.each(this.breakdownData, this._drawProblemType(
                     $("#breakdown-graphs", this.$el)));
 
-                $("#breakdown-graphs h1", this.$el).next().hide();
-
                 $("#prof-number").popover({
                     title: "Note",
                     content: ["<p class=\"notice\">",
@@ -220,6 +273,12 @@
                     container: "body",
                     delay: { show: 200, hide: 300 }
                 });
+
+                // initialize tabs
+                $('#breakdown-tabs a', this.$el).click(function (e) {
+                    e.preventDefault();
+                    $(this).tab('show');
+                })
 
                 $("svg .arc, svg .prob-rect, svg .bar", this.$el).popover({
                     title: function() {
@@ -425,8 +484,13 @@
                 return d.name;
             });
 
+            _.each(dataSeries, function(problem) {
+                problem.displayName = window.ExS.normalizeName(
+                    problem.subExerciseGroup);
+            });
+
             // x0 domain are problem types
-            x0.domain(_.map(dataSeries, function(d) { return d.problemType; }));
+            x0.domain(_.map(dataSeries, function(d) { return d.displayName; }));
             // x1 domain are data series which we plot
             x1.domain(domainNames).rangeRoundBands([0, x0.rangeBand()]);
             y.domain([0, d3.max(dataSeries, function(d) {
@@ -439,7 +503,7 @@
             .enter().append("g")
               .attr("class", "g")
               .attr("transform", function(d) { return "translate(" +
-                x0(d.problemType) + ",0)"; });
+                x0(d.displayName) + ",0)"; });
 
             // Draw bars using specified domains and previously
             //  created elements
@@ -465,7 +529,7 @@
             .append("text")
               .attr("transform", "rotate(-90)")
               .attr("y", 6)
-              .attr("dy", "16px")
+              .attr("dy", "10px")
               .style("text-anchor", "end")
               .text("Attempts");
 
@@ -488,7 +552,7 @@
             legend.append("text")
               .attr("x", width - 24)
               .attr("y", 9)
-              .attr("dy", "8px")
+              .attr("dy", "4px")
               .style("text-anchor", "end")
               .text(function(d) { return d; });
         }

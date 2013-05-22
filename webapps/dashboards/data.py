@@ -346,16 +346,23 @@ def update_row(row, db_row, total_info=None):
 
 
 def exercise_summary(mongo, begin_date=None, end_date=None,
-                        exercise=None, problem_type=None):
-    """Extract summary for given exercises and problem type.
-    Supports date ranges.
+                        exercise=None, sub_exercise_type=None):
+    """Extract summary for given exercises and sub exercise type.
+    If only part of the exercise is needed and its
+    problem type (for random questions) or seed (for static questions) is known
+    it can be specified as a sub_exercise_type
+
+    Arguments:
+        exercise - name of the exercise,
+            i.e., content.exercise_models.BaseExercise.name
+        sub_exercise_type - problem type or seed for given exercise
 
     Return format depends on passed parameters.
     {"time_taken": ...,
      "correct_attempts": ...,
      "wrong_attempts": ...,
      "exercise": ...,
-     "problem_type": ... (if exercise isn't None)}
+     "sub_exercise_type": ... (if exercise isn't None)}
     """
 
     select_params = {}
@@ -363,9 +370,9 @@ def exercise_summary(mongo, begin_date=None, end_date=None,
 
     if exercise is not None:
         select_params["exercise"] = exercise
-        group_params["problem_type"] = 1
-        if problem_type is not None and problem_type != '':
-            select_params["problem_type"] = problem_type
+        group_params["sub_exercise_type"] = 1
+        if sub_exercise_type:
+            select_params["sub_exercise_type"] = sub_exercise_type
     if begin_date is not None:
         select_params["dt"] = {"$gte": begin_date}
     if end_date is not None:

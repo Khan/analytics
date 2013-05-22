@@ -20,6 +20,21 @@
         zIndex: 2e9
     };
 
+
+    var dataTableConfig = {
+        "sDom": ["<'row'<'span6'l><'span6'f>r>t",
+        "<'row'<'span6'i><'span6'p>>"].join(""),
+        "sPaginationType": "bootstrap",
+        "oLanguage": {
+            "sLengthMenu": "_MENU_ records per page"
+        },
+        "aaSorting": [[1,'desc']]
+    };
+
+    var percentageValue = function(value, total) {
+        return (value * 100 / total).toFixed(2);
+    };
+
     var datePickerOptions = function(minDate, maxDate) {
         var ranges = {
             "Yesterday": [moment().subtract("days", 1), new Date()],
@@ -106,114 +121,6 @@
             "<h1 class='results-missing'>No data </h1>");
     });
 
-    // Converts space delimited name to one understood by the system
-    Handlebars.registerHelper("denormalizeName", function(s) {
-      return s.toLowerCase().split(" ").join("_");
-    });
-
-    // Table generation helper
-    Handlebars.registerHelper("createTable",
-        function(data, order, units, id) {
-            var result = "<table id=\"" + id +
-                "\" class=\"table table-hover table-striped\">";
-            result += "<thead><tr>"
-
-            _.each(order, function(column) {
-                result += "<th>" + normalizeName(column) + "</th>";
-            });
-
-            result += "</tr></thead><tbody>"
-
-            _.each(data, function(dataHash) {
-                result += "<tr>";
-                _.each(order, function(column, idx) {
-                    result += "<td>" + dataHash[column] +
-                     units[idx] + "</td>";
-                });
-                result += "</tr>";
-            });
-            result += "</tbody></table>";
-
-            return new Handlebars.SafeString(result);
-    });
-
-    Handlebars.registerHelper("noResultsHeader", function() {
-        return new Handlebars.SafeString(
-            "<h1 class=\"results-missing\">No data </h1>");
-    });
-
-    // Converts space delimited name to one understood by the system
-    Handlebars.registerHelper("denormalizeName", function(s) {
-      return s.toLowerCase().split(" ").join("_");
-    });
-
-    // Table generation helper
-    Handlebars.registerHelper("createTable",
-        function(data, order, units, id) {
-            var result = "<table id=\"" + id +
-                "\" class=\"table table-hover table-striped\">";
-            result += "<thead><tr>"
-
-            _.each(order, function(column) {
-                result += "<th>" + normalizeName(column) + "</th>";
-            });
-
-            result += "</tr></thead><tbody>"
-
-            _.each(data, function(dataHash) {
-                result += "<tr>";
-                _.each(order, function(column, idx) {
-                    result += "<td>" + dataHash[column] +
-                     units[idx] + "</td>";
-                });
-                result += "</tr>";
-            });
-            result += "</tbody></table>";
-
-            return new Handlebars.SafeString(result);
-    });
-
-    Handlebars.registerHelper("noResultsHeader", function() {
-        return new Handlebars.SafeString(
-            "<h1 class=\"results-missing\">No data </h1>");
-    });
-
-    // Converts space delimited name to one understood by the system
-    Handlebars.registerHelper("denormalizeName", function(s) {
-      return s.toLowerCase().split(" ").join("_");
-    });
-
-    // Table generation helper
-    Handlebars.registerHelper("createTable",
-        function(data, order, units, id) {
-            var result = "<table id=\"" + id +
-                "\" class=\"table table-hover table-striped\">";
-            result += "<thead><tr>"
-
-            _.each(order, function(column) {
-                result += "<th>" + normalizeName(column) + "</th>";
-            });
-
-            result += "</tr></thead><tbody>"
-
-            _.each(data, function(dataHash) {
-                result += "<tr>";
-                _.each(order, function(column, idx) {
-                    result += "<td>" + dataHash[column] +
-                     units[idx] + "</td>";
-                });
-                result += "</tr>";
-            });
-            result += "</tbody></table>";
-
-            return new Handlebars.SafeString(result);
-    });
-
-    Handlebars.registerHelper("noResultsHeader", function() {
-        return new Handlebars.SafeString(
-            "<h1 class=\"results-missing\">No data </h1>");
-    });
-
     // Haskell has it and Javascript should as well!
     if ("function" !== typeof Array.prototype.sum) {
         Array.prototype.sum = function() {
@@ -228,7 +135,9 @@
         normalizeName     : normalizeName,
         fetchDefaults     : fetchDefaults,
         datePickerOptions : datePickerOptions,
-        deferredWrapper   : deferredWrapper
+        deferredWrapper   : deferredWrapper,
+        percentageValue : percentageValue,
+        dataTableConfig : dataTableConfig
     };
 
 })();

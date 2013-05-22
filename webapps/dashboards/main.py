@@ -128,9 +128,9 @@ def exercise_summary_top():
 def exercise_summary(exercise):
     start_dt = flask.request.args.get('start_date')
     end_dt = flask.request.args.get('end_date')
-    problem_type = flask.request.args.get('problem_type')
+    sub_exercise_type = flask.request.args.get('sub_exercise_type')
     exercise_data = data.exercise_summary(db, start_dt, end_dt,
-                                exercise, problem_type)
+                                exercise, sub_exercise_type)
     return flask.jsonify({
         "exercise_data": exercise_data
     })
@@ -163,14 +163,14 @@ def exercise_proficiency_summary(exercise):
     })
 
 
-@app.route('/db/exercise-summary/<exercise>/problem_types')
+@app.route('/db/exercise-summary/<exercise>/sub_types')
 @auth.login_required
 def exercise_summary_problem_type(exercise):
     types = db.report.exercise_summary.find({
         "exercise": exercise
-    }).distinct('problem_type')
+    }).distinct('sub_exercise_type')
     return flask.jsonify({
-        "problem_types": types
+        "sub_exercise_type": types
     })
 
 

@@ -465,10 +465,11 @@ ALTER TABLE daily_request_log_urlroute_stats RECOVER PARTITIONS;
 DROP TABLE IF EXISTS exercise_summary;
 CREATE EXTERNAL TABLE IF NOT EXISTS exercise_summary (
     exercise STRING,
-    problem_type STRING,
+    sub_exercise_type STRING,
     correct_attempts INT,
     wrong_attempts INT,
-    time_taken INT
+    time_taken INT,
+    is_perseus BOOLEAN
   )
   PARTITIONED BY (dt STRING)
   LOCATION 's3://ka-mapreduce/summary_tables/exercise_summary';
