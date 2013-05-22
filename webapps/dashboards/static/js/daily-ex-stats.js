@@ -27,7 +27,8 @@ var exChartOptions = {
         dateTimeLabelFormats: { day: "%a %e %b" }
     },
     yAxis: {
-        title: { text: "" }
+        title: { text: "" },
+        min: 0
     },
     series: []
 };
@@ -45,7 +46,8 @@ var modeChartOptions = {
         dateTimeLabelFormats: { day: "%a %e %b" }
     },
     yAxis: {
-        title: { text: "" }
+        title: { text: "" },
+        min: 0
     },
     series: []
 };

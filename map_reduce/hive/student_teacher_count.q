@@ -61,13 +61,14 @@ USING 'coach_reduce.py teacher "${end_dt}"' AS teacher, dt;
 --  find students
 -- refer to map_reduce/py/coach_reduce.py for reduce function
 FROM (
-    SELECT u_dt.user, MAX(t_dt.dt, u_dt.joined_on)
+    SELECT u_dt.user, IF(t_dt.dt > u_dt.joined_on,
+        t_dt.dt, u_dt.joined_on) AS dt
     FROM user_coach_date u_dt
     JOIN teacher_on_date t_dt
     ON u_dt.coach = t_dt.teacher
     WHERE NOT u_dt.self_coach
     DISTRIBUTE BY u_dt.user
-    SORT BY u_dt.user DESC, t_dt.dt ASC
+    SORT BY u_dt.user DESC, dt ASC
 ) st_date
 INSERT OVERWRITE TABLE student_on_date
 REDUCE st_date.user, st_date.dt

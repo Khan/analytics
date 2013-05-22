@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+<link rel="shortcut icon" href="http://www.khanacademy.org/favicon.ico?leaf">
+<link rel="stylesheet" type="text/css" href="/static/css/third_party/bootstrap.css">
+<link rel="stylesheet" type="text/css" href="/static/css/third_party/DT_bootstrap.css">
+<link rel="stylesheet" type="text/css" href="/static/css/third_party/daterangepicker.css" />
+<link rel="stylesheet" type="text/css" href="/static/css/third_party/jquery/flick/jquery-ui-1.8.20.custom.css">
+<link rel="stylesheet/less" type="text/css" href="/static/css/exercise-summary.less">
+<title>Exercise Summary Dashboard</title>
+</head>
+
+<body>
+
+{% include 'navbar.html' %}
+{% raw %}
+<script id="total-view" type="text/x-handlebars-template">
+    <ul id="total-tabs" class="nav nav-tabs">
+        <li class="active">
+            <a href="#total-tab-table">Attempts</a>
+        </li>
+        <li>
+            <a href="#total-prof-table">Proficiency</a>
+        </li>
+    </ul>
+    <div class="tab-content">
+        <div class="tab-pane fade active in" id="total-tab-table">
+            <div class="row">
+                <span class="span6">
+                    <h1>Attempts</h1>
+                </span>
+                <span class="span6">
+                    <div id="summaryrange" class="summary-range input-prepend input-append pull-right">
+                        <span class="add-on"><i class="icon-calendar icon-large"></i></span>
+                        <input class="span4" type="text">
+                        <span class="add-on"><i class="caret"></i></span>
+                    </div>
+                </span>
+            </div>
+            {{#unless empty}}
+                {{createTable totalData orderTotal units "summ-table"}}
+            {{else}}
+                {{noResultsHeader}}
+            {{/unless}}
+        </div>
+        <div class="tab-pane fade in" id="total-prof-table">
+            <div class="row">
+                <span class="span12">
+                    <h1>Proficiency</h1>
+                </span>
+            </div>
+            {{createTable profData orderProf units "prof-table"}}
+        </div>
+    </div>
+</script>
+
+<script id="container-template" type="text/x-handlebars-template">
+    <h1 class="standalone">Exercise Difficulty Dashboard</h1>
+    <div id="nav-carousel" class="carousel slide">
+        <!-- Carousel items -->
+        <div class="carousel-inner">
+            <div class="item"></div>
+            <div class="active item"></div>
+        </div>
+        <!-- Carousel nav -->
+        <a class="carousel-control right" href="#nav-carousel" data-slide="next">&rsaquo;</a>
+    </div>
+</script>
+
+<script id="error-template" type="text/x-handlebars-template">
+    <div class="alert alert-error fade in">
+        <button type="button" class="close" data-dismiss="alert">×</button>
+        <strong>Oops...</strong> Cannot fetch data from the server. Please try again later.
+    </div>
+</script>
+
+<script id="summary-controls" type="text/x-handlebars-template">
+    <form class="form-inline">
+        <input type="text" name="exercise"/>
+        <div id="reportrange" class="input-prepend input-append report-range">
+            <span class="add-on"><i class="icon-calendar icon-large"></i></span>
+            <input class="span4" type="text">
+            <span class="add-on"><i class="caret"></i></span>
+        </div>
+        <input name="send" type="button" class="btn" value="Search"/>
+    </form>
+</script>
+
+<script id="graph-decoration" type="text/x-handlebars-template">
+    {{#unless empty}}
+        <h1>{{exName}}</h1>
+        <div class="row">
+            <div class="span6" id="total-graph"></div>
+            <div class="span6 exercise-stats center-elements" id="total-stats">
+                <div class="row">
+                    <div class="span3">
+                        <h2 class="double-height">Total Attempts</h2>
+                        <p>{{totalAttempts}}</p>
+                    </div>
+                    <div class="span3">
+                        <h2>Average Time Per Attempt</h2>
+                        <p>{{averageTime}}s</p>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="span3" id="attempts-graph">
+                        <h2>Attempt Breakdown</h2>
+                    </div>
+                    <div class="span3" id="prof-number">
+                        <h2>Earned Proficiency</h2>
+                        <p class="fix-left">{{proficient}}%</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="row row-buttons">
+            <span class="span6">
+                <a href="http://khanacademy.org/exercise/{{denormalizeName exName}}"
+                    class="btn btn-awesome btn-large btn-block">
+                        See Exercise on Website
+                </a>
+            </span>
+            <span class="span6">
+                <a href="http://sandcastle.khanacademy.org/media/castles/Khan:master/exercises/{{denormalizeName exName}}.html"
+                    class="btn btn-awesome btn-large btn-block">
+                        See Exercise in Sandcastle
+                </a>
+            </span>
+        </div>
+        <h1 class="standalone">Breakdown By Problem Type</h1>
+        <div id="breakdown-graphs"></div>
+    {{else}}
+        {{noResultsHeader}}
+    {{/unless}}
+</script>
+
+<script id="problem-type-graph" type="text/x-handlebars-template">
+    <h1 class="standalone">{{problemName}}</h1>
+    <div class="row exercise-stats">
+        <div class="span3" id="problem-type-graph-{{problemName}}"></div>
+        <div class="span3 center-elements">
+            <h2 class="double-height">Total Attempts</h2>
+            <p>{{totalAttempts}}</p>
+        </div>
+        <div class="span3 center-elements" id="problem-attempts-graph-{{problemName}}">
+            <h2>Attempt Breakdown</h2>
+        </div>
+        <div class="span3 center-elements">
+            <h2>Average Time Per Attempt</h2>
+            <p>{{averageTime}}s</p>
+        </div>
+    </div>
+</script>
+{% endraw %}
+
+<script src="http://code.jquery.com/jquery-2.0.0.js"></script>
+<script src="http://cdnjs.cloudflare.com/ajax/libs/less.js/1.3.3/less.min.js"></script>
+<script src="/static/js/third_party/handlebars.js"></script>
+<script src="/static/js/third_party/underscore-min.js"></script>
+<script src="/static/js/third_party/backbone-min.js"></script>
+<script src="/static/js/third_party/bootstrap-transition.js"></script>
+<script src="/static/js/third_party/bootstrap-dropdown.js"></script>
+<script src="/static/js/third_party/bootstrap-tooltip.js"></script>
+<script src="/static/js/third_party/bootstrap-popover.js"></script>
+<script src="/static/js/third_party/bootstrap-alert.js"></script>
+<script src="/static/js/third_party/bootstrap-tab.js"></script>
+<script src="/static/js/third_party/bootstrap-carousel.js"></script>
+<script src="/static/js/third_party/typeahead.min.js"></script>
+<script src="/static/js/third_party/d3.min.js"></script>
+<script src="/static/js/third_party/moment.min.js"></script>
+<script src="/static/js/third_party/daterangepicker.js"></script>
+<script src="/static/js/third_party/spin.min.js"></script>
+<script src="/static/js/third_party/jquery-ajax-localstorage-cache.js"></script>
+<script src="/static/js/third_party/jquery.dataTables.js"></script>
+<script src="/static/js/third_party/DT_bootstrap.js"></script>
+
+<script src="/static/js/exs/exercise-summary-namespace.js"></script>
+<script src="/static/js/exs/exercise-summary-templates.js"></script>
+<script src="/static/js/exs/exercise-summary-model.js"></script>
+<script src="/static/js/exs/exercise-summary-graphs-view.js"></script>
+<script src="/static/js/exs/exercise-summary-controls-view.js"></script>
+<script src="/static/js/exs/exercise-summary-total-view.js"></script>
+<script src="/static/js/exs/exercise-summary-ex-summ-view.js"></script>
+<script src="/static/js/exs/exercise-summary-init.js"></script>
+
+</body>
+</html>
