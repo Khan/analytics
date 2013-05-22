@@ -53,6 +53,7 @@ FROM (
     get_json_object(UserDataP.json, '$.user_id') AS user_id,
     get_json_object(UserDataP.json, '$.user_email') AS user_email,
     get_json_object(UserDataP.json, '$.user_nickname') AS user_nickname,
+    get_json_object(UserDataP.json, '$.gae_bingo_identity') AS bingo_id,
     get_json_object(UserDataP.json, '$.joined') AS joined
   FROM UserDataP WHERE dt = '${end_dt}'
 ) parsed LEFT OUTER JOIN
