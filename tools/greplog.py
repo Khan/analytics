@@ -1,4 +1,17 @@
 #!/usr/bin/env python
+""" This script greps the downloaded logs for info related to a google issue.
+
+Basic use is ./greplog.py -i [issue #]. It will grab the time the issue was
+reported (change it with -t <timestamp> argument and look for log records by
+default 20 minutes before (change it with -d <seconds> argument). It will
+filter the logs by the bingo_id if it was added to the issue (change it with
+-b <bingo_id> option) and if not it will filter by user_agent string (change it
+with -u option).  For a full list of options do issue_finder.py --help.  You
+can also grep for only log lines that return errors.
+
+All log lines are printed out and you can redirect them to a temporary file for
+analysis such as greplog.py -i 19618 > issue_19618.log.
+"""
 
 import datetime
 import gzip
@@ -6,12 +19,14 @@ import json
 import optparse
 import os
 import re
+import sys
 import urllib
+
+sys.path.insert(0, "../map_reduce/py")
 
 import raw_log_to_request_log_mapper as rlm
 
 
-BASE_DIR = "/Users/james/kalogs/"
 BASE_DIR = "/home/analytics/kalogs/"
 ISSUES_URL = "http://code.google.com/p/khanacademy/issues/csv?can=1&q=id%%3D%i&colspec=Opened+Summary&sort=-ID"
 DEFAULT_TIME_DELTA = 1200  # 20 minutes
@@ -22,6 +37,8 @@ Search appengine logs for requests related to a particular issue.
 
 
 def get_issue_details(issue_id):
+    # Caching the external call as some people might want to search the same
+    # issue a few times with different end timestamp or time deltas.
     issue_detail_cache_file = "/tmp/issue_detail_%i" % issue_id
     try:
         f = open(issue_detail_cache_file)
@@ -31,17 +48,18 @@ def get_issue_details(issue_id):
         pass
 
     issue_file_handler = urllib.urlopen(ISSUES_URL % issue_id)
-    print(ISSUES_URL % issue_id)
     issue_csv = issue_file_handler.read()
 
     # Parse the CSV file
     issues = issue_csv.rstrip().split("\n")
     issue = issues[1]  # Headers are on line 0, ignore it
+    # issue line will look like:
+    # "May 14, 2013 14:33:56","1368542036","can't enter students in my class","BingoId-_gae_bingo_randomW5fY6o9t4naJ9yuI9wjqWjb4YdBEBleJtplf0Rup, Referer-httpwww.khanacademy.orgstudents, Type-Defect, UserAgent-Mozilla5.0compatibleMSIE9.0WindowsNT6.1WOW64Trident5.0"  @Nolint
     fields = issue.split(",")  # Fields are separated by , but labels are also
-    # First two lines are the opened date in two pieces because of the ,
-    timestamp = int(fields[2].replace('"', ''))  # Third line is the timestamp
-    labels = fields[4:]  # Ignore summary in fouth line, rest are labels
-    # First line will being with quote others with space, last line ends with
+    # First two fields are the opened date in two pieces because of the ,
+    timestamp = int(fields[2].replace('"', ''))  # Third field is the timestamp
+    labels = fields[4:]  # Ignore summary in fouth field, rest are labels
+    # First label will being with quote others with space, last label ends with
     # a quote
     labels = [label.strip(' "') for label in labels]
 
@@ -51,6 +69,9 @@ def get_issue_details(issue_id):
     for label in labels:
         if label.startswith("BingoId-"):
             bingo_id = label[8:]
+            # The bingo_id is stored url quoted in our logs.  If it is not
+            # already quoted then we quote it here to be able to filter it
+            # correctly.
             if (bingo_id.startswith("_gae_bingo_random") and
                 bingo_id[17:19] != "%3A"):
                 bingo_id = bingo_id[0:17] + "%3A" + bingo_id[17:]
@@ -77,7 +98,7 @@ def parse_log_file(input_file_name,
     """ Searches the log file near the timestamp for a users entries
 
         Iterates over the log and finds all entries within timedelta of the
-        target_timestamp
+        target_timestamp and then prints them to stdout.
     """
 
     if not(errors_only
@@ -161,7 +182,9 @@ def parse_log_file(input_file_name,
 
         print request_log_line
         for line in app_log_lines:
-            print app_log_lines
+            # Tracebacks can have the tabs and newlines escaped. We unescape
+            # them here for readability
+            print line.replace('\\t', '\t').replace('\\n', '\n')
         print ''
 
 
@@ -188,36 +211,36 @@ def find_log_files_for(timestamp, time_delta=DEFAULT_TIME_DELTA):
 if __name__ == '__main__':
     parser = optparse.OptionParser(USAGE)
     parser.add_option('--issue-id', '-i', dest='issue_id', type=int,
-                      help=('A google issue id from which to extract user and '
-                            'end of time range to look at.'))
+                      help=('A google issue id on which to filter the logs '
+                            'by. The script will search the minutes preceding '
+                            'when the issue was filed and will use either the '
+                            'bingo_id if it exists in the issue labels or the '
+                            'user agent to further filter the logs by.'))
     parser.add_option('--bingo-id', '-b', dest='bingo_id', type=str,
-                      help=('If issue is not set filter the logs for this '
-                            'bingo-id.'))
+                      help=('Filter the logs for this bingo-id. It will '
+                            'override any bingo_id retrieved from the issue'))
     parser.add_option('--errors-only', '-e', dest='errors_only',
                       action='store_true',
                       help='Only output logs that are errors.')
     parser.add_option('--timestamp', '-t', dest='timestamp', type=int,
-                      help='Timestamp for the end of the time range to look '
-                      'at.')
+                      help=('Timestamp for the end of the time range to look '
+                            'at.'))
     parser.add_option('--timedelta', '-d', dest='time_delta', type=int,
                       default=DEFAULT_TIME_DELTA,
-                      help='How long before the timestamp you want to search '
-                      '(in seconds).')
+                      help=('How long before the timestamp you want to search '
+                            '(in seconds).'))
     parser.add_option('--use-url', '-u', dest='use_url', action='store_true',
-                      help='Whether to filter the logs by the url/referer url '
-                      'found in the referrer referenced in the issue.')
+                      help=('Whether to filter the logs by the url/referer '
+                            'url found in the referrer referenced in the '
+                            'issue.'))
     parser.add_option('--url', '-l', type=str, dest='url',
                       help='Url to filter by.')
     parser.add_option('--user-agent', '-a', dest='user_agent', type=str,
-                      help='If issue is not set, filter the log using this '
-                      'user-agent string.')
+                      help=('Filter the log using this user-agent string. '
+                            'This will only be used if the bingo_id is not '
+                            'set either in the issue or manually with -b'))
 
     options, args = parser.parse_args()
-
-    if not args:
-        test_specs = [os.getcwd()]
-    else:
-        test_specs = args
 
     target_url = None
     target_timestamp = None
