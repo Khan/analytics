@@ -106,6 +106,114 @@
             "<h1 class='results-missing'>No data </h1>");
     });
 
+    // Converts space delimited name to one understood by the system
+    Handlebars.registerHelper("denormalizeName", function(s) {
+      return s.toLowerCase().split(" ").join("_");
+    });
+
+    // Table generation helper
+    Handlebars.registerHelper("createTable",
+        function(data, order, units, id) {
+            var result = "<table id=\"" + id +
+                "\" class=\"table table-hover table-striped\">";
+            result += "<thead><tr>"
+
+            _.each(order, function(column) {
+                result += "<th>" + normalizeName(column) + "</th>";
+            });
+
+            result += "</tr></thead><tbody>"
+
+            _.each(data, function(dataHash) {
+                result += "<tr>";
+                _.each(order, function(column, idx) {
+                    result += "<td>" + dataHash[column] +
+                     units[idx] + "</td>";
+                });
+                result += "</tr>";
+            });
+            result += "</tbody></table>";
+
+            return new Handlebars.SafeString(result);
+    });
+
+    Handlebars.registerHelper("noResultsHeader", function() {
+        return new Handlebars.SafeString(
+            "<h1 class=\"results-missing\">No data </h1>");
+    });
+
+    // Converts space delimited name to one understood by the system
+    Handlebars.registerHelper("denormalizeName", function(s) {
+      return s.toLowerCase().split(" ").join("_");
+    });
+
+    // Table generation helper
+    Handlebars.registerHelper("createTable",
+        function(data, order, units, id) {
+            var result = "<table id=\"" + id +
+                "\" class=\"table table-hover table-striped\">";
+            result += "<thead><tr>"
+
+            _.each(order, function(column) {
+                result += "<th>" + normalizeName(column) + "</th>";
+            });
+
+            result += "</tr></thead><tbody>"
+
+            _.each(data, function(dataHash) {
+                result += "<tr>";
+                _.each(order, function(column, idx) {
+                    result += "<td>" + dataHash[column] +
+                     units[idx] + "</td>";
+                });
+                result += "</tr>";
+            });
+            result += "</tbody></table>";
+
+            return new Handlebars.SafeString(result);
+    });
+
+    Handlebars.registerHelper("noResultsHeader", function() {
+        return new Handlebars.SafeString(
+            "<h1 class=\"results-missing\">No data </h1>");
+    });
+
+    // Converts space delimited name to one understood by the system
+    Handlebars.registerHelper("denormalizeName", function(s) {
+      return s.toLowerCase().split(" ").join("_");
+    });
+
+    // Table generation helper
+    Handlebars.registerHelper("createTable",
+        function(data, order, units, id) {
+            var result = "<table id=\"" + id +
+                "\" class=\"table table-hover table-striped\">";
+            result += "<thead><tr>"
+
+            _.each(order, function(column) {
+                result += "<th>" + normalizeName(column) + "</th>";
+            });
+
+            result += "</tr></thead><tbody>"
+
+            _.each(data, function(dataHash) {
+                result += "<tr>";
+                _.each(order, function(column, idx) {
+                    result += "<td>" + dataHash[column] +
+                     units[idx] + "</td>";
+                });
+                result += "</tr>";
+            });
+            result += "</tbody></table>";
+
+            return new Handlebars.SafeString(result);
+    });
+
+    Handlebars.registerHelper("noResultsHeader", function() {
+        return new Handlebars.SafeString(
+            "<h1 class=\"results-missing\">No data </h1>");
+    });
+
     // Haskell has it and Javascript should as well!
     if ("function" !== typeof Array.prototype.sum) {
         Array.prototype.sum = function() {
