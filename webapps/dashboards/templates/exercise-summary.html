@@ -18,10 +18,10 @@
 <script id="total-view" type="text/x-handlebars-template">
     <ul id="total-tabs" class="nav nav-tabs">
         <li class="active">
-            <a href="#total-tab-table">Attempts</a>
+            <a data-target="#total-tab-table">Attempts</a>
         </li>
         <li>
-            <a href="#total-prof-table">Proficiency</a>
+            <a data-target="#total-prof-table">Proficiency</a>
         </li>
     </ul>
     <div class="tab-content">
@@ -48,6 +48,11 @@
             <div class="row">
                 <span class="span12">
                     <h1>Proficiency</h1>
+                </span>
+            </div>
+            <div class="row">
+                <span class="span12">
+                    {{> proficiency-note}}
                 </span>
             </div>
             {{createTable profData orderProf units "prof-table"}}
@@ -83,13 +88,12 @@
             <input class="span4" type="text">
             <span class="add-on"><i class="caret"></i></span>
         </div>
-        <input name="send" type="button" class="btn" value="Search"/>
     </form>
 </script>
 
 <script id="graph-decoration" type="text/x-handlebars-template">
     {{#unless empty}}
-        <h1>{{exName}}</h1>
+        <h1>{{exerciseName}}</h1>
         <div class="row">
             <div class="span6" id="total-graph"></div>
             <div class="span6 exercise-stats center-elements" id="total-stats">
@@ -116,34 +120,51 @@
         </div>
         <div class="row row-buttons">
             <span class="span6">
-                <a href="http://khanacademy.org/exercise/{{denormalizeName exName}}"
+                <a href="http://khanacademy.org/exercise/{{originalExerciseName}}"
                     class="btn btn-awesome btn-large btn-block">
                         See Exercise on Website
                 </a>
             </span>
             <span class="span6">
-                <a href="http://sandcastle.khanacademy.org/media/castles/Khan:master/exercises/{{denormalizeName exName}}.html"
+                <a href={{#if isPerseus}}
+                    "https://www.khanacademy.org/devadmin/content/exercises"
+                    {{else}}
+                    "http://sandcastle.khanacademy.org/media/castles/Khan:master/exercises/{{originalExerciseName}}.html"
+                    {{/if}}
                     class="btn btn-awesome btn-large btn-block">
-                        See Exercise in Sandcastle
+                    Edit Exercise
                 </a>
             </span>
         </div>
-        <h1 class="standalone">Breakdown By Problem Type</h1>
-        <div id="breakdown-graphs"></div>
+        <h1 class="standalone">Breakdown By Problem</h1>
+        <ul id="breakdown-tabs" class="nav nav-tabs">
+            <li class="active">
+                <a data-target="#breakdown-tab-table">Table</a>
+            </li>
+            <li>
+                <a data-target="#breakdown-graphs">Graphs</a>
+            </li>
+        </ul>
+        <div class="tab-content">
+            <div class="tab-pane fade active in" id="breakdown-tab-table">
+                {{createTable breakdownData breakdownOrder units "breakdown-table"}}
+            </div>
+            <div class="tab-pane fade in" id="breakdown-graphs"></div>
+        </div>
     {{else}}
         {{noResultsHeader}}
     {{/unless}}
 </script>
 
 <script id="problem-type-graph" type="text/x-handlebars-template">
-    <h1 class="standalone">{{problemName}}</h1>
+    <h1 class="standalone">{{displayName}}</h1>
     <div class="row exercise-stats">
-        <div class="span3" id="problem-type-graph-{{problemName}}"></div>
+        <div class="span3" id="problem-type-graph-{{subGroupName}}"></div>
         <div class="span3 center-elements">
             <h2 class="double-height">Total Attempts</h2>
-            <p>{{totalAttempts}}</p>
+         <p>{{totalAttempts}}</p>
         </div>
-        <div class="span3 center-elements" id="problem-attempts-graph-{{problemName}}">
+        <div class="span3 center-elements" id="problem-attempts-graph-{{subGroupName}}">
             <h2>Attempt Breakdown</h2>
         </div>
         <div class="span3 center-elements">
@@ -151,6 +172,12 @@
             <p>{{averageTime}}s</p>
         </div>
     </div>
+</script>
+
+<script id="proficiency-note" type="text/x-handlebars-template">
+    <p class="notice {{{extraClasses}}}">
+        Proficiency earned is independent of date range. The number represents percentage of students who had their first attempt in last 6 months and had earned proficiency.
+    </p>
 </script>
 {% endraw %}
 
@@ -179,9 +206,9 @@
 <script src="/static/js/exs/exercise-summary-templates.js"></script>
 <script src="/static/js/exs/exercise-summary-model.js"></script>
 <script src="/static/js/exs/exercise-summary-graphs-view.js"></script>
-<script src="/static/js/exs/exercise-summary-controls-view.js"></script>
-<script src="/static/js/exs/exercise-summary-total-view.js"></script>
-<script src="/static/js/exs/exercise-summary-ex-summ-view.js"></script>
+<script src="/static/js/exs/exercise-summary-exercise-history-picker.js"></script>
+<script src="/static/js/exs/exercise-summary-summary-table-view.js"></script>
+<script src="/static/js/exs/exercise-summary-exercise-summary-app.js"></script>
 <script src="/static/js/exs/exercise-summary-init.js"></script>
 
 </body>

@@ -112,27 +112,56 @@ def video_title_summary_data():
     return flask.jsonify({'results': results})
 
 
+@app.route('/data/exercise-summary/all')
+@auth.login_required
+def exercise_summary_top():
+    start_dt = flask.request.args.get('start_date')
+    end_dt = flask.request.args.get('end_date')
+    all_ex = data.exercise_summary(db, start_dt, end_dt)
+    return flask.jsonify({
+        "exercise_data": all_ex
+    })
+
+
 @app.route('/data/exercise-summary/<exercise>')
 @auth.login_required
 def exercise_summary(exercise):
     start_dt = flask.request.args.get('start_date')
     end_dt = flask.request.args.get('end_date')
-    problem_type = flask.request.args.get('problem_type')
-    exercise_data = data.summary_for_exercise(db, exercise,
-                                start_dt, end_dt, problem_type)
+    sub_exercise_type = flask.request.args.get('sub_exercise_type')
+    exercise_data = data.exercise_summary(db, start_dt, end_dt,
+                                exercise, sub_exercise_type)
     return flask.jsonify({
         "exercise_data": exercise_data
     })
 
 
-@app.route('/db/exercise-summary/<exercise>/problem_types')
+@app.route('/data/exercise-proficiency-summary/all')
+@auth.login_required
+def exercise_proficiency_summary_all():
+    proficiency = data.proficiency_summary(db)
+    return flask.jsonify({
+        "proficiency_data": proficiency
+    })
+
+
+@app.route('/data/exercise-proficiency-summary/<exercise>')
+@auth.login_required
+def exercise_proficiency_summary(exercise):
+    proficiency = data.proficiency_summary(db, exercise)
+    return flask.jsonify({
+        "proficiency_data": proficiency[0] if len(proficiency) else {}
+    })
+
+
+@app.route('/db/exercise-summary/<exercise>/sub_types')
 @auth.login_required
 def exercise_summary_problem_type(exercise):
     types = db.report.exercise_summary.find({
         "exercise": exercise
-    }).distinct('problem_type')
+    }).distinct('sub_exercise_type')
     return flask.jsonify({
-        "problem_types": types
+        "sub_exercise_type": types
     })
 
 

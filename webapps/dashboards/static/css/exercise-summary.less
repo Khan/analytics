@@ -8,6 +8,15 @@
         }
     }
 
+    a {
+        cursor: pointer;
+    }
+
+    tr {
+        text-transform: capitalize;
+        cursor: pointer;
+    }
+
     .summary-table {
         max-height: 400px;
         overflow: auto
@@ -34,6 +43,10 @@
             right: 100px;
             left: auto;
         }
+    }
+
+    .carousel-inner {
+        min-height: 600px;
     }
 
     .tab-content {
@@ -109,26 +122,6 @@
         margin: 20px 0 30px -20px;
     }
 
-    .popover-title {
-        font-size: 20px;
-        text-align: center;
-        color: #13747D;
-    }
-
-    .popover-content {
-        font-size: 64px;
-        line-height: 80px;
-        font-weight: bold;
-        color: #0abfbc;
-        text-align: center;
-
-        p {
-            font-size: 14px;
-            line-height: 20px;
-            font-weight: normal;
-        }
-    }
-
     .number-dark {
         fill: #13747d;
     }
@@ -181,7 +174,8 @@
     .typeahead,
     .tt-query,
     .tt-hint {
-        width: 455px;
+        width: 530px;
+        text-transform: capitalize;
     }
 
     .typeahead {
@@ -199,11 +193,11 @@
     }
 
     .tt-hint {
-        color: #999
+        color: #999;
     }
 
     .tt-dropdown-menu {
-        width: 467px;
+        width: 542px;
         margin-top: 12px;
         padding: 8px 0;
         background-color: #fff;
@@ -221,6 +215,7 @@
         padding: 3px 20px;
         font-size: 18px;
         line-height: 24px;
+        text-transform: capitalize;
     }
 
     .tt-suggestion.tt-is-under-cursor {
@@ -261,5 +256,26 @@
     .btn-awesome[disabled] {
         color: #ffffff;
         background-color: #13747d;
+    }
+}
+
+.popover-title {
+    font-size: 20px;
+    text-align: center;
+    color: #13747D;
+    text-transform: capitalize;
+}
+
+.popover-content {
+    font-size: 54px;
+    line-height: 80px;
+    font-weight: bold;
+    color: #0abfbc;
+    text-align: center;
+
+    p {
+        font-size: 14px;
+        line-height: 20px;
+        font-weight: normal;
     }
 }
