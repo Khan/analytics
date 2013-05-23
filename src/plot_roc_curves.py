@@ -6,9 +6,9 @@ Usage:
     OR
   plot_roc_curves.py *_roc_file
 
-Right now the input files are assumed to be CSV data, with the third column
-and the fourth column being the true negative and true positive rates for
-some classifier threshold.  Each file contains data for a different curve.
+Right now the input files are assumed to be CSV data, with the fist column
+the correctness on an exercise, and the second column the predicted
+probability correct on that exercise.  Each file contains data for a different curve.
 
 TODO(jace): Maybe take command line args to override the column index
 assumption.  But for right now this is simply built to work with output
@@ -20,20 +20,47 @@ import itertools
 
 import matplotlib.pyplot as plt
 import numpy as np
+import re
 
 lines = ["-+", "--D", "-.s", ":*", "-^", "--|", "-._", ":"]
 linecycler = itertools.cycle(lines)
 
 
-def draw_roc_curve(name, lines):
+def get_correct_predicted(lines):
     lines = [line.strip().split(',') for line in lines]
     lines = np.asarray(lines)
+    correct = lines[:, 0].astype('float')
+    predicted = lines[:, 1].astype('float')
+    return correct, predicted
 
-    true_neg = lines[:, 2].astype('float')
-    true_pos = lines[:, 3].astype('float')
+
+def calc_roc_curve(correct, predicted):
+    thresholds = np.arange(-0.01, 1.02, 0.01)
+    true_pos = np.zeros(thresholds.shape)
+    true_neg = np.zeros(thresholds.shape)
+    tot_true = np.max([np.float(np.sum(correct)), 1])
+    tot_false= np.max([np.float(np.sum(np.logical_not(correct))), 1])
+
+    for i in range(thresholds.shape[0]):
+        threshold = thresholds[i]
+        pred1 = predicted >= threshold
+        pred0 = predicted < threshold
+        if np.sum(tot_true) > 0:
+            true_pos[i] = np.sum(correct[pred1]) / tot_true
+        if np.sum(tot_false)>0:
+            true_neg[i] = np.sum(np.logical_not(correct[pred0])) / tot_false
+
+    return true_pos, true_neg
+
+
+def draw_roc_curve(name, lines):
+    correct, predicted = get_correct_predicted(lines)
+    true_pos, true_neg = calc_roc_curve(correct, predicted)
 
     # grab the base of the filename
     name = name.split('/')[-1].split('.')[0]
+
+    # NOTE if name starts with an underscore, the label won't display
 
     plt.plot(1 - true_neg, true_pos, next(linecycler), label=name)
 
