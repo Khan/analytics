@@ -105,7 +105,7 @@ def get_cmd_line_options():
     parser.add_option("-m", "--max_pass_lbfgs", type=int, default=5,
                       help=("The number of LBFGS descent steps to do per "
                             "EM iteration"))
-    parser.add_option("-p", "--regularization", default=1e-5,
+    parser.add_option("-p", "--regularization", type=float, default=1e-5,
                       help=("The weight for an L2 regularizer on the "
                             "parameters.  This can be very small, but "
                             "keeps the weights from running away in a "
@@ -160,6 +160,15 @@ def create_user_state(lines, exercise_ind_dict, options):
     exercises_ind = [exercise_ind_dict[ex] for ex in exercises]
     exercises_ind = np.array(exercises_ind)
     abilities = np.random.randn(options.num_abilities, 1)
+
+    # cut out any duplicate exercises in the training data for a single user
+    # NOTE if you allow duplicates, you need to change the way the gradient
+    # is computed as well.
+    _, idx = np.unique(exercises_ind, return_index=True)
+    exercises_ind = exercises_ind[idx]
+    correct = correct[idx]
+    time_taken = time_taken[idx]
+
     state = {'correct': correct,
              'log_time_taken': np.log(time_taken),
              'abilities': abilities,
@@ -189,8 +198,9 @@ def L_dL_singleuser(arg):
     Y = np.dot(W_correct, abilities)
     Z = mirt_util.sigmoid(Y)  # predicted correctness value
     Zt = correct.reshape(Z.shape)  # true correctness value
-    pdata = Zt * Z + (1 - Zt) * (1 - Z)  # = 2*Zt*Z - Z + const
-    dLdY = ((2 * Zt - 1) * Z * (1 - Z)) / pdata
+    pdata = Zt * Z + (1. - Zt) * (1. - Z)  # = 2*Zt*Z - Z + const
+    dLdY = ((2. * Zt - 1.) * Z * (1. - Z)) / pdata
+    #print pdata.shape, dLdY.shape, Z.shape, Zt.shape
     L = -np.sum(np.log(pdata))
     dL.W_correct = -np.dot(dLdY, abilities.T)
 
@@ -217,11 +227,11 @@ def L_dL(theta_flat, user_states, num_exercises, options, pool):
     """ calculate log likelihood and gradient wrt couplings of mIRT model """
 
     L = 0.
-    theta = mirt_util.Parameters(options.num_abilities, num_exercises, vals=theta_flat)
+    theta = mirt_util.Parameters(options.num_abilities, num_exercises, vals=theta_flat.copy())
 
 
-    L += options.regularization * sum(theta_flat ** 2)
-    dL_flat = 2. * options.regularization * theta_flat
+    L += options.regularization * sum(theta_flat ** 2)*float(len(user_states))
+    dL_flat = 2. * options.regularization * theta_flat*float(len(user_states))
     dL = mirt_util.Parameters(theta.num_abilities, theta.num_exercises, vals = dL_flat)
 
     # TODO(jascha) this would be faster if user_states was divided into
@@ -236,11 +246,12 @@ def L_dL(theta_flat, user_states, num_exercises, options, pool):
     for r in rslts:
         Lu, dLu, exercise_indu = r
         #print L, Lu, float(len(user_states))
-        L += Lu / float(len(user_states))
+        L += Lu
         #print dL.W_correct[exercise_indu, :].shape, dLu.W_correct.shape, Lu
-        dL.W_correct[exercise_indu, :] += dLu.W_correct / float(len(user_states))        
-        dL.W_time[exercise_indu, :] += dLu.W_time / float(len(user_states))
-        dL.sigma_time[exercise_indu] += dLu.sigma_time / float(len(user_states))
+        dL.W_correct[exercise_indu, :] += dLu.W_correct      
+        dL.W_time[exercise_indu, :] += dLu.W_time
+        dL.sigma_time[exercise_indu] += dLu.sigma_time
+        #1./0
 
     if options.correct_only:
         dL.W_time[:,:] = 0.
@@ -248,8 +259,8 @@ def L_dL(theta_flat, user_states, num_exercises, options, pool):
 
     dL_flat = dL.flat()
 
-    L /= np.log(2.)
-    dL_flat /= np.log(2.)
+    L /= np.log(2.)*float(len(user_states))
+    dL_flat /= np.log(2.)*float(len(user_states))
 
     #print L
     #print dL_flat
@@ -286,6 +297,29 @@ def emit_features(user_states, theta, options, split_desc):
             print >>f, ",".join(["%.4f" % a for a in abilities])
 
     f.close()
+
+
+def check_grad(L_dL, theta, args=()):
+    print >>sys.stderr, "Checking gradients."
+
+    step_size = 1e-6
+
+    f0, df0 = L_dL(theta.copy(), *args)
+    # test gradients in a random order.  This lets us run check gradients on the
+    # full size model, but still statistically test every type of gradient.
+    test_order = range(theta.shape[0])
+    np.random.shuffle(test_order)
+    for ind in test_order:
+        theta_offset = np.zeros(theta.shape)
+        theta_offset[ind] = step_size
+        f1, df1 = L_dL(theta.copy()+theta_offset, *args)
+        df_true = (f1 - f0)/step_size
+
+        rr = (df0[ind] - df_true)*2./(df0[ind] + df_true)
+
+        print "ind", ind, "ind mod 3", np.mod(ind,3), "ind/3", np.floor(ind/3.), "df pred", df0[ind], "df true", df_true, "(df pred - df true)*2/(df pred + df true)", rr
+
+        #assert(rr < 1.)
 
 
 def main():
@@ -332,6 +366,10 @@ def main():
                 row[idx_pl.time_taken] = float(row[idx_pl.time_taken])
                 attempts.append(row)
 
+            #if len(user_states)>0:
+                #DEBUG
+            #    break
+
         if len(attempts) > 0:
             # flush the data for the final user, too
             user_states.append(create_user_state(
@@ -361,6 +399,7 @@ def main():
     print >>sys.stderr, "Training dataset, %d students"%(len(user_states))
 
     # initialize the parameters
+    print >>sys.stderr, "%d exercises"%(num_exercises)
     theta = mirt_util.Parameters(options.num_abilities, num_exercises)
     theta.sigma_time[:] = 1.
     # we won't be adding any more exercises
@@ -411,6 +450,8 @@ def main():
                         float(len(user_states)))
         print >>sys.stderr, "<abilities>", mn_a,
         print >>sys.stderr, ", <abilities^2>", cov_a, ", ",
+
+        check_grad(L_dL, theta.flat(), args=(user_states, num_exercises, options, pool))
 
         # Maximization step
         old_theta_flat = theta.flat()
@@ -477,8 +518,8 @@ def main():
 
     if options.emit_features:
         if options.training_set_size < 1.0:
-            #emit_features(user_states_train, theta, options, "train")
             emit_features(user_states_test, theta, options, "test")
+            emit_features(user_states_train, theta, options, "train")
         else:
             emit_features(user_states, theta, options, "full")
 
