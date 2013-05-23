@@ -52,6 +52,15 @@ downloaded file.
 
 If an issue_id or other filtering options are used, then it is not necessary
 to provide a search query string.
+
+Examples:
+    greplog -i 19618 # Look in the 20 minutes before the issue 19618
+                     # was reported
+    greplog -i 19618 -d 120 # Same search but look in the preceeding 2 hours
+                            # instead
+    greplog 'out of order' -d 60 # Search the latest file downloaded for all
+                                 # requests with 'out of order' in its app logs
+    greplog -s 500 -d 60 # Search the latest file downloaded for any error
 """
 
 
