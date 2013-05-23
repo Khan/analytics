@@ -451,7 +451,7 @@ def main():
         print >>sys.stderr, "<abilities>", mn_a,
         print >>sys.stderr, ", <abilities^2>", cov_a, ", ",
 
-        check_grad(L_dL, theta.flat(), args=(user_states, num_exercises, options, pool))
+        #check_grad(L_dL, theta.flat(), args=(user_states, num_exercises, options, pool))
 
         # Maximization step
         old_theta_flat = theta.flat()
