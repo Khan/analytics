@@ -40,7 +40,7 @@ var compareNumbersDesc = function(x, y) {
 
 var stripSignToFloat = function(s) {
     return function(a) {
-        return parseFloat(a.replace( /s/, "" ));
+        return parseFloat(a.replace(new RegExp(s, "g"), ""));
     };
 }
 
@@ -50,6 +50,9 @@ jQuery.fn.dataTableExt.oSort['percent-desc'] = compareNumbersDesc;
 jQuery.fn.dataTableExt.oSort['sec-pre'] = stripSignToFloat("s");
 jQuery.fn.dataTableExt.oSort['sec-asc']  = compareNumbersAsc;
 jQuery.fn.dataTableExt.oSort['sec-desc'] = compareNumbersDesc;
+jQuery.fn.dataTableExt.oSort['comma-pre'] = stripSignToFloat(",");
+jQuery.fn.dataTableExt.oSort['comma-asc']  = compareNumbersAsc;
+jQuery.fn.dataTableExt.oSort['comma-desc'] = compareNumbersDesc;
 
 /* Bootstrap style pagination control */
 $.extend( $.fn.dataTableExt.oPagination, {

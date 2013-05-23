@@ -6,6 +6,7 @@
         template: window.ExS.Templates.graphDecoration,
         templateProblemType: window.ExS.Templates.graphProblem,
         templateError: window.ExS.Templates.error,
+        templateNote: window.ExS.Templates.noteTpl,
         dataTableConfig: window.ExS.dataTableConfig,
 
         events: {
@@ -237,10 +238,10 @@
                     {
                         "aoColumns": [
                             null,
-                            null,
-                            { "sType": "percent" },
-                            { "sType": "percent" },
-                            { "sType": "sec" }
+                            { sType: "comma" },
+                            { sType: "percent" },
+                            { sType: "percent" },
+                            { sType: "sec" }
                         ]
                     }
                 ));
@@ -261,13 +262,11 @@
                 _.each(this.breakdownData, this._drawProblemType(
                     $("#breakdown-graphs", this.$el)));
 
+                $("#breakdown-graphs h1", this.$el).next().hide();
+
                 $("#prof-number").popover({
                     title: "Note",
-                    content: ["<p class=\"notice\">",
-                        "This number is independent of date range ",
-                        "selected. Includes users who had their first ",
-                        "attempt at the exercise in last 6 months",
-                        "</p>"].join(""),
+                    content: this.templateNote({extraClasses: ""}),
                     trigger: "hover",
                     html: true,
                     container: "body",

@@ -15,6 +15,10 @@
         summaryView     : Handlebars.compile(
             $("#summary-controls").html().trim()),
         containerView   : Handlebars.compile(
-            $("#container-template").html().trim())
+            $("#container-template").html().trim()),
+        noteTpl         : Handlebars.compile(
+            $("#proficiency-note").html().trim()),
     };
+
+    Handlebars.registerPartial("proficiency-note", window.ExS.Templates.noteTpl);
 })();

@@ -35,7 +35,12 @@
                 navButton.data("slide",
                     navButton.data("slide") === "next" ? "prev" : "next");
                 var contents = navButton.text();
-                navButton.text(contents === "›" ? "‹" : "›");
+                if(contents === "›") {
+                    navButton.text("‹");
+                } else {
+                    window.location.hash = "";
+                    navButton.text("›");
+                }
             });
         },
 
@@ -43,6 +48,7 @@
             _.extend(this, Backbone.Events);
             this.state =
                 new window.ExS.CurrentParametersModel();
+            this.afterRender = $.Deferred();
             this.controls = new window.ExS.ExerciseHistoryPicker({syncOn: this.state});
             this.graphs = new window.ExS.GraphsView({syncOn: this.state});
             this.totals = new window.ExS.SummaryTableView({syncOn: this.state});
@@ -56,11 +62,13 @@
         // Provides notion of state to dashboard.
         // User coming back will be presented appropriate exercise
         _restoreUsingHash: function() {
-            hash = window.location.hash;
-            if(hash) {
-                this.state.set({"exercise": hash.slice(1)});
-                $(".carousel", this.$el).carousel(0);
-            }
+            this.afterRender.done(function () {
+                hash = window.location.hash;
+                if(hash) {
+                    this.state.set({"exercise": hash.slice(1)});
+                    $(".carousel", this.$el).carousel(0);
+                }
+            });
         },
 
         render: function() {
@@ -75,6 +83,7 @@
                 interval: false
             });
             this._restoreUsingHash();
+            this.afterRender.resolveWith(this);
             return this;
         }
     });

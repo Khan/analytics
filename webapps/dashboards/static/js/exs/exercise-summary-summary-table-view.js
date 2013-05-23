@@ -13,6 +13,7 @@
         dataTableConfig: window.ExS.dataTableConfig,
         requestDateFormat: "YYYY-MM-DD",
         displayDateFormat: "MMMM D, YYYY",
+        numberFormat: d3.format(","),
 
         _attemptFetchDefaults: function() {
             return _.extend(_.clone(window.ExS.fetchDefaults), {
@@ -102,10 +103,10 @@
         // Show detailed report for exercise - "graph" view
         _onTableRowClick: function(ev) {
             var exerciseName = $(ev.currentTarget).data("originalname");
+            this.trigger("click:row");
             this.syncOn.set({
                 exercise: exerciseName
             });
-            this.trigger("click:row");
             window.location.hash = exerciseName;
         },
 
@@ -164,6 +165,7 @@
                 row.wrong_attempts = this._percentageValue(
                     row.wrong_attempts, total);
                 row.time_taken = (row.time_taken / total).toFixed(0);
+                row.total_attempts = this.numberFormat(row.total_attempts);
                 return row;
             }, this));
         },
@@ -174,6 +176,7 @@
                 row.exercise = window.ExS.normalizeName(row.exercise);
                 row.earned_proficiency = this._percentageValue(
                     row.earned_proficiency, row.total_users);
+                row.total_users = this.numberFormat(row.total_users);
                 return row;
             }, this));
         },
@@ -183,6 +186,7 @@
             this._cleanup();
 
             $(this.template({
+                extraClasses: "muted",
                 empty: this.attemptColl.length === 0,
                 units: ["", "", "%", "%", "s"],
                 orderTotal: ["exercise", "total_attempts",
@@ -199,10 +203,10 @@
                 {
                     "aoColumns": [
                         null,
-                        null,
-                        { "sType": "percent" },
-                        { "sType": "percent" },
-                        { "sType": "sec" }
+                        { sType: "comma" },
+                        { sType: "percent" },
+                        { sType: "percent" },
+                        { sType: "sec" }
                     ]
                 }
             ));
@@ -212,8 +216,8 @@
                 {
                     "aoColumns": [
                         null,
-                        null,
-                        { "sType": "percent" }
+                        { sType: "comma" },
+                        { sType: "percent" }
                     ]
                 }
             ));

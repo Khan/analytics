@@ -89,7 +89,7 @@
             // TODO(robert): investigate null seed value for static exercises
             if(!this.get("sub_exercise_type")) {
                 this.set({
-                    sub_exercise_type: "0"
+                    sub_exercise_type: "NA"
                 });
             }
         }

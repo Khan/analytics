@@ -150,16 +150,7 @@ def exercise_proficiency_summary_all():
 def exercise_proficiency_summary(exercise):
     proficiency = data.proficiency_summary(db, exercise)
     return flask.jsonify({
-        "proficiency_data": proficiency[0]
-    })
-
-
-@app.route('/data/exercise-proficiency-summary/<exercise>')
-@auth.login_required
-def exercise_proficiency_summary(exercise):
-    proficiency = data.proficiency_summary(db, exercise)
-    return flask.jsonify({
-        "proficiency_data": proficiency[0]
+        "proficiency_data": proficiency[0] if len(proficiency) else {}
     })
 
 

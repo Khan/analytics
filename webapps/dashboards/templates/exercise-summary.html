@@ -18,10 +18,10 @@
 <script id="total-view" type="text/x-handlebars-template">
     <ul id="total-tabs" class="nav nav-tabs">
         <li class="active">
-            <a href="#total-tab-table">Attempts</a>
+            <a data-target="#total-tab-table">Attempts</a>
         </li>
         <li>
-            <a href="#total-prof-table">Proficiency</a>
+            <a data-target="#total-prof-table">Proficiency</a>
         </li>
     </ul>
     <div class="tab-content">
@@ -48,6 +48,11 @@
             <div class="row">
                 <span class="span12">
                     <h1>Proficiency</h1>
+                </span>
+            </div>
+            <div class="row">
+                <span class="span12">
+                    {{> proficiency-note}}
                 </span>
             </div>
             {{createTable profData orderProf units "prof-table"}}
@@ -134,10 +139,10 @@
         <h1 class="standalone">Breakdown By Problem</h1>
         <ul id="breakdown-tabs" class="nav nav-tabs">
             <li class="active">
-                <a href="#breakdown-tab-table">Table</a>
+                <a data-target="#breakdown-tab-table">Table</a>
             </li>
             <li>
-                <a href="#breakdown-graphs">Graphs</a>
+                <a data-target="#breakdown-graphs">Graphs</a>
             </li>
         </ul>
         <div class="tab-content">
@@ -167,6 +172,12 @@
             <p>{{averageTime}}s</p>
         </div>
     </div>
+</script>
+
+<script id="proficiency-note" type="text/x-handlebars-template">
+    <p class="notice {{{extraClasses}}}">
+        Proficiency earned is independent of date range. The number represents percentage of students who had their first attempt in last 6 months and had earned proficiency.
+    </p>
 </script>
 {% endraw %}
 
