@@ -26,7 +26,8 @@ import sys
 import time
 import urllib
 
-sys.path.insert(0, "../map_reduce/py")
+sys.path.insert(0, os.path.join(os.path.dirname(__file__),
+                                '..', 'map_reduce', 'py'))
 
 import raw_log_to_request_log_mapper as rlm
 
@@ -100,13 +101,14 @@ def get_issue_details(issue_id):
         for label in labels:
             if label.startswith("BingoId-"):
                 bingo_id = label[len("BingoId-"):]
-                # The bingo_id is stored url quoted in our logs.  If it is not
-                # already quoted then we quote it here to be able to filter it
-                # correctly.
+                # The bingo_id is stored url quoted in our logs. Google issues
+                # will have stripped out the : from the bingo_id so we need to
+                # put it back in here.
                 if (bingo_id.startswith("_gae_bingo_random") and
                     bingo_id[len("_gae_bingo_random"):
                              len("_gae_bingo_random") + 2] != "%3A"):
-                    bingo_id = urllib.quote(bingo_id)
+                    bingo_id = (bingo_id[0:len("_gae_bingo_random")] + "%3A" +
+                                bingo_id[len("_gae_bingo_random"):])
             elif label.startswith("Referer-"):
                 referer = label[len("Referer-"):]
             elif label.startswith("UserAgent-"):
