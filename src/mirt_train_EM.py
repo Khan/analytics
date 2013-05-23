@@ -132,6 +132,9 @@ def get_cmd_line_options():
                             "feature and prediction data. Often used to "
                             "analyze accuracy of predictions after model "
                             "training."))
+    parser.add_option("-z", "--correct_only", action="store_true",
+                      default=False,
+                      help=("Ignore response time and only model using correctness."))
     parser.add_option("-r", "--resume_from_file", default='',
                       help=("Name of a .npz file to bootstrap the couplings."))
 
@@ -215,7 +218,11 @@ def L_dL(theta_flat, user_states, num_exercises, options, pool):
 
     L = 0.
     theta = mirt_util.Parameters(options.num_abilities, num_exercises, vals=theta_flat)
-    dL = mirt_util.Parameters(theta.num_abilities, theta.num_exercises)
+
+
+    L += options.regularization * sum(theta_flat ** 2)
+    dL_flat = 2. * options.regularization * theta_flat
+    dL = mirt_util.Parameters(theta.num_abilities, theta.num_exercises, vals = dL_flat)
 
     # TODO(jascha) this would be faster if user_states was divided into
     # minibatches instead of single students
@@ -231,18 +238,18 @@ def L_dL(theta_flat, user_states, num_exercises, options, pool):
         #print L, Lu, float(len(user_states))
         L += Lu / float(len(user_states))
         #print dL.W_correct[exercise_indu, :].shape, dLu.W_correct.shape, Lu
-        dL.W_correct[exercise_indu, :] += dLu.W_correct / float(len(user_states))
+        dL.W_correct[exercise_indu, :] += dLu.W_correct / float(len(user_states))        
         dL.W_time[exercise_indu, :] += dLu.W_time / float(len(user_states))
-        dL.sigma_time[exercise_indu, :] += dLu.sigma_time / float(len(user_states))
+        dL.sigma_time[exercise_indu] += dLu.sigma_time / float(len(user_states))
 
+    if options.correct_only:
+        dL.W_time[:,:] = 0.
+        dL.sigma_time[:] = 0.
 
     dL_flat = dL.flat()
 
     L /= np.log(2.)
     dL_flat /= np.log(2.)
-
-    L += options.regularization * sum(theta_flat ** 2)
-    dL_flat += 2. * options.regularization * theta_flat
 
     #print L
     #print dL_flat
@@ -416,6 +423,11 @@ def main():
             maxfun=options.max_pass_lbfgs, m=100)
         theta = mirt_util.Parameters(options.num_abilities, num_exercises, vals=theta_flat)
 
+        if options.correct_only:
+            theta.sigma_time[:] = 1.
+            theta.W_time[:,:] = 0.
+
+
         # Print debugging info on the progress of the training
         print >>sys.stderr, "M conditional log L %f, " % (-L),
         print >>sys.stderr, "reg penalty %f, " % (
@@ -465,7 +477,7 @@ def main():
 
     if options.emit_features:
         if options.training_set_size < 1.0:
-            emit_features(user_states_train, theta, options, "train")
+            #emit_features(user_states_train, theta, options, "train")
             emit_features(user_states_test, theta, options, "test")
         else:
             emit_features(user_states, theta, options, "full")
