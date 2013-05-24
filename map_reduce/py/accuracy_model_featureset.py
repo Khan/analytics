@@ -1,101 +1,129 @@
 #!/usr/bin/env python
+"""
+This script generates a data set of features which can be passed to a
+classifier training program to build an accuracy model. The following steps
+document example usage of this script in conjunction with
+accuracy_model_train.py.
 
-"""Reducer script to generate a dataset for accuracy model training."""
+TODO(jace): Make the following into a script of it's own.
+---
 
+Step 1)  Execute the following query on Hive
+
+ADD FILE s3://ka-mapreduce/code/py/stacklog_cards_mapper.py;
+
+set hivevar:start_dt=2013-01-01;
+set hivevar:end_dt=2013-05-08;
+
+INSERT OVERWRITE DIRECTORY 's3://ka-mapreduce/temp/jace/accmodel'
+SELECT
+  problemtable.*,
+  stacktable.topic,
+  get_json_object(stacktable.scheduler_info, '$.purpose')='randomized'
+        AS is_random_card
+FROM (
+  SELECT
+    get_json_object(problemlog.json, '$.user') AS user,
+      cast(get_json_object(problemlog.json, '$.time_done') as double)
+        AS time_done,
+    'problemlog',
+      get_json_object(problemlog.json, '$.exercise') AS exercise,
+      get_json_object(problemlog.json, '$.problem_type') AS problem_type,
+      get_json_object(problemlog.json, '$.seed') AS seed,
+      cast(get_json_object(problemlog.json, '$.time_taken') as int)
+        AS time_taken,
+      cast(get_json_object(problemlog.json, '$.problem_number') as int)
+        AS problem_number,
+      get_json_object(problemlog.json, '$.correct') = "true"
+        AS correct,
+      get_json_object(problemlog.json, '$.count_attempts')
+        AS number_attempts,
+      get_json_object(problemlog.json, '$.count_hints')
+        AS number_hints,
+      (get_json_object(problemlog.json, '$.count_hints') = 0 AND
+         (   get_json_object(problemlog.json, '$.count_attempts') > 1
+          OR get_json_object(problemlog.json, '$.correct') = "true" ))
+        AS eventually_correct,
+      get_json_object(problemlog.json, '$.topic_mode') AS topic_mode,
+      get_json_object(problemlog.json, '$.key') AS key,
+      dt AS dt
+  FROM problemlog
+  WHERE
+    dt >= '${start_dt}' AND dt < '${end_dt}'
+  ) problemtable
+LEFT OUTER JOIN (
+  FROM stacklog
+    SELECT TRANSFORM(user, json, dt)
+    USING 'stacklog_cards_mapper.py'
+    AS key, user, topic, scheduler_info, user_segment
+    WHERE stacklog.dt >= '${start_dt}' AND stacklog.dt < '${end_dt}'
+  ) stacktable
+ON (problemtable.key = stacktable.key);
+
+
+Step 2) Prepare the data to be piped to this script
+cd /ebs/kadata/accmodel/plog
+s3cmd get --recursive s3://ka-mapreduce/temp/jace/accmodel
+time cat -v accmodel/000* | sed "s/\^A/,/g" | sed "s/\\\N/NULL/g" \
+  | sort -s -t, -k1,1 --temporary-directory /ebs/kadata/accmodel/plog/tmp/ \
+    --output=accmodel.sorted
+
+
+Step 3) Pipe the data to this script. (possibly once for each filtering mode)
+cd /ebs/kadata/accmodel/code
+time cat ../plog/accmodel.sorted \
+    | python accuracy_model_featureset.py -s prob_num -p 1,6 -r comps.pickle \
+        2>../plog/feat.err \
+    | perl -ne 's/\t/,/g; print $_;' \
+    > ../plog/feat100.csv
+# and sort it
+sort -s -t, -k1,1 --temporary-directory /ebs/kadata/accmodel/plog/tmp/ \
+    --output=../plog/feat100.sorted.csv ../plog/feat100.csv
+
+
+Step 4) Train a few models using accuracy_model_train.py.
+DATAFILE=/ebs/kadata/accmodel/plog/feat100.1-2.sorted.csv
+CODEDIR=/ebs/kadata/accmodel/code
+OUTDIR=/home/analytics/tmp/jace
+cd $CODEDIR
+time cat $DATAFILE | python accuracy_model_train.py \
+    --feature_list=none | grep "rocline" > $OUTDIR/roc_mean.csv
+time cat $DATAFILE | python accuracy_model_train.py \
+    --feature_list=custom -r comps.pickle -o models_custom_only.pickle \
+    | grep "rocline" > $OUTDIR/roc_custom.csv
+time cat $DATAFILE | python accuracy_model_train.py \
+    --feature_list=random -r comps.pickle -o models_random_only.pickle \
+    | grep "rocline" > $OUTDIR/roc_random.csv
+time cat $DATAFILE | python accuracy_model_train.py \
+    --feature_list=custom,random -r comps.pickle -o models.pickle \
+    | grep "rocline" > $OUTDIR/roc_custom-random.csv
+
+"""
+
+import ast
 import json
 import math
+import numpy as np
 import optparse
 import random
 import sys
 
-import scipy.stats
+# from webapp; needs to be in PYTHONPATH.
+import accuracy_model as model
 
-sys.path.append(".")  # TODO(jace) We need a decent packaging scheme
-import accuracy_model_baseline as model
+import accuracy_model_util as acc_util
+import random_features
 
+NUM_RANDOM_FEATURES = 100
 
-# TODO(jace): move this out once we have a sane source packaging
-# and importing scheme.
-class FieldIndexer:
-    def __init__(self, field_names):
-        for i, field in enumerate(field_names):
-            self.__dict__[field] = i
+error_invalid_history = 0
 
+idx = acc_util.FieldIndexer(acc_util.FieldIndexer.plog_fields)
 
-# Store column indices of topic_attmpets table for convenience
-fields = ['user', 'topic', 'exercise', 'time_done', 'time_taken',
-          'problem_number', 'correct', 'scheduler_info', 'user_segment', 'dt']
-idx = FieldIndexer(fields)
-
-# Load the parameters for the topic Bayesian networks
-topic_models = {}
-with open("./topic_net_models.json") as file:
-    topic_models = json.load(file)
+rand_features = random_features.RandomFeatures(NUM_RANDOM_FEATURES)
 
 
-def compute_T_and_E(topic, exercise, ex_states):
-    """Perform inference for T and E according to the Bayes net for this topic.
-
-    T is the probability of topic mastery.
-    E, here, is estimated accuracy on *this* exercise given the evidence
-    on all on *other* exercises.
-    See topic_net.py for more details.
-    """
-    if topic not in topic_models:
-        print >> sys.stderr, "ERROR: Topic %s not found in model file" % topic
-        return None
-
-    topic_model = topic_models[topic]
-
-    if exercise not in topic_model['E']:
-        print >> sys.stderr, ("WARNING: Exercise %s not in model for topic %s."
-                              % (exercise, topic))
-        return None  # TODO(jace): warn or count these errors
-
-    def alpha_beta(ex_name, T_state):
-        """Helper function to retrieve alpha, beta for given ex_name and T."""
-        if ex_name not in topic_model['E']:
-            return (None, None)  # TODO(jace): warn or count these errors
-        return (topic_model['E'][ex_name][T_state]['alpha'],
-                topic_model['E'][ex_name][T_state]['beta'])
-
-    # TODO(jace): do we want to include evidence on the query exercise?
-    # I suppose that is an empirical question.
-    sibling_exercises = [ex for ex in ex_states if ex != exercise]
-
-    # first compute P(T=1)
-    p_1 = topic_model['T']
-    for sibling_ex in sibling_exercises:
-        alpha, beta = alpha_beta(sibling_ex, '1')
-        if alpha is None or beta is None:
-            continue
-        accuracy = ex_states[sibling_ex].exp_moving_avg(0.1)
-        p_1 *= scipy.stats.beta.pdf(accuracy, alpha, beta)
-
-    p_0 = 1 - topic_model['T']
-    for sibling_ex in sibling_exercises:
-        alpha, beta = alpha_beta(sibling_ex, '0')
-        if alpha is None or beta is None:
-            continue
-        accuracy = ex_states[sibling_ex].exp_moving_avg(0.1)
-        p_0 *= scipy.stats.beta.pdf(accuracy, alpha, beta)
-
-    T = p_1 / (p_0 + p_1)
-
-    # now do inference for the query exercise
-    def mean(T_state):
-        alpha, beta = alpha_beta(exercise, T_state)
-        return alpha / (alpha + beta)
-
-    E = T * mean('1') + (1 - T) * mean('0')
-
-    print >> sys.stderr, "T, E: ",
-    print >> sys.stderr, [T, E]
-
-    return [T, E]
-
-
-def get_baseline_features(ex_state):
+def get_baseline_features(ex_state, options):
     """Return a list of feature values from the baseline AccuracyModel."""
     if ex_state.total_done:
         log_num_done = math.log(ex_state.total_done)
@@ -112,54 +140,47 @@ def get_baseline_features(ex_state):
             pct_correct]
 
 
-def emit_sample(attempt, topic_problem_number, ex_states):
+def emit_sample(attempt, attempt_number, ex_states, options):
     """Emit a single sample vector based on state prior to this attempt."""
     ex = attempt[idx.exercise]
-    ex_state = ex_states[ex]  # the accuracy model form
-
     outlist = []
-    outlist += ["%d" % attempt[idx.correct]]
-    outlist += ["%.4f" % ex_state.predict()]
-    outlist += [attempt[idx.topic]]
     outlist += [attempt[idx.exercise]]
+    outlist += ["%d" % attempt[idx.correct]]
+    outlist += ["%.4f" % ex_states[ex].predict()]
+    outlist += ["%d" % len(ex_states)]
     outlist += ["%d" % attempt[idx.problem_number]]
-    outlist += ["%d" % topic_problem_number]
+    outlist += ["%d" % attempt_number]
 
     # print all the feature values for the existing accuracy model
-    for feature in get_baseline_features(ex_state):
+    for feature in get_baseline_features(ex_states[ex], options):
         outlist += ["%.6f" % feature]
 
-    # print feature values using the Bayes net and evidence on other exercises
-    T_and_E = compute_T_and_E(attempt[idx.topic], ex, ex_states)
-    if not T_and_E:
-        T_and_E = [0.0, 0.0]
-    for feature in T_and_E:
-        outlist += ["%.6f" % feature]
+    # print random features
+    outlist += ["%.6f" % f for f in rand_features.get_features()]
 
     sys.stdout.write("\t".join(outlist) + "\n")
 
 
-def incomplete_history(attempts):
-    exercises_seen = []
-    for attempt in attempts:
-        if attempt[idx.exercise] not in exercises_seen:
-            if attempt[idx.problem_number] != 1:
-                return True
-            exercises_seen.append(attempt[idx.exercise])
-    return False
-
-
 def emit_samples(attempts, options):
-    """Given all attempts for a (user, topic), output samples as desired.
+    """TODO(jace)"""
 
-    attempts - a list of lists.  the inner lists represent topic_attempts rows.
-    """
+    # make absolutely sure that the attempts are ordered by time_done
+    attempts.sort(key=lambda x: x[idx.time_done])
 
     # If we know we don't have full history for this user, skip her.
-    if incomplete_history(attempts):
+    # TODO(jace): restore this check?
+    #if acc_util.incomplete_history(attempts, idx):
+        #return
+
+    if not acc_util.sequential_problem_numbers(attempts, idx):
+        global error_invalid_history
+        error_invalid_history += len(attempts)
         return
 
+    # We've passed data validation. Go ahead and process this user.
+
     ex_states = {}
+    rand_features.reset_features()
 
     # Loop through each attempt, already in proper time order.
     for i, attempt in enumerate(attempts):
@@ -167,60 +188,117 @@ def emit_samples(attempts, options):
         ex = attempt[idx.exercise]
         ex_state = ex_states.setdefault(ex, model.AccuracyModel())
 
-        # TODO(jace) : support additional sampling schemes
-        # Before we update state, see if we want to sample
+        problem_number = int(attempt[idx.problem_number])
+
+        # *Before* we update state, see if we want to sample
         if options.sampling_mode == 'nth':
-            freq = options.sampling_freq
+            freq = options.sampling_param
             if random.randint(1, freq) == freq:
-                emit_sample(attempt, i, ex_states)
+                emit_sample(attempt, i, ex_states, options)
+        elif options.sampling_mode == 'prob_num':
+            if problem_number >= options.sampling_param[0] and (
+                    problem_number < options.sampling_param[1]):
+                emit_sample(attempt, i, ex_states, options)
+        elif options.sampling_mode == 'randomized':
+            purpose = attempt[idx.scheduler_info].get('purpose', None)
+            if purpose == 'randomized':
+                emit_sample(attempt, i, ex_states, options)
 
-        elif attempt[idx.scheduler_info].get('purpose', None) == 'randomized':
-            emit_sample(attempt, i, ex_states)
-
+        # Now that we've written out the sample, update features.
+        # First, the baseline features.
         ex_state.update(attempt[idx.correct])
+
+        # Next, the random features.  IMPORTANT: For right now, we only update
+        # the random features with the *first* attempt on each exercise. This
+        # was done in the hopes that the feature distributions would remain
+        # as stable as possible in the context of rolling out the
+        # "early proficiency" experiment that was expected to modify the
+        # typical number of problems done on exercises.
+        if problem_number == 1:
+            component = (ex, attempt[idx.problem_type], attempt[idx.correct])
+            rand_features.increment_component(component)
 
 
 def get_cmd_line_options():
     parser = optparse.OptionParser()
-    # should be one of
-    # - randomized : use only the random assessment cards
-    # - nth : use 1 in N cards as a sample
-    parser.add_option("-s", "--sampling_mode", default="randomized")
-    parser.add_option("-f", "--sampling_freq", type=int, default=10)
+
+    # TODO(jace): convert to argparse. Until then, formatting will be screwed.
+    parser.add_option("-s", "--sampling_mode", default="prob_num",
+        help="Determines which problem attempts get included in "
+             "the data sample.  Three modes are possible:"
+             "  randomized - use only the random assessment cards. NOTE: This "
+             "      mode is currently broken, since problem log input is "
+             "      assumed, and we need topic_mode input to know which cards "
+             "      were random. "
+             "  nth - use only 1 in every N cards as a sample "
+             "  prob_num - output only if problem_number is within the range "
+             "      specified by the sampling_param option. sampling_param is "
+             "      a string, but should evaluate to a tuple of length 2 "
+             "      through ast.literal_eval(). The 2 values are the start "
+             "      and end of a range. "
+             "      Ex:  '--sampling_mode=prob_num --sampling_param=(1,6)' "
+             "      sample problem numbers 1 through 5. ")
+
+    parser.add_option("-p", "--sampling_param", type=str, default=None,
+        help="This parameter is used in conjuction with some samlpling "
+             "modes. See documentation sampling_mode for each mode.")
+
+    parser.add_option("-r", "--rand_comp_output_file", default=None,
+        help="If provided, a file containing the random components will be "
+             "output. If a model gets productionized, you need to have this "
+             "record of the random component vectors.")
+
     options, _ = parser.parse_args()
+
+    if options.sampling_mode == "prob_num":
+        options.sampling_param = ast.literal_eval(options.sampling_param)
+        if not isinstance(options.sampling_param, tuple):
+            print >>sys.stderr, (
+                    "ERROR: sampling_param should evaluate to a tuple.")
+            parser.print_help()
+            exit(-1)
+
     return options
 
 
 def main():
 
-    print >>sys.stderr, "Starting main."  # TODO remove
+    # Seed the random number generator so experiments are repeatable
+    random.seed(909090)
+    np.random.seed(909090)
 
     options = get_cmd_line_options()
 
-    prev_user_topic = None
+    prev_user = None
     attempts = []
 
     for line in sys.stdin:
-        row = line.strip().split('\t')
+        row = acc_util.linesplit.split(line.strip())
 
-        user_topic = (row[idx.user], row[idx.topic])
-        if user_topic != prev_user_topic:
-            # We're getting a new user-topic, so perform the reduce operation
-            # on our previous group of user-topics
+        user = row[idx.user]
+        if user != prev_user:
+            # We're getting a new user, so perform the reduce operation
+            # on all the attempts from the previous user
             emit_samples(attempts, options)
             attempts = []
 
         row[idx.correct] = row[idx.correct] == 'true'
         row[idx.problem_number] = int(row[idx.problem_number])
-        row[idx.scheduler_info] = json.loads(row[idx.scheduler_info])
+        row[idx.time_done] = float(row[idx.time_done])
+        if options.sampling_mode == 'random':
+            row[idx.scheduler_info] = json.loads(
+                    row[idx.scheduler_info])
 
         attempts.append(row)
 
-        prev_user_topic = user_topic
+        prev_user = user
 
     emit_samples(attempts, options)
 
-    print >>sys.stderr, "Finished main."  # TODO remove
+    if options.rand_comp_output_file:
+        rand_features.write_components(options.rand_comp_output_file)
+
+    print >>sys.stderr, "%d history errors." % error_invalid_history
 
 if __name__ == '__main__':
     main()

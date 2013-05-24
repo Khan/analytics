@@ -42,9 +42,27 @@ def sequential_problem_numbers(attempts, idx):
     return True
 
 
+def incomplete_history(attempts, idx):
+    """Takes all problem logs for a user as a list of lists.  The inner lists
+    each represent a problem attempt, with items described and indexed by the
+    idx argument.  This function returns True if we *know* we have an
+    incomplete history for the user, by checking if the first problem seen
+    for any exercise has a problem_number != 1.
+    """
+    exercises_seen = []
+    for attempt in attempts:
+        if attempt[idx.exercise] not in exercises_seen:
+            if int(attempt[idx.problem_number]) != 1:
+                return True
+            exercises_seen.append(attempt[idx.exercise])
+    return False
+
+
 def valid_history(attempts, idx):
     if not sequential_problem_numbers(attempts, idx):
-        #print >>sys.stderr, "Invalid History: Non-sequential problem numbers."
+        return False
+
+    if incomplete_history(attempts, idx):
         return False
 
     return True
