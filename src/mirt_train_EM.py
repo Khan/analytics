@@ -173,6 +173,9 @@ def create_user_state(lines, exercise_ind_dict, options):
              'log_time_taken': np.log(time_taken),
              'abilities': abilities,
              'exercises_ind': exercises_ind}
+
+    #print state['log_time_taken']
+
     return state
 
 
@@ -218,6 +221,10 @@ def L_dL_singleuser(arg):
     dL.W_time = np.dot(dLdY, abilities.T)
     dL.sigma_time = (-err**2 / sigma**3).ravel()
 
+    # normalization for the Gaussian
+    L += np.sum(0.5*np.log(sigma**2))
+    dL.sigma_time += 1. / sigma.ravel()
+
     #print L.shape
 
     return L, dL, exercises_ind
@@ -229,10 +236,15 @@ def L_dL(theta_flat, user_states, num_exercises, options, pool):
     L = 0.
     theta = mirt_util.Parameters(options.num_abilities, num_exercises, vals=theta_flat.copy())
 
+    nu = float(len(user_states))
 
-    L += options.regularization * sum(theta_flat ** 2)*float(len(user_states))
-    dL_flat = 2. * options.regularization * theta_flat*float(len(user_states))
+    L += options.regularization * nu * np.sum(theta_flat ** 2)
+    dL_flat = 2. * options.regularization * nu * theta_flat
     dL = mirt_util.Parameters(theta.num_abilities, theta.num_exercises, vals = dL_flat)
+
+    # also regularize the inverse of sigma, so it doesn't run to 0
+    L += np.sum(options.regularization * nu / theta.sigma_time**2)
+    dL.sigma_time += -2. * options.regularization * nu / theta.sigma_time**3
 
     # TODO(jascha) this would be faster if user_states was divided into
     # minibatches instead of single students
@@ -259,8 +271,8 @@ def L_dL(theta_flat, user_states, num_exercises, options, pool):
 
     dL_flat = dL.flat()
 
-    L /= np.log(2.)*float(len(user_states))
-    dL_flat /= np.log(2.)*float(len(user_states))
+    L /= np.log(2.)*nu
+    dL_flat /= np.log(2.)*nu
 
     #print L
     #print dL_flat
@@ -505,6 +517,7 @@ def main():
         print >>f1, 'time bias,',
         for ii in range(options.num_abilities):
             print >>f1, "time coupling %d," % ii,
+        print >>f1, 'time variance,',
         print >>f1, 'exercise name'
         for nm in nms:
             print >>f1, theta.W_correct[exercise_ind_dict[nm], -1] , ',',
@@ -513,6 +526,7 @@ def main():
             print >>f1, theta.W_time[exercise_ind_dict[nm], -1] , ',',
             for ii in range(options.num_abilities):
                 print >>f1, theta.W_time[exercise_ind_dict[nm], ii] , ',',
+            print >>f1, theta.sigma_time[exercise_ind_dict[nm]] , ',',
             print >>f1, nm
         f1.close()
 
