@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-""" 
+"""
 Utility functions and classes for Khan Academy analytics sorted alphabetically
 """
 
@@ -34,7 +34,7 @@ class LoopProgressLogger():
 
 
 class Params(object):
-    """ 
+    """
     Utility class to group a bunch a named params
     E.g., params = Params(datum=y, squared=y*y, coord=x)
     """
@@ -43,7 +43,7 @@ class Params(object):
 
 
 def add_dict(from_dict, to_dict):
-    """ 
+    """
     useful for aggregating stats from one dictionary into another,
     where the dictionary values are also dictionaries of named stats
     """
@@ -56,19 +56,19 @@ def add_dict(from_dict, to_dict):
 
 
 def clean_datetime_str(origstr):
-    """ 
-    this function takes a string, and makes sure there 
+    """
+    this function takes a string, and makes sure there
     is a space (and not a 'T') between the date and time
     """
     assert len(origstr) == 19 or (
            len(origstr) == 20 and origstr[-1] == 'Z'), (
-        "Expected datetime string of format YYYY-MM-DD HH:MM:SS, with " 
+        "Expected datetime string of format YYYY-MM-DD HH:MM:SS, with "
         "either a space or  a 'T' between the date and time and a 'Z' at "
         "the end. Instead, received: '%s'" % origstr)
     trailer = ''
     if len(origstr) == 19:
-        trailer = 'Z' 
-         
+        trailer = 'Z'
+
     return origstr[:10] + ' ' + origstr[11:] + trailer
 
 
@@ -93,11 +93,11 @@ def db_decorator(max_tries, func):
 
 
 def dict_to_csv(dict, out_filename=None):
-    
+
     original_stdout = sys.stdout
     if out_filename is not None:
         sys.stdout = open(out_filename, 'w')
-    
+
     first_doc = True
     for key, row in dict.iteritems():
         fields = row.keys()
@@ -105,7 +105,7 @@ def dict_to_csv(dict, out_filename=None):
             print 'key,' + ','.join([str(field) for field in fields])
             first_doc = False
         print key + ',' + ','.join([str(row[field]) for field in fields])
-    
+
     sys.stdout = original_stdout
 
 
@@ -116,7 +116,7 @@ def get_data_dir():
 
 
 def get_data_filename(kind):
-    """ 
+    """
     this function takes a kinds as a string, and returns the path to the
     file storing that data
     """
@@ -138,9 +138,9 @@ def get_logger():
 
 def global_file_replace(filename, substitutions):
     """Make word substitutions in a file and write to stdout.
-    
-    E.g., global_file_replace( "myfile.csv", [ {'from':'[', 'to':'"['}, 
-              {'from':']', 'to':']"'} ] )  
+
+    E.g., global_file_replace( "myfile.csv", [ {'from':'[', 'to':'"['},
+              {'from':']', 'to':']"'} ] )
     """
     f = open(filename, 'rt')
     for line in f:
@@ -153,7 +153,8 @@ def load_unstripped_json(config_file):
     """load json config file with comments"""
     with open(config_file) as f:
         content = f.read()
-    return json.loads(re.sub(r"#.*\n", "", content))
+    stripped_content = re.sub(r"#.*\n", "", content)
+    return json.loads(stripped_content)
 
 
 def mkdir_p(path):
@@ -169,7 +170,7 @@ def mkdir_p(path):
 
 def passes_random_hash_filter(key_string, percentage_kept=.50):
     """
-    allows you to pass in a string (like user_name, or exercise_name) 
+    allows you to pass in a string (like user_name, or exercise_name)
     and it fill return True approximately percentage_kept % of the time.
     percentage_kept should be between 0.0 and 1.0
     """
@@ -179,10 +180,10 @@ def passes_random_hash_filter(key_string, percentage_kept=.50):
 
 
 def split2(origstr):
-    """ 
-    this function takes a comma delimited string with extra quoting and splits 
-    out only the actual values within the quotes.  E.g., 
-    split2("[u'Computer Science', u'Physcis']") -> 
+    """
+    this function takes a comma delimited string with extra quoting and splits
+    out only the actual values within the quotes.  E.g.,
+    split2("[u'Computer Science', u'Physcis']") ->
         ['Computer Science', 'Physics']
     """
     vals = origstr.split("'")
@@ -207,10 +208,10 @@ def stdout_redirect_to_file_stop(outfile):
 
 
 def str_2_datetime(origstr):
-    """ 
-    this function takes a string representing a datetime in the 
-    format commonly used by the CSV connector conversion 
-    and returns a python datetime 
     """
-    return datetime.datetime.strptime(clean_datetime_str(origstr), 
-                                      '%Y-%m-%d %H:%M:%SZ') 
+    this function takes a string representing a datetime in the
+    format commonly used by the CSV connector conversion
+    and returns a python datetime
+    """
+    return datetime.datetime.strptime(clean_datetime_str(origstr),
+                                      '%Y-%m-%d %H:%M:%SZ')

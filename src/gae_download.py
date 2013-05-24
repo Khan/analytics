@@ -28,7 +28,7 @@ import pymongo
 import gae_util
 gae_util.fix_sys_path()
 
-sys.path.append(os.path.dirname(__file__) + "/../map_reduce/py")
+sys.path.append(os.path.dirname(__file__) or '.' + "/../map_reduce/py")
 import load_pbufs_to_hive
 
 import date_util
@@ -96,12 +96,45 @@ def get_archive_file_name(config, kind, start_dt, end_dt, ftype='pickle'):
     return filename
 
 
+def log_timestamp_outside_window(kind, raw_timestamp, start_dt, end_dt):
+    """Gets the backup_timestamp, and logs a message if its outside the window.
+    """
+
+    try:
+        actual_timestamp = float(raw_timestamp)
+
+        if actual_timestamp > 0:
+            actual_timestamp = dt.datetime.fromtimestamp(actual_timestamp)
+        else:
+            raise ValueError
+
+        if actual_timestamp < start_dt:
+            # future - past -> postive timedelta
+            diff = start_dt - actual_timestamp
+
+            g_logger.info(("backup_timestamp on a %s = %s was actually "
+                "before the window %s to %s by %s") %
+                (kind, actual_timestamp, start_dt, end_dt, diff))
+        elif actual_timestamp > end_dt:
+            # past - future -> negative timedelta
+            diff = end_dt - actual_timestamp
+
+            g_logger.info(("backup_timestamp on a %s = %s was actually "
+                "after the window %s to %s by %s") %
+                (kind, actual_timestamp, start_dt, end_dt, diff))
+
+    except ValueError:
+        # We ignore badly formatted data, since this is debug only
+        pass
+
+
 def fetch_and_process_data(kind, start_dt_arg, end_dt_arg,
     fetch_interval, config):
     """Main function: fetching data and load it to mongodb."""
-    mongo = open_db_conn(config)
-    kdc.record_progress(mongo, config['coordinator_cfg'],
-        kind, start_dt_arg, end_dt_arg, kdc.DownloadStatus.STARTED)
+    if config['dbhost']:
+        mongo = open_db_conn(config)
+        kdc.record_progress(mongo, config['coordinator_cfg'],
+            kind, start_dt_arg, end_dt_arg, kdc.DownloadStatus.STARTED)
 
     # fetch
     g_logger.info("Downloading data for %s from %s to %s starts" % (
@@ -118,8 +151,10 @@ def fetch_and_process_data(kind, start_dt_arg, end_dt_arg,
     g_logger.info(
         "Data downloaded for %s from %s to %s.# rows: %d finishes" % (
             kind, start_dt_arg, end_dt_arg, len(entity_list)))
-    kdc.record_progress(mongo, config['coordinator_cfg'],
-        kind, start_dt_arg, end_dt_arg, kdc.DownloadStatus.FETCHED)
+
+    if config['dbhost']:
+        kdc.record_progress(mongo, config['coordinator_cfg'],
+            kind, start_dt_arg, end_dt_arg, kdc.DownloadStatus.FETCHED)
 
     # save to a file
     # TODO(yunfang): revisit if we should save the pickled pb
@@ -141,6 +176,11 @@ def fetch_and_process_data(kind, start_dt_arg, end_dt_arg,
     f = open(json_filename, 'wb')
     for pb in entity_list:
         doc = load_pbufs_to_hive.pb_to_dict(pb)
+
+        # TODO(mattfaus): Make configurable, like for download_entities() above
+        log_timestamp_outside_window(
+            kind, doc.get('backup_timestamp'), start_dt_arg, end_dt_arg)
+
         json_str = json.dumps(doc)
         print >>f, "%s\t%s" % (doc[json_key], json_str)
     f.close()
@@ -151,12 +191,14 @@ def fetch_and_process_data(kind, start_dt_arg, end_dt_arg,
     else:
         g_logger.error("Cannot gzip %s" % (json_filename))
 
-    kdc.record_progress(mongo, config['coordinator_cfg'],
-        kind, start_dt_arg, end_dt_arg, kdc.DownloadStatus.SAVED)
+    if config['dbhost']:
+        kdc.record_progress(mongo, config['coordinator_cfg'],
+            kind, start_dt_arg, end_dt_arg, kdc.DownloadStatus.SAVED)
 
-    # we used to load into mongoDB, we don't anymore. but still set the flag.
-    kdc.record_progress(mongo, config['coordinator_cfg'],
-        kind, start_dt_arg, end_dt_arg, kdc.DownloadStatus.LOADED)
+        # Well, we didn't actually load the data with this script, but mark
+        # it as such anyway.
+        kdc.record_progress(mongo, config['coordinator_cfg'],
+            kind, start_dt_arg, end_dt_arg, kdc.DownloadStatus.LOADED)
 
 
 def open_db_conn(config):
