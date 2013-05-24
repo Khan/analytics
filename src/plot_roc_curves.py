@@ -27,10 +27,20 @@ linecycler = itertools.cycle(lines)
 
 
 def get_correct_predicted(lines):
-    lines = [line.strip().split(',') for line in lines]
-    lines = np.asarray(lines)
-    correct = lines[:, 0].astype('float')
-    predicted = lines[:, 1].astype('float')
+    lines_split = [line.strip().split(',') for line in lines]
+    try:
+        lines = np.asarray(lines_split)
+        correct = lines[:, 0].astype('float')
+        predicted = lines[:, 1].astype('float')
+    except:
+        # deal with the case where the last row has the wrong number
+        # of columns -- eg, if you are looking at a csv file as it's
+        # being written
+        lines_split = lines_split[:-1]
+        lines = np.asarray(lines_split)
+        correct = lines[:, 0].astype('float')
+        predicted = lines[:, 1].astype('float')
+
     return correct, predicted
 
 
