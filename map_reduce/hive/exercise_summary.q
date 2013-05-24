@@ -32,10 +32,7 @@ INSERT OVERWRITE TABLE exercise_summary_staged
 SELECT
   parsed.exercise, parsed.sub_exercise_type,
   SUM(parsed.correct), SUM(parsed.wrong),
-  SUM(parsed.time_taken), cast(
-    -- We end up deriving this information client side anyways
-    -- Useful for future consumers of these summaries
-    get_json_object(ProblemLog.json, '$.seed') AS INT) IS NULL
+  SUM(parsed.time_taken), parsed.is_static,
   parsed.dt
 FROM (
   SELECT
@@ -46,23 +43,24 @@ FROM (
     IF(get_json_object(ProblemLog.json, '$.time_taken') > 600, 600,
         IF(get_json_object(ProblemLog.json, '$.time_taken') < 0, 0,
         get_json_object(ProblemLog.json, '$.time_taken'))) AS time_taken,
+    cast(
+        -- We end up deriving this information client side anyways
+        -- Useful for future consumers of these summaries
+        get_json_object(ProblemLog.json, '$.seed') AS INT) IS NULL AS is_static,
     ProblemLog.dt
   FROM ProblemLog
   WHERE ProblemLog.dt >= '${start_dt}' AND ProblemLog.dt < '${end_dt}' AND
     -- Perseus exercise can be differentiated by having non integer seed.
     cast(get_json_object(ProblemLog.json, '$.seed') AS INT) IS NOT NULL
 ) parsed
-GROUP BY parsed.exercise, parsed.sub_exercise_type, parsed.dt;
+GROUP BY parsed.exercise, parsed.sub_exercise_type, parsed.is_static, parsed.dt;
 
 -- Query all perseus exercises
 INSERT INTO TABLE exercise_summary_staged
 SELECT
   parsed.exercise, parsed.sub_exercise_type,
   SUM(parsed.correct), SUM(parsed.wrong),
-  SUM(parsed.time_taken), cast(
-    -- We end up deriving this information client side anyways
-    -- Useful for future consumers of these summaries
-    get_json_object(ProblemLog.json, '$.seed') AS INT) IS NULL
+  SUM(parsed.time_taken), parsed.is_static,
  parsed.dt
 FROM (
   SELECT
@@ -73,13 +71,17 @@ FROM (
     IF(get_json_object(ProblemLog.json, '$.time_taken') > 600, 600,
         IF(get_json_object(ProblemLog.json, '$.time_taken') < 0, 0,
         get_json_object(ProblemLog.json, '$.time_taken'))) AS time_taken,
+    cast(
+        -- We end up deriving this information client side anyways
+        -- Useful for future consumers of these summaries
+        get_json_object(ProblemLog.json, '$.seed') AS INT) IS NULL AS is_static,
     ProblemLog.dt
   FROM ProblemLog
   WHERE ProblemLog.dt >= '${start_dt}' AND ProblemLog.dt < '${end_dt}' AND
     -- Perseus exercise can be differentiated by having non integer seed.
     cast(get_json_object(ProblemLog.json, '$.seed') AS INT) IS NULL
 ) parsed
-GROUP BY parsed.exercise, parsed.sub_exercise_type, parsed.dt;
+GROUP BY parsed.exercise, parsed.sub_exercise_type, parsed.is_static, parsed.dt;
 
 SET hive.exec.dynamic.partition.mode=nonstrict;
 SET hive.exec.dynamic.partition=true;
