@@ -48,7 +48,7 @@ class FeaturesetFields:
     # "Random" features.
     features_random = slice(12, None)
     # MIRT features
-    features_baseline = slice(12, None)
+    features_mirt = slice(12, None)
 
 
 idx = FeaturesetFields()
@@ -117,10 +117,9 @@ def preprocess_data(lines, options):
     correct = lines[:, idx.correct].astype('int')
     baseline_prediction = lines[:, idx.baseline_prediction].astype('float')
 
-    # TODO(jace): some classifiers may not want this
-    # start with an all ones bias column to feature
-    ones = np.ones((correct.shape[0], 1))
-    features = ones
+    # Start features with a bias vector, unless we were told not to.
+    use_ones = 0 if options.no_bias else 1
+    features = np.ones((correct.shape[0], use_ones))
 
     # and add additional features as specified by command line args
     feature_list = options.feature_list.split(",")
@@ -129,13 +128,13 @@ def preprocess_data(lines, options):
         return np.append(features, lines[:, slice_obj].astype('float'), axis=1)
 
     if 'baseline' in feature_list:
-        features = append_features(idx.feature_baseline)
+        features = append_features(idx.features_baseline)
     if 'custom' in feature_list:
-        features = append_features(idx.feature_custom)
+        features = append_features(idx.features_custom)
     if 'random' in feature_list:
-        features = append_features(idx.feature_random)
+        features = append_features(idx.features_random)
     if 'mirt' in feature_list:
-        features = append_features(idx.feature_mirt)
+        features = append_features(idx.features_mirt)
 
     print >> sys.stderr, "Computing for %s, " % lines[0, 0],
     print >> sys.stderr, "feature shape = %s" % str(features.shape)
@@ -268,6 +267,9 @@ def get_cmd_line_options():
             help="Comma seprated list to feature types to use. Choose from "
                  "baseline, custom, random, and mirt. If you want to run "
                  "with nothing but a bias feature, use 'none'.")
+    parser.add_option("-n", "--no_bias", dest="no_bias", action="store_true",
+            help="Whether to omit using a bias in the feature set.  By "
+                 "default a bias unit is included.")
     parser.add_option("-r", "--rand_comp_file",
             help="Name of a file to optionally write the random components "
                  "to.")

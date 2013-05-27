@@ -84,19 +84,22 @@ sort -s -t, -k1,1 --temporary-directory /ebs/kadata/accmodel/plog/tmp/ \
 Step 4) Train a few models using accuracy_model_train.py.
 DATAFILE=/ebs/kadata/accmodel/plog/feat100.1-2.sorted.csv
 CODEDIR=/ebs/kadata/accmodel/code
-OUTDIR=/home/analytics/tmp/jace
+OUTDIR=/home/analytics/tmp/jace/roc
 cd $CODEDIR
 time cat $DATAFILE | python accuracy_model_train.py \
-    --feature_list=none | grep "rocline" > $OUTDIR/roc_mean.csv
+    --feature_list=baseline --no_bias \
+    | grep "rocline" > $OUTDIR/baseline.csv
+time cat $DATAFILE | python accuracy_model_train.py \
+    --feature_list=none | grep "rocline" > $OUTDIR/bias.csv
 time cat $DATAFILE | python accuracy_model_train.py \
     --feature_list=custom -r comps.pickle -o models_custom_only.pickle \
-    | grep "rocline" > $OUTDIR/roc_custom.csv
+    | grep "rocline" > $OUTDIR/bias+custom.csv
 time cat $DATAFILE | python accuracy_model_train.py \
     --feature_list=random -r comps.pickle -o models_random_only.pickle \
-    | grep "rocline" > $OUTDIR/roc_random.csv
+    | grep "rocline" > $OUTDIR/bias+random.csv
 time cat $DATAFILE | python accuracy_model_train.py \
     --feature_list=custom,random -r comps.pickle -o models.pickle \
-    | grep "rocline" > $OUTDIR/roc_custom-random.csv
+    | grep "rocline" > $OUTDIR/bias+custom+random.csv
 
 """
 
