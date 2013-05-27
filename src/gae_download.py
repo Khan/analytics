@@ -28,7 +28,7 @@ import pymongo
 import gae_util
 gae_util.fix_sys_path()
 
-sys.path.append(os.path.dirname(__file__) or '.' + "/../map_reduce/py")
+sys.path.append(os.path.dirname(__file__) + "/../map_reduce/py")
 import load_pbufs_to_hive
 
 import date_util
