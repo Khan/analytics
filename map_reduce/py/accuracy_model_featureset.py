@@ -195,7 +195,7 @@ def emit_samples(attempts, options):
 
         # *Before* we update state, see if we want to sample
         if options.sampling_mode == 'nth':
-            freq = options.sampling_param
+            freq = int(options.sampling_param)
             if random.randint(1, freq) == freq:
                 emit_sample(attempt, i, ex_states, options)
         elif options.sampling_mode == 'prob_num':
