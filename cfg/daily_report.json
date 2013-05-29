@@ -85,8 +85,9 @@
       "hive_args": {"end_dt": "<day_after>"},
       "mongo_collection":  "student_teacher_count",
       "importer_args": "",
-      "hive_init": true
-	  },
+      "hive_init": true,
+      "drop": true
+	},
     { "hive_script": "s3://ka-mapreduce/code/hive/company_metrics.q",
       "hive_args": {"start_dt": "<month_first_day>", "end_dt": "<month_last_day>"},
       "hive_table": "company_metrics",

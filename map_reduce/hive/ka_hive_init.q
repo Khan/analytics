@@ -377,6 +377,8 @@ DROP TABLE IF EXISTS student_teacher_count;
 CREATE EXTERNAL TABLE IF NOT EXISTS student_teacher_count (
     teacher_count INT,
     student_count INT,
+    active_teacher_count INT,
+    active_student_count INT,
     dt STRING
 ) LOCATION 's3://ka-mapreduce/summary_tables/student_teacher_count';
 

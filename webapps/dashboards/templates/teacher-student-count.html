@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+<!--
+A simple dashboard monthly timeseries corresponding to number of teachers and students.
+-->
+
+<head>
+<link rel="shortcut icon" href="http://www.khanacademy.org/favicon.ico?leaf">
+<link rel="stylesheet" type="text/css" href="/static/css/third_party/bootstrap.css">
+</head>
+
+<style>
+    .content {
+        margin-top: 40px;
+    }
+</style>
+
+<body>
+
+{% include 'navbar.html' %}
+
+<div class="container content">
+    <h2>Coaches and Students Growth</h2>
+    <div id="teacher-graph-container"></div>
+    <div id="student-graph-container"></div>
+    <h3>Metric Definitions</h3>
+    <table class="table table-striped table-bordered">
+        <thead>
+            <tr>
+                <th>Metric</th>
+                <th>Definition</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>Teacher</td>
+                <td>Coach who has at least 10 students.</td>
+            </tr>
+            <tr>
+                <td>Active Teacher</td>
+                <td>Teacher with at least 10 active students.</td>
+            </tr>
+            <tr>
+                <td>Student</td>
+                <td>User who has a teacher.</td>
+            </tr>
+            <tr>
+                <td>Active Student</td>
+                <td>Student who completed an activity in last 28 days.</td>
+            </tr>
+        </tbody>
+    </table>
+    <p class="muted">
+        Note that an "activity" is currently defined as
+        any of the following: starting a video, attempting a problem, or posting a
+        comment, question or answer.  This definition will change over time to
+        include more diverse activities.
+    </p>
+</div>
+
+<script src="http://ajax.googleapis.com/ajax/libs/jquery/2.0.0/jquery.min.js"></script>
+<script src="http://code.highcharts.com/highcharts.js"></script>
+<script src="/static/js/third_party/underscore-min.js"></script>
+<script src="/static/js/third_party/backbone-min.js"></script>
+<script src="/static/js/third_party/moment.min.js"></script>
+<script src="/static/js/third_party/jquery-ajax-localstorage-cache.js"></script>
+<script src="/static/js/third_party/bootstrap-dropdown.js"></script>
+
+<script src="/static/js/teachers-and-students.js"></script>
+
+</body>
+</html>
+
+

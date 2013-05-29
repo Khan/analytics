@@ -82,6 +82,12 @@ def exercise_summary_dashboard():
     return flask.render_template('exercise-summary.html')
 
 
+@app.route('/teachers-students')
+@auth.login_required
+def coach_student_dashboard():
+    return flask.render_template('teacher-student-count.html')
+
+
 @app.route('/data/topic_summary')
 @auth.login_required
 def topic_summary_data():
