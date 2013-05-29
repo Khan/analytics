@@ -75,8 +75,11 @@ def attempt_fetch_entities(kind,
     tries = 0
     while True:
         if tries > max_attempts:
-            raise "Trying %s times to fetch data from GAE but not working" % (
-                tries)
+            # This is a useful zgrep command when this happens:
+            # zgrep -A30 -e "GET /api/v1/dev/protobuf.* HTTP/1.1\" 500"
+            raise UserWarning(
+                ("Trying %s times to fetch data from GAE but not working. "
+                + "You should investigate the server logs.") % tries)
         tries += 1
         sleep_secs = 2 ** tries
 

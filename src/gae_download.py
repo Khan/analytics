@@ -58,6 +58,9 @@ def get_cmd_line_args():
         description="Download data from the Google App Engine Datastore")
     parser.add_option("-c", "--config",
         help="JSON config file for all the download details")
+
+    # NOTE: start_date and end_date defaults are setup in main(), which is
+    # generally the start of the last proc_interval, which is usually 1 hour
     parser.add_option("-s", "--start_date",
         help="Earliest inclusive date of logs to fetch, in ISO 8601 format. "
               "Defaults to yesterday at 00:00.")
