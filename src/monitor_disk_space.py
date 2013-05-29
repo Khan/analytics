@@ -28,11 +28,11 @@ lines = [line for line in lines if line.startswith("/")]
 
 warn = False
 for line in lines:
+    print line
     # grab a string percentage of usage, e.g., '78%'
-    use_pct = line.split()[-2]
+    use_pct = line.split()[4]
     # convert to a number
-    use_pct = int(use_pct[:2])
-
+    use_pct = int(use_pct[:-1])
     if use_pct > threshold:
         warn = True
         break
@@ -44,5 +44,3 @@ if warn:
     
     notify.send_hipchat(message)
     notify.send_email("WARNING: low disk space", message + "\n\n" + df_output)
-
-        
