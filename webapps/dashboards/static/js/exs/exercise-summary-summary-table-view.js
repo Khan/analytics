@@ -172,12 +172,13 @@
 
         _convertProficiencyForDisplay: function(models) {
             return _.map(models, _.bind(function(row) {
-                row.originalName = row.exercise;
-                row.exercise = window.ExS.normalizeName(row.exercise);
-                row.earned_proficiency = this._percentageValue(
+                displayRow = _.clone(row);
+                displayRow.originalName = row.exercise;
+                displayRow.exercise = window.ExS.normalizeName(row.exercise);
+                displayRow.earned_proficiency = this._percentageValue(
                     row.earned_proficiency, row.total_users);
-                row.total_users = this.numberFormat(row.total_users);
-                return row;
+                displayRow.total_users = this.numberFormat(row.total_users);
+                return displayRow;
             }, this));
         },
 
