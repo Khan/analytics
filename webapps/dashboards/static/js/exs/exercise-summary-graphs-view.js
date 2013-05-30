@@ -8,9 +8,11 @@
         templateError: window.ExS.Templates.error,
         templateNote: window.ExS.Templates.noteTpl,
         dataTableConfig: window.ExS.dataTableConfig,
+        numberFormat: d3.format(","),
 
         events: {
-            "click #breakdown-graphs h1": "_toggleProblemVisibility"
+            "click #breakdown-graphs h1": "_toggleProblemVisibility",
+            "click tbody tr[data-item-name]": "_onStaticExerciseTableRowClick"
         },
         /**
          * Listen to Exercise collection reset event to initalize rendering
@@ -74,6 +76,13 @@
         },
 
         _deferredWrapper: window.ExS.deferredWrapper,
+
+        // Redirect to item edit when clicking on static question row
+        _onStaticExerciseTableRowClick: function(ev) {
+            var itemName = $(ev.currentTarget).data("item-name");
+            window.location.href =
+                "https://www.khanacademy.org/devadmin/content/items/" + itemName;
+        },
 
         /**
          * Fetch and eventually draw new exercise
@@ -161,13 +170,18 @@
                         series.attempts, problem.total);
                 }, this));
 
+                if(problem.isPerseus) {
+                    breakdownTableRow["item-name"] = problem.subExerciseGroup;
+                }
+
                 breakdownTableRow.time_taken = Math.round(problem.timeTaken /
                     problem.total);
 
                 breakdownTableRow.sub_group_name = window.ExS.normalizeName(
                     problem.subExerciseGroup);
 
-                breakdownTableRow.total_attempts = problem.total;
+                breakdownTableRow.total_attempts = this.numberFormat(
+                    problem.total);
                 return breakdownTableRow;
             }, this));
         },

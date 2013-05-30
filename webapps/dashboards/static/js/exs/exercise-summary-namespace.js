@@ -95,15 +95,17 @@
 
             result += "</tr></thead><tbody>"
 
-            var dataFields = _.difference(_.keys(data[0]), order);
             _.each(data, function(dataHash) {
                 result += "<tr";
+                // TODO(robert): move it out of this loop once underlying
+                //  dataset has been repopulated.
+                var dataFields = _.difference(_.keys(dataHash), order);
 
                 _.each(dataFields, function(dataField, idx) {
                     result += " data-" + dataField + "='" +
                         dataHash[dataField] + "'";
                 });
-                result += ">"
+                result += ">";
 
                 _.each(order, function(column, idx) {
                     result += "<td>" + dataHash[column] +
