@@ -40,7 +40,7 @@ zcat "${data_dir}"/*.gz | python get_user_assessment_data.py >"${assessment_resp
 # 2. Run the output data file from (1) through mirt_train_EM.py.
 mkdir -p "${mirt_train_dir}"
 PYTHONPATH="${website_dir}:${analytics_dir}/src" \
-  python mirt_train_EM.py -a 1 -n 75 -f "${assessment_responses}" -w 0 -o "${mirt_train_dir}/" &> "${tmpdir}/mirt_train_EM.log"
+  python mirt_train_EM.py -a 2 -n 75 -f "${assessment_responses}" -w 0 -o "${mirt_train_dir}/" &> "${tmpdir}/mirt_train_EM.log"
 
 # 3. Run the last .npz file from (2) through mirt_npz_to_json.py.
 # We assume mirt_train_EM.py generates files suffixed "_epoch=\d+"
