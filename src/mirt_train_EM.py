@@ -175,8 +175,6 @@ def create_user_state(lines, exercise_ind_dict, options):
              'abilities': abilities,
              'exercises_ind': exercises_ind}
 
-    #print state['log_time_taken']
-
     return state
 
 
@@ -204,7 +202,7 @@ def L_dL_singleuser(arg):
     Zt = correct.reshape(Z.shape)  # true correctness value
     pdata = Zt * Z + (1. - Zt) * (1. - Z)  # = 2*Zt*Z - Z + const
     dLdY = ((2. * Zt - 1.) * Z * (1. - Z)) / pdata
-    #print pdata.shape, dLdY.shape, Z.shape, Zt.shape
+
     L = -np.sum(np.log(pdata))
     dL.W_correct = -np.dot(dLdY, abilities.T)
 
@@ -217,15 +215,13 @@ def L_dL_singleuser(arg):
     err = (Y - log_time_taken.reshape((-1, 1)))
     L += np.sum(err ** 2 / sigma ** 2) / 2.
     dLdY = err / sigma ** 2
-    #print dL.W_time.shape, dL.W_correct.shape, dLdY.shape
+
     dL.W_time = np.dot(dLdY, abilities.T)
     dL.sigma_time = (-err ** 2 / sigma ** 3).ravel()
 
     # normalization for the Gaussian
     L += np.sum(0.5 * np.log(sigma ** 2))
     dL.sigma_time += 1. / sigma.ravel()
-
-    #print L.shape
 
     return L, dL, exercises_ind
 
@@ -287,8 +283,6 @@ def emit_features(user_states, theta, options, split_desc):
         log_time_taken = user_state['log_time_taken']
         exercises_ind = user_state['exercises_ind']
 
-        #print ".",
-
         # NOTE: I currently do not output features for the first problem
         for i in xrange(1, correct.size):
 
@@ -325,9 +319,9 @@ def check_grad(L_dL, theta, args=()):
         rr = (df0[ind] - df_true) * 2. / (df0[ind] + df_true)
 
         print "ind", ind, "ind mod 3", np.mod(ind, 3),
-                "ind/3", np.floor(ind / 3.),
-                "df pred", df0[ind], "df true", df_true,
-                "(df pred - df true)*2/(df pred + df true)", rr
+        print "ind/3", np.floor(ind / 3.),
+        print "df pred", df0[ind], "df true", df_true,
+        print "(df pred - df true)*2/(df pred + df true)", rr
 
 
 def main():
@@ -374,10 +368,6 @@ def main():
                 row[idx_pl.time_taken] = float(row[idx_pl.time_taken])
                 attempts.append(row)
 
-            #if len(user_states)>0:
-                #DEBUG
-            #    break
-
         if len(attempts) > 0:
             # flush the data for the final user, too
             user_states.append(create_user_state(
@@ -400,9 +390,6 @@ def main():
 
     # if splitting data into test/training sets, set user_states to training
     user_states = user_states_train if user_states_train else user_states
-
-    # DEBUG(jace)
-    print >>sys.stderr, "loaded %d user assessments" % len(user_states)
 
     print >>sys.stderr, "Training dataset, %d students" % (len(user_states))
 
