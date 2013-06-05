@@ -24,10 +24,8 @@ import sys
 def mirt_npz_to_json(npz_file):
     model = numpy.load(npz_file)
 
-
     theta = model["theta"][()]
     exercise_ind_dict = model["exercise_ind_dict"][()]
-    num_exs = len(exercise_ind_dict)
 
     out_data = {
         "engine_class": "MIRTEngine",

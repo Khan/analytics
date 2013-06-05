@@ -8,7 +8,8 @@ Usage:
 
 Right now the input files are assumed to be CSV data, with the fist column
 the correctness on an exercise, and the second column the predicted
-probability correct on that exercise.  Each file contains data for a different curve.
+probability correct on that exercise.  Each file contains data for a different
+curve.
 
 TODO(jace): Maybe take command line args to override the column index
 assumption.  But for right now this is simply built to work with output
@@ -20,7 +21,6 @@ import itertools
 
 import matplotlib.pyplot as plt
 import numpy as np
-import re
 
 lines = ["-+", "--D", "-.s", ":*", "-^", "--|", "-._", ":"]
 linecycler = itertools.cycle(lines)
@@ -49,7 +49,7 @@ def calc_roc_curve(correct, predicted):
     true_pos = np.zeros(thresholds.shape)
     true_neg = np.zeros(thresholds.shape)
     tot_true = np.max([np.float(np.sum(correct)), 1])
-    tot_false= np.max([np.float(np.sum(np.logical_not(correct))), 1])
+    tot_false = np.max([np.float(np.sum(np.logical_not(correct))), 1])
 
     for i in range(thresholds.shape[0]):
         threshold = thresholds[i]
@@ -57,7 +57,7 @@ def calc_roc_curve(correct, predicted):
         pred0 = predicted < threshold
         if np.sum(tot_true) > 0:
             true_pos[i] = np.sum(correct[pred1]) / tot_true
-        if np.sum(tot_false)>0:
+        if np.sum(tot_false) > 0:
             true_neg[i] = np.sum(np.logical_not(correct[pred0])) / tot_false
 
     return true_pos, true_neg
