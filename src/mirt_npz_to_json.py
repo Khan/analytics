@@ -21,32 +21,22 @@ import numpy
 import sys
 
 
-def generate_exercise_ind():
-    # this is necessary because early MIRT models stored exercise indices
-    # as a defaultdict that referenced a function by this name.
-    # TODO(jace):  remove once the ouptut to npz is converted to
-    # be a simple dict instead of a defaultdict.
-    pass
-
-
 def mirt_npz_to_json(npz_file):
     model = numpy.load(npz_file)
 
-    num_exs = len(dict(model["exercise_ind_dict"][()]))
 
-    couplings = model["couplings"]
-
-    # only the first num_exs exercises correspond to an exercise;
-    # the rest are junk/blank/.
-    couplings = couplings[:num_exs, ]
+    theta = model["theta"][()]
+    exercise_ind_dict = model["exercise_ind_dict"][()]
+    num_exs = len(exercise_ind_dict)
 
     out_data = {
         "engine_class": "MIRTEngine",
 
         # MIRT specific data
         "params": {
-            "exercise_ind_dict": dict(model["exercise_ind_dict"][()]),
-            "couplings": couplings.tolist(),
+            "exercise_ind_dict": model["exercise_ind_dict"][()],
+            "theta_flat": theta.flat().tolist(),
+            "num_abilities": theta.num_abilities,
             "max_length": 15
             }
         }

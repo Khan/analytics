@@ -32,25 +32,21 @@ from assessment import mirt_util
 
 import accuracy_model_util as acc_util
 
-
-# the maximum number of exercises that might exist
-MAX_EXERCISES = 10000
-
 # used to index the fields in with a line of text in the input data file
 linesplit = acc_util.linesplit
 idx_pl = acc_util.FieldIndexer(acc_util.FieldIndexer.plog_fields)
 
 
-# current_ind and generate_exercise_ind are used in the creation of a
+# num_exercises and generate_exercise_ind are used in the creation of a
 # defaultdict for mapping exercise names to an unique integer index
-current_ind = 0
+num_exercises = 0
 
 
 def generate_exercise_ind():
     """Assign the next available index to an exercise name."""
-    global current_ind
-    current_ind += 1
-    return current_ind - 1
+    global num_exercises
+    num_exercises += 1
+    return num_exercises - 1
 
 
 def sample_abilities_diffusion(args):
@@ -60,6 +56,8 @@ def sample_abilities_diffusion(args):
 
     This is just a wrapper around the corresponding function in mirt_util.
     """
+    # TODO(jascha) make this a better sampler (eg, use the HMC sampler from
+    # TMIRT)
 
     # make sure each student gets a different random sequence
     id = multiprocessing.current_process()._identity
@@ -68,15 +66,17 @@ def sample_abilities_diffusion(args):
     else:
         np.random.seed([time.time() * 1e9])
 
-    couplings, state, options, user_index = args
+    theta, state, options, user_index = args
     abilities = state['abilities']
     correct = state['correct']
+    log_time_taken = state['log_time_taken']
     exercises_ind = state['exercises_ind']
 
     num_steps = options.sampling_num_steps
 
     abilities, Eabilities, _, _ = mirt_util.sample_abilities_diffusion(
-            couplings, exercises_ind, correct, abilities, num_steps)
+            theta, exercises_ind, correct, log_time_taken,
+            abilities, num_steps)
 
     return abilities, Eabilities, user_index
 
@@ -105,7 +105,7 @@ def get_cmd_line_options():
     parser.add_option("-m", "--max_pass_lbfgs", type=int, default=5,
                       help=("The number of LBFGS descent steps to do per "
                             "EM iteration"))
-    parser.add_option("-p", "--regularization", default=1e-5,
+    parser.add_option("-p", "--regularization", type=float, default=1e-5,
                       help=("The weight for an L2 regularizer on the "
                             "parameters.  This can be very small, but "
                             "keeps the weights from running away in a "
@@ -114,6 +114,9 @@ def get_cmd_line_options():
                       help=("The number of processes to use to parallelize "
                             "this.  Set this to 0 to use one process, and "
                             "make debugging easier."))
+    parser.add_option("-b", "--max_time", type=int,
+                      default=1e3,
+                      help=("The maximum response time."))
     parser.add_option("-f", "--file", type=str,
                       default='user_assessment.responses',
                       help=("The source data file"))
@@ -129,6 +132,9 @@ def get_cmd_line_options():
                             "feature and prediction data. Often used to "
                             "analyze accuracy of predictions after model "
                             "training."))
+    parser.add_option("-z", "--correct_only", action="store_true",
+                      default=False,
+                      help=("Ignore response time and only model using correctness."))
     parser.add_option("-r", "--resume_from_file", default='',
                       help=("Name of a .npz file to bootstrap the couplings."))
 
@@ -146,74 +152,135 @@ def create_user_state(lines, exercise_ind_dict, options):
     """Create a dictionary to hold training information for a single user."""
     correct = np.asarray([line[idx_pl.correct] for line in lines]
             ).astype(int)
+    time_taken = np.asarray([line[idx_pl.time_taken] for line in lines]
+            ).astype(int)
+    time_taken[time_taken<1.] = 1.
+    time_taken[time_taken>options.max_time] = options.max_time
     exercises = [line[idx_pl.exercise] for line in lines]
     exercises_ind = [exercise_ind_dict[ex] for ex in exercises]
     exercises_ind = np.array(exercises_ind)
     abilities = np.random.randn(options.num_abilities, 1)
+
+    # cut out any duplicate exercises in the training data for a single user
+    # NOTE if you allow duplicates, you need to change the way the gradient
+    # is computed as well.
+    _, idx = np.unique(exercises_ind, return_index=True)
+    exercises_ind = exercises_ind[idx]
+    correct = correct[idx]
+    time_taken = time_taken[idx]
+
     state = {'correct': correct,
+             'log_time_taken': np.log(time_taken),
              'abilities': abilities,
              'exercises_ind': exercises_ind}
+
+    #print state['log_time_taken']
+
     return state
 
 
 def L_dL_singleuser(arg):
     """ calculate log likelihood and gradient wrt couplings of mIRT model
         for single user """
-    couplings, state, options = arg
+    theta, state, options = arg
+
     abilities = state['abilities'].copy()
     correct = state['correct']
     exercises_ind = state['exercises_ind']
+
+    dL = mirt_util.Parameters(theta.num_abilities, len(exercises_ind))
 
     # pad the abilities vector with a 1 to act as a bias
     abilities = np.append(abilities.copy(),
                           np.ones((1, abilities.shape[1])),
                           axis=0)
     # the abilities to exercise coupling parameters for this exercise
-    exercise_couplings = couplings[exercises_ind, :]
+    W_correct = theta.W_correct[exercises_ind, :]
 
     # calculate the probability of getting a question in this exercise correct
-    Y = np.dot(exercise_couplings, abilities)
+    Y = np.dot(W_correct, abilities)
     Z = mirt_util.sigmoid(Y)  # predicted correctness value
     Zt = correct.reshape(Z.shape)  # true correctness value
-    pdata = Zt * Z + (1 - Zt) * (1 - Z)  # = 2*Zt*Z - Z + const
-    dLdY = ((2 * Zt - 1) * Z * (1 - Z)) / pdata
-    dL = np.dot(dLdY, abilities.T)
-    dL /= np.log(2.)
+    pdata = Zt * Z + (1. - Zt) * (1. - Z)  # = 2*Zt*Z - Z + const
+    dLdY = ((2. * Zt - 1.) * Z * (1. - Z)) / pdata
+    #print pdata.shape, dLdY.shape, Z.shape, Zt.shape
+    L = -np.sum(np.log(pdata))
+    dL.W_correct = -np.dot(dLdY, abilities.T)
 
-    L = np.sum(np.log(pdata))
-    L /= np.log(2.)
+    # calculate the probability of taking time response_time to answer
+    log_time_taken = state['log_time_taken']
+    # the abilities to time coupling parameters for this exercise
+    W_time = theta.W_time[exercises_ind, :]
+    sigma = theta.sigma_time[exercises_ind].reshape((-1,1))
+    Y = np.dot(W_time, abilities)
+    err = (Y - log_time_taken.reshape((-1,1)))
+    L += np.sum(err**2/sigma**2)/2.
+    dLdY = err / sigma**2
+    #print dL.W_time.shape, dL.W_correct.shape, dLdY.shape
+    dL.W_time = np.dot(dLdY, abilities.T)
+    dL.sigma_time = (-err**2 / sigma**3).ravel()
 
-    return -L, -dL, exercises_ind
+    # normalization for the Gaussian
+    L += np.sum(0.5*np.log(sigma**2))
+    dL.sigma_time += 1. / sigma.ravel()
+
+    #print L.shape
+
+    return L, dL, exercises_ind
 
 
-def L_dL(couplings_flat, user_states, options, pool):
+def L_dL(theta_flat, user_states, num_exercises, options, pool):
     """ calculate log likelihood and gradient wrt couplings of mIRT model """
-    couplings = couplings_flat.copy().reshape((-1, options.num_abilities + 1))
 
     L = 0.
-    dL = np.zeros(couplings.shape)
+    theta = mirt_util.Parameters(options.num_abilities, num_exercises, vals=theta_flat.copy())
+
+    nu = float(len(user_states))
+
+    L += options.regularization * nu * np.sum(theta_flat ** 2)
+    dL_flat = 2. * options.regularization * nu * theta_flat
+    dL = mirt_util.Parameters(theta.num_abilities, theta.num_exercises, vals = dL_flat)
+
+    # also regularize the inverse of sigma, so it doesn't run to 0
+    L += np.sum(options.regularization * nu / theta.sigma_time**2)
+    dL.sigma_time += -2. * options.regularization * nu / theta.sigma_time**3
 
     # TODO(jascha) this would be faster if user_states was divided into
     # minibatches instead of single students
     if pool is None:
         rslts = map(L_dL_singleuser,
-                    [(couplings, state, options) for state in user_states])
+                    [(theta, state, options) for state in user_states])
     else:
         rslts = pool.map(L_dL_singleuser,
-                        [(couplings, state, options) for state in user_states],
+                        [(theta, state, options) for state in user_states],
                         chunksize=100)
     for r in rslts:
         Lu, dLu, exercise_indu = r
-        L += Lu / float(len(user_states))
-        dL[exercise_indu, :] += dLu / float(len(user_states))
+        #print L, Lu, float(len(user_states))
+        L += Lu
+        #print dL.W_correct[exercise_indu, :].shape, dLu.W_correct.shape, Lu
+        dL.W_correct[exercise_indu, :] += dLu.W_correct      
+        dL.W_time[exercise_indu, :] += dLu.W_time
+        dL.sigma_time[exercise_indu] += dLu.sigma_time
+        #1./0
 
-    L += options.regularization * sum(couplings_flat ** 2)
-    dL += 2. * options.regularization * couplings
+    if options.correct_only:
+        dL.W_time[:,:] = 0.
+        dL.sigma_time[:] = 0.
 
-    return L, dL.ravel()
+    dL_flat = dL.flat()
+
+    L /= np.log(2.)*nu
+    dL_flat /= np.log(2.)*nu
+
+    #print L
+    #print dL_flat
 
 
-def emit_features(user_states, couplings, options, split_desc):
+    return L, dL_flat
+
+
+def emit_features(user_states, theta, options, split_desc):
     """Emit a CSV data file of correctness, prediction, and abilities."""
     f = open("%s_split=%s.csv" % (options.output, split_desc), 'w+')
 
@@ -221,17 +288,20 @@ def emit_features(user_states, couplings, options, split_desc):
         # initialize
         abilities = np.zeros((options.num_abilities, 1))
         correct = user_state['correct']
+        log_time_taken = user_state['log_time_taken']
         exercises_ind = user_state['exercises_ind']
+
+        #print ".",
 
         # NOTE: I currently do not output features for the first problem
         for i in xrange(1, correct.size):
 
             # TODO(jace) this should probably be the marginal estimation
             _, _, abilities, _ = mirt_util.sample_abilities_diffusion(
-                    couplings, exercises_ind[:i], correct[:i],
+                    theta, exercises_ind[:i], correct[:i], log_time_taken[:i],
                     abilities_init=abilities, num_steps=200)
             prediction = mirt_util.conditional_probability_correct(
-                    abilities, couplings, exercises_ind[i:(i + 1)])
+                    abilities, theta, exercises_ind[i:(i + 1)])
 
             print >>f, "%d," % correct[i],
             print >>f, "%.4f," % prediction[-1],
@@ -240,12 +310,32 @@ def emit_features(user_states, couplings, options, split_desc):
     f.close()
 
 
+def check_grad(L_dL, theta, args=()):
+    print >>sys.stderr, "Checking gradients."
+
+    step_size = 1e-6
+
+    f0, df0 = L_dL(theta.copy(), *args)
+    # test gradients in a random order.  This lets us run check gradients on the
+    # full size model, but still statistically test every type of gradient.
+    test_order = range(theta.shape[0])
+    np.random.shuffle(test_order)
+    for ind in test_order:
+        theta_offset = np.zeros(theta.shape)
+        theta_offset[ind] = step_size
+        f1, df1 = L_dL(theta.copy()+theta_offset, *args)
+        df_true = (f1 - f0)/step_size
+
+        rr = (df0[ind] - df_true)*2./(df0[ind] + df_true)
+
+        print "ind", ind, "ind mod 3", np.mod(ind,3), "ind/3", np.floor(ind/3.), "df pred", df0[ind], "df true", df_true, "(df pred - df true)*2/(df pred + df true)", rr
+
+        #assert(rr < 1.)
+
+
 def main():
     options = get_cmd_line_options()
     print >>sys.stderr, "Starting main.", options  # DEBUG
-
-    # initialize the parameter matrix to zeros (+1 for bias unit)
-    couplings = np.zeros((MAX_EXERCISES, options.num_abilities + 1))
 
     pool = None
     if options.workers > 0:
@@ -287,6 +377,10 @@ def main():
                 row[idx_pl.time_taken] = float(row[idx_pl.time_taken])
                 attempts.append(row)
 
+            #if len(user_states)>0:
+                #DEBUG
+            #    break
+
         if len(attempts) > 0:
             # flush the data for the final user, too
             user_states.append(create_user_state(
@@ -313,8 +407,14 @@ def main():
     # DEBUG(jace)
     print >>sys.stderr, "loaded %d user assessments" % len(user_states)
 
-    # trim couplings to include only the used rows
-    couplings = couplings[:current_ind, :]
+    print >>sys.stderr, "Training dataset, %d students"%(len(user_states))
+
+    # initialize the parameters
+    print >>sys.stderr, "%d exercises"%(num_exercises)
+    theta = mirt_util.Parameters(options.num_abilities, num_exercises)
+    theta.sigma_time[:] = 1.
+    # we won't be adding any more exercises
+    exercise_ind_dict = dict(exercise_ind_dict)
 
     if options.resume_from_file:
         # HACK(jace): I need a cheap way
@@ -322,9 +422,9 @@ def main():
         # hacky version, pass --num_epochs 0 and you must pass the same
         # data file the model in resume_from_file was trained on.
         resume_from_model = np.load(options.resume_from_file)
-        couplings = resume_from_model['couplings']
+        theta = resume_from_model['theta'][()]
         exercise_ind_dict = resume_from_model['exercise_ind_dict']
-        print >>sys.stderr, "Loaded couplings of shape:" + str(couplings.shape)
+        print >>sys.stderr, "Loaded parameters frpom %s"%(options.resume_from_file)
 
     # now do num_epochs EM steps
     for epoch in range(options.num_epochs):
@@ -338,11 +438,11 @@ def main():
         # minibatches instead of single students
         if pool is None:
             rslts = map(sample_abilities_diffusion,
-                        [(couplings, user_states[ind], options, ind)
+                        [(theta, user_states[ind], options, ind)
                             for ind in range(len(user_states))])
         else:
             rslts = pool.map(sample_abilities_diffusion,
-                            [(couplings, user_states[ind], options, ind)
+                            [(theta, user_states[ind], options, ind)
                                 for ind in range(len(user_states))],
                             chunksize=100)
         for r in rslts:
@@ -362,64 +462,79 @@ def main():
         print >>sys.stderr, "<abilities>", mn_a,
         print >>sys.stderr, ", <abilities^2>", cov_a, ", ",
 
+        #check_grad(L_dL, theta.flat(), args=(user_states, num_exercises, options, pool))
+
         # Maximization step
-        old_couplings = couplings.copy()
-        couplings_flat, L, _ = scipy.optimize.fmin_l_bfgs_b(
+        old_theta_flat = theta.flat()
+        #print "about to minimize"
+        theta_flat, L, _ = scipy.optimize.fmin_l_bfgs_b(
             L_dL,
-            couplings.copy().ravel(),
-            args=(user_states, options, pool),
+            theta.flat(),
+            args=(user_states, num_exercises, options, pool),
             disp=0,
             maxfun=options.max_pass_lbfgs, m=100)
-        couplings = couplings_flat.reshape(couplings.shape)
+        theta = mirt_util.Parameters(options.num_abilities, num_exercises, vals=theta_flat)
+
+        if options.correct_only:
+            theta.sigma_time[:] = 1.
+            theta.W_time[:,:] = 0.
+
 
         # Print debugging info on the progress of the training
         print >>sys.stderr, "M conditional log L %f, " % (-L),
         print >>sys.stderr, "reg penalty %f, " % (
-                options.regularization * sum(couplings_flat ** 2)),
+                options.regularization * sum(theta_flat ** 2)),
         print >>sys.stderr, "||couplings|| %f, " % (
-                np.sqrt(np.sum(couplings ** 2))),
+                np.sqrt(np.sum(theta.flat() ** 2))),
         print >>sys.stderr, "||dcouplings|| %f" % (
-                np.sqrt(np.sum((couplings - old_couplings) ** 2)))
+                np.sqrt(np.sum((theta_flat - old_theta_flat) ** 2)))
 
         # Maintain a consistent directional meaning of a
         # high/low ability esimtate.  We always prefer higher ability to
         # mean better performance; therefore, we prefer positive couplings.
         # So, compute the sign of the average coupling for each dimension.
-        coupling_sign = np.sign(np.mean(couplings[:, :-1], axis=0))
-        coupling_sign = coupling_sign.reshape((1, -1))
+        coupling_sign = np.sign(np.mean(theta.W_correct[:, :-1], axis=0))
         # Then, flip ability and coupling sign for dimenions w/ negative mean.
-        couplings[:, :-1] *= coupling_sign
+        theta.W_correct[:, :-1] *= coupling_sign.reshape((1, -1))
+        theta.W_time[:, :-1] *= coupling_sign.reshape((1, -1))
         for user_state in user_states:
-            user_state['abilities'] *= coupling_sign
+            user_state['abilities'] *= coupling_sign.reshape((-1,1))
 
         # save state as a .npz
         np.savez("%s_epoch=%d.npz" % (options.output, epoch),
-                 couplings=couplings,
-                 exercise_ind_dict=dict(exercise_ind_dict))
+                 theta=theta,
+                 exercise_ind_dict=exercise_ind_dict)
 
         # save state as .csv - just for easy debugging inspection
         f1 = open("%s_epoch=%d.csv" % (options.output, epoch), 'w+')
-        tt = [(couplings[exercise_ind_dict[nm], :-1],
-                couplings[exercise_ind_dict[nm], -1], nm)
-                for nm in exercise_ind_dict.keys()]
-        tt = sorted(tt, key=lambda tl: tl[1])
-        print >>f1, 'bias, ',
-        for ii in range(tt[0][0].shape[0]):
-            print >>f1, "coupling %d, " % ii,
+        nms = sorted(exercise_ind_dict.keys(),
+                key=lambda nm: theta.W_correct[exercise_ind_dict[nm], -1] )
+
+        print >>f1, 'correct bias,',
+        for ii in range(options.num_abilities):
+            print >>f1, "correct coupling %d," % ii,
+        print >>f1, 'time bias,',
+        for ii in range(options.num_abilities):
+            print >>f1, "time coupling %d," % ii,
+        print >>f1, 'time variance,',
         print >>f1, 'exercise name'
-        for t in tt:
-            print >>f1, t[1], ',',
-            for ii in range(tt[0][0].shape[0]):
-                print >>f1, t[0][ii], ',',
-            print >>f1, t[2]
+        for nm in nms:
+            print >>f1, theta.W_correct[exercise_ind_dict[nm], -1] , ',',
+            for ii in range(options.num_abilities):
+                print >>f1, theta.W_correct[exercise_ind_dict[nm], ii] , ',',
+            print >>f1, theta.W_time[exercise_ind_dict[nm], -1] , ',',
+            for ii in range(options.num_abilities):
+                print >>f1, theta.W_time[exercise_ind_dict[nm], ii] , ',',
+            print >>f1, theta.sigma_time[exercise_ind_dict[nm]] , ',',
+            print >>f1, nm
         f1.close()
 
     if options.emit_features:
         if options.training_set_size < 1.0:
-            emit_features(user_states_train, couplings, options, "train")
-            emit_features(user_states_test, couplings, options, "test")
+            emit_features(user_states_test, theta, options, "test")
+            emit_features(user_states_train, theta, options, "train")
         else:
-            emit_features(user_states, couplings, options, "full")
+            emit_features(user_states, theta, options, "full")
 
 
 if __name__ == '__main__':
