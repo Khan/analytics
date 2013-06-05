@@ -325,9 +325,9 @@ def check_grad(L_dL, theta, args=()):
         rr = (df0[ind] - df_true) * 2. / (df0[ind] + df_true)
 
         print "ind", ind, "ind mod 3", np.mod(ind, 3),
-              "ind/3", np.floor(ind / 3.),
-              "df pred", df0[ind], "df true", df_true,
-              "(df pred - df true)*2/(df pred + df true)", rr
+                "ind/3", np.floor(ind / 3.),
+                "df pred", df0[ind], "df true", df_true,
+                "(df pred - df true)*2/(df pred + df true)", rr
 
 
 def main():
@@ -421,8 +421,8 @@ def main():
         resume_from_model = np.load(options.resume_from_file)
         theta = resume_from_model['theta'][()]
         exercise_ind_dict = resume_from_model['exercise_ind_dict']
-        print >>sys.stderr,
-                "Loaded parameters from %s" % (options.resume_from_file)
+        print >>sys.stderr, "Loaded parameters from %s" % (
+            options.resume_from_file)
 
     # now do num_epochs EM steps
     for epoch in range(options.num_epochs):
