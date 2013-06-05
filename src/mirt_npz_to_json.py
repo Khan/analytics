@@ -32,7 +32,7 @@ def mirt_npz_to_json(npz_file):
 
         # MIRT specific data
         "params": {
-            "exercise_ind_dict": model["exercise_ind_dict"][()],
+            "exercise_ind_dict": exercise_ind_dict,
             "theta_flat": theta.flat().tolist(),
             "num_abilities": theta.num_abilities,
             "max_length": 15

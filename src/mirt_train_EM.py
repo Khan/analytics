@@ -215,14 +215,14 @@ def L_dL_singleuser(arg):
     sigma = theta.sigma_time[exercises_ind].reshape((-1, 1))
     Y = np.dot(W_time, abilities)
     err = (Y - log_time_taken.reshape((-1, 1)))
-    L += np.sum(err**2 / sigma**2) / 2.
-    dLdY = err / sigma**2
+    L += np.sum(err ** 2 / sigma ** 2) / 2.
+    dLdY = err / sigma ** 2
     #print dL.W_time.shape, dL.W_correct.shape, dLdY.shape
     dL.W_time = np.dot(dLdY, abilities.T)
-    dL.sigma_time = (-err**2 / sigma**3).ravel()
+    dL.sigma_time = (-err ** 2 / sigma ** 3).ravel()
 
     # normalization for the Gaussian
-    L += np.sum(0.5 * np.log(sigma**2))
+    L += np.sum(0.5 * np.log(sigma ** 2))
     dL.sigma_time += 1. / sigma.ravel()
 
     #print L.shape
@@ -239,14 +239,14 @@ def L_dL(theta_flat, user_states, num_exercises, options, pool):
 
     nu = float(len(user_states))
 
-    L += options.regularization * nu * np.sum(theta_flat**2)
+    L += options.regularization * nu * np.sum(theta_flat ** 2)
     dL_flat = 2. * options.regularization * nu * theta_flat
     dL = mirt_util.Parameters(theta.num_abilities, theta.num_exercises,
                               vals=dL_flat)
 
     # also regularize the inverse of sigma, so it doesn't run to 0
-    L += np.sum(options.regularization * nu / theta.sigma_time**2)
-    dL.sigma_time += -2. * options.regularization * nu / theta.sigma_time**3
+    L += np.sum(options.regularization * nu / theta.sigma_time ** 2)
+    dL.sigma_time += -2. * options.regularization * nu / theta.sigma_time ** 3
 
     # TODO(jascha) this would be faster if user_states was divided into
     # minibatches instead of single students
@@ -260,7 +260,7 @@ def L_dL(theta_flat, user_states, num_exercises, options, pool):
     for r in rslts:
         Lu, dLu, exercise_indu = r
         L += Lu
-        dL.W_correct[exercise_indu, :] += dLu.W_correct      
+        dL.W_correct[exercise_indu, :] += dLu.W_correct
         dL.W_time[exercise_indu, :] += dLu.W_time
         dL.sigma_time[exercise_indu] += dLu.sigma_time
 
@@ -324,7 +324,8 @@ def check_grad(L_dL, theta, args=()):
 
         rr = (df0[ind] - df_true) * 2. / (df0[ind] + df_true)
 
-        print "ind", ind, "ind mod 3", np.mod(ind,3), "ind/3", np.floor(ind/3.),
+        print "ind", ind, "ind mod 3", np.mod(ind, 3),
+              "ind/3", np.floor(ind / 3.),
               "df pred", df0[ind], "df true", df_true,
               "(df pred - df true)*2/(df pred + df true)", rr
 
@@ -459,7 +460,8 @@ def main():
         print >>sys.stderr, "<abilities>", mn_a,
         print >>sys.stderr, ", <abilities^2>", cov_a, ", ",
 
-        #check_grad(L_dL, theta.flat(), args=(user_states, num_exercises, options, pool))
+        # check_grad(L_dL, theta.flat(), args=(user_states,
+        #     num_exercises, options, pool))
 
         # Maximization step
         old_theta_flat = theta.flat()
@@ -505,7 +507,7 @@ def main():
         # save state as .csv - just for easy debugging inspection
         f1 = open("%s_epoch=%d.csv" % (options.output, epoch), 'w+')
         nms = sorted(exercise_ind_dict.keys(),
-                key=lambda nm: theta.W_correct[exercise_ind_dict[nm], -1] )
+                key=lambda nm: theta.W_correct[exercise_ind_dict[nm], -1])
 
         print >>f1, 'correct bias,',
         for ii in range(options.num_abilities):
