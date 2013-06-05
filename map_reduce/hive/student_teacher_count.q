@@ -135,7 +135,7 @@ JOIN (
     USING 'coach_reduce.py count "${end_dt}"' AS student_count, dt
 ) st_nr
 ON t_nr.dt = st_nr.dt
-LEFT JOIN (
+LEFT OUTER JOIN (
     FROM (
         SELECT student, dt
         FROM active_student_on_date
@@ -145,7 +145,7 @@ LEFT JOIN (
     USING 'coach_reduce.py active-student "${end_dt}"' AS active_students, dt
 ) act_st
 ON t_nr.dt = act_st.dt
-LEFT JOIN (
+LEFT OUTER JOIN (
     FROM (
         SELECT student, teacher, dt
         FROM active_student_on_date
