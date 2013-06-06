@@ -94,8 +94,14 @@
       "mongo_collection":  "company_metrics",
       "importer_args": "activity_month=<month>",
       "drop_partition": true
-     }
-
+    },
+    { "hive_script": "s3://ka-mapreduce/code/hive/badge_summary.q",
+      "hive_table": "badge_summary",
+      "hive_args": {"start_dt": "<day>", "end_dt": "<day_after>"},
+      "mongo_collection":  "badge_summary",
+      "importer_args": "dt=<day>",
+      "hive_init": true
+    }
   ]
 
 }
