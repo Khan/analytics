@@ -1,6 +1,6 @@
 -- Query to compute summary metrics for badges
 -- Produces for each  badge:
---  * Total number of times each badge has been awared
+--  * Total number of times each badge has been awarded
 --  * Number of unique awards of each badge
 --      (number of users that have given badge)
 -- Keeps data per badge context value to allow for more detailed analysis

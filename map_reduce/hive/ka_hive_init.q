@@ -507,6 +507,15 @@ CREATE EXTERNAL TABLE IF NOT EXISTS badge_summary (
   LOCATION 's3://ka-mapreduce/summary_tables/badge_summary';
 ALTER TABLE badge_summary RECOVER PARTITIONS;
 
+
+DROP TABLE IF EXISTS topic_old_key_name;
+CREATE EXTERNAL TABLE IF NOT EXISTS topic_old_key_name (
+    title STRING,
+    standalone_title STRING,
+    old_key_name STRING
+) LOCATION 's3://ka-mapreduce/summary_tables/topic_old_key_name';
+
+
 DROP TABLE IF EXISTS exercise_proficiency_summary;
 CREATE EXTERNAL TABLE IF NOT EXISTS exercise_proficiency_summary (
     exercise STRING,
