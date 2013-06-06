@@ -43,3 +43,6 @@ auth_whitelist.py
 # Common developer tools
 .project
 .pydevproject
+
+# GeoIP Database
+GeoLiteCity.dat

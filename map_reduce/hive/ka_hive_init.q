@@ -382,6 +382,23 @@ CREATE EXTERNAL TABLE IF NOT EXISTS student_teacher_count (
     dt STRING
 ) LOCATION 's3://ka-mapreduce/summary_tables/student_teacher_count';
 
+-- Holds geolocated summary of teachers
+DROP TABLE IF EXISTS teacher_country;
+CREATE EXTERNAL TABLE IF NOT EXISTS teacher_country (
+    teacher STRING,
+    user_id STRING,
+    user_email STRING,
+    user_nickname STRING,
+    joined DOUBLE,
+    ip STRING,
+    city STRING,
+    region STRING,
+    country_code STRING,
+    country STRING,
+    latitude FLOAT,
+    longitude FLOAT
+) LOCATION 's3://ka-mapreduce/summary_tables/teacher_country';
+
 CREATE EXTERNAL TABLE IF NOT EXISTS video_topic(
   vid_key STRING, vid_title STRING, topic_key STRING,
   topic_title STRING, topic_desc STRING)
