@@ -13,7 +13,7 @@
 --   Active Student: Student who completed an activity in last 28 days.
 
 -- Only local files can be sourced as scripts
-ADD FILE s3://ka-mapreduce/code/hive/student_teacher_current.q
+ADD FILE s3://ka-mapreduce/code/hive/student_teacher_current.q;
 SOURCE /mnt/var/lib/hive_081/downloaded_resources/student_teacher_current.q;
 
 DROP TABLE IF EXISTS active_teacher_on_date;
