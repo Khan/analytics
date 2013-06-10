@@ -22,7 +22,9 @@ ADD FILE s3://ka-mapreduce/code/geo/util.py;
 ADD FILE s3://ka-mapreduce/code/geo/timezone.py;
 ADD FILE s3://ka-mapreduce/code/geo/const.py;
 
-SOURCE FILE s3://ka-mapreduce/code/hive/student_teacher_current.q;
+-- Only local files can be sourced as scripts
+ADD FILE s3://ka-mapreduce/code/hive/student_teacher_current.q
+SOURCE /mnt/var/lib/hive_081/downloaded_resources/student_teacher_current.q;
 
 DROP TABLE IF EXISTS user_ip;
 CREATE EXTERNAL TABLE IF NOT EXISTS user_ip (
