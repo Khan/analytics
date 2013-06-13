@@ -6,7 +6,7 @@ Usage:
     OR
   plot_roc_curves.py *_roc_file
 
-Right now the input files are assumed to be CSV data, with the fist column
+Right now the input files are assumed to be CSV data, with the first column
 the correctness on an exercise, and the second column the predicted
 probability correct on that exercise.  Each file contains data for a different
 curve.
@@ -18,6 +18,7 @@ of accuracy_model_train.py.
 
 import fileinput
 import itertools
+import warnings
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -70,7 +71,9 @@ def draw_roc_curve(name, lines):
     # grab the base of the filename
     name = name.split('/')[-1].split('.')[0]
 
-    # NOTE if name starts with an underscore, the label won't display
+    if name.startswith('_'):
+        warnings.warn("Warning.  If name starts with an underscore, "
+                      "the label won't display.")
 
     plt.plot(1 - true_neg, true_pos, next(linecycler), label=name)
 

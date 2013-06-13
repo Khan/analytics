@@ -114,9 +114,10 @@ def get_cmd_line_options():
                       help=("The number of processes to use to parallelize "
                             "this.  Set this to 0 to use one process, and "
                             "make debugging easier."))
-    parser.add_option("-b", "--max_time", type=int,
+    parser.add_option("-b", "--max_time_taken", type=int,
                       default=1e3,
-                      help=("The maximum response time."))
+                      help=("The maximum response time.  Longer responses "
+                            "are set to this value."))
     parser.add_option("-f", "--file", type=str,
                       default='user_assessment.responses',
                       help=("The source data file"))
@@ -134,7 +135,7 @@ def get_cmd_line_options():
                             "training."))
     parser.add_option("-z", "--correct_only", action="store_true",
                       default=False,
-                      help=("Ignore response time, only model using " +
+                      help=("Ignore response time, only model using "
                             "correctness."))
     parser.add_option("-r", "--resume_from_file", default='',
                       help=("Name of a .npz file to bootstrap the couplings."))
@@ -155,8 +156,8 @@ def create_user_state(lines, exercise_ind_dict, options):
             ).astype(int)
     time_taken = np.asarray([line[idx_pl.time_taken] for line in lines]
             ).astype(int)
-    time_taken[time_taken < 1.] = 1.
-    time_taken[time_taken > options.max_time] = options.max_time
+    time_taken[time_taken < 1] = 1
+    time_taken[time_taken > options.max_time_taken] = options.max_time_taken
     exercises = [line[idx_pl.exercise] for line in lines]
     exercises_ind = [exercise_ind_dict[ex] for ex in exercises]
     exercises_ind = np.array(exercises_ind)
@@ -206,22 +207,23 @@ def L_dL_singleuser(arg):
     L = -np.sum(np.log(pdata))
     dL.W_correct = -np.dot(dLdY, abilities.T)
 
-    # calculate the probability of taking time response_time to answer
-    log_time_taken = state['log_time_taken']
-    # the abilities to time coupling parameters for this exercise
-    W_time = theta.W_time[exercises_ind, :]
-    sigma = theta.sigma_time[exercises_ind].reshape((-1, 1))
-    Y = np.dot(W_time, abilities)
-    err = (Y - log_time_taken.reshape((-1, 1)))
-    L += np.sum(err ** 2 / sigma ** 2) / 2.
-    dLdY = err / sigma ** 2
+    if not options.correct_only:
+        # calculate the probability of taking time response_time to answer
+        log_time_taken = state['log_time_taken']
+        # the abilities to time coupling parameters for this exercise
+        W_time = theta.W_time[exercises_ind, :]
+        sigma = theta.sigma_time[exercises_ind].reshape((-1, 1))
+        Y = np.dot(W_time, abilities)
+        err = (Y - log_time_taken.reshape((-1, 1)))
+        L += np.sum(err ** 2 / sigma ** 2) / 2.
+        dLdY = err / sigma ** 2
 
-    dL.W_time = np.dot(dLdY, abilities.T)
-    dL.sigma_time = (-err ** 2 / sigma ** 3).ravel()
+        dL.W_time = np.dot(dLdY, abilities.T)
+        dL.sigma_time = (-err ** 2 / sigma ** 3).ravel()
 
-    # normalization for the Gaussian
-    L += np.sum(0.5 * np.log(sigma ** 2))
-    dL.sigma_time += 1. / sigma.ravel()
+        # normalization for the Gaussian
+        L += np.sum(0.5 * np.log(sigma ** 2))
+        dL.sigma_time += 1. / sigma.ravel()
 
     return L, dL, exercises_ind
 
@@ -235,6 +237,8 @@ def L_dL(theta_flat, user_states, num_exercises, options, pool):
 
     nu = float(len(user_states))
 
+    # note that the nu gets divided back out below, so the regularization term
+    # does not end up with a factor of nu.
     L += options.regularization * nu * np.sum(theta_flat ** 2)
     dL_flat = 2. * options.regularization * nu * theta_flat
     dL = mirt_util.Parameters(theta.num_abilities, theta.num_exercises,
@@ -266,6 +270,9 @@ def L_dL(theta_flat, user_states, num_exercises, options, pool):
 
     dL_flat = dL.flat()
 
+    # divide by log 2 so the answer is in bits instead of nats, and divide by
+    # nu (the number of users) so that the magnitude of the log likelihood
+    # stays reasonable even when trained on many users.
     L /= np.log(2.) * nu
     dL_flat /= np.log(2.) * nu
 
@@ -316,6 +323,7 @@ def check_grad(L_dL, theta, args=()):
         f1, df1 = L_dL(theta.copy() + theta_offset, *args)
         df_true = (f1 - f0) / step_size
 
+        # error in the gradient divided by the mean gradient
         rr = (df0[ind] - df_true) * 2. / (df0[ind] + df_true)
 
         print "ind", ind, "ind mod 3", np.mod(ind, 3),
@@ -469,7 +477,7 @@ def main():
         # Print debugging info on the progress of the training
         print >>sys.stderr, "M conditional log L %f, " % (-L),
         print >>sys.stderr, "reg penalty %f, " % (
-                options.regularization * sum(theta_flat ** 2)),
+                options.regularization * np.sum(theta_flat ** 2)),
         print >>sys.stderr, "||couplings|| %f, " % (
                 np.sqrt(np.sum(theta.flat() ** 2))),
         print >>sys.stderr, "||dcouplings|| %f" % (
@@ -480,16 +488,18 @@ def main():
         # mean better performance; therefore, we prefer positive couplings.
         # So, compute the sign of the average coupling for each dimension.
         coupling_sign = np.sign(np.mean(theta.W_correct[:, :-1], axis=0))
+        coupling_sign = coupling_sign.reshape((1, -1))
         # Then, flip ability and coupling sign for dimenions w/ negative mean.
-        theta.W_correct[:, :-1] *= coupling_sign.reshape((1, -1))
-        theta.W_time[:, :-1] *= coupling_sign.reshape((1, -1))
+        theta.W_correct[:, :-1] *= coupling_sign
+        theta.W_time[:, :-1] *= coupling_sign
         for user_state in user_states:
-            user_state['abilities'] *= coupling_sign.reshape((-1, 1))
+            user_state['abilities'] *= coupling_sign.T
 
         # save state as a .npz
         np.savez("%s_epoch=%d.npz" % (options.output, epoch),
                  theta=theta,
-                 exercise_ind_dict=exercise_ind_dict)
+                 exercise_ind_dict=exercise_ind_dict, 
+                 max_time_taken=options.max_time_taken)
 
         # save state as .csv - just for easy debugging inspection
         f1 = open("%s_epoch=%d.csv" % (options.output, epoch), 'w+')

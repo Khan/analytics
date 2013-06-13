@@ -35,7 +35,8 @@ def mirt_npz_to_json(npz_file):
             "exercise_ind_dict": exercise_ind_dict,
             "theta_flat": theta.flat().tolist(),
             "num_abilities": theta.num_abilities,
-            "max_length": 15
+            "max_length": 15,
+            "max_time_taken": model["max_time_taken"]
             }
         }
 
