@@ -52,8 +52,10 @@ WHERE
     --output=learning_data.sorted learning_data.csv &> sort.log &
   cat learning_data.sorted | python learning_analysis.py [options]
 
-4) Open up the ipython notebook called learning_experiment.ipynb
-   in this directory to do any high-level analysis/plotting.
+4) Open up the ipython notebook called Learning in the Early Proficiency 
+   Experiment.ipynb in this directory to do any high-level analysis/plotting.
+
+NOTE: khan/webapp should be in the path
 
 """
 
@@ -73,15 +75,12 @@ def load_exercise_difficulties(option, opt_str, value, parser):
     if value:
         with open(value) as f:
             for line in f:
-                (user, topic, exercise, time_done, time_taken, problem_number, 
-                        correct, scheduler_info, user_segment, 
-                        dt, alternative) = line.rstrip().split(',')
-                scheduler_info = json.loads(scheduler_info)
+                attempt = Attempt(line)
                 # check if test card
-                if scheduler_info.get('purpose', None) == 'randomized':
-                    ex_diff = exercise_difficulties[exercise]
+                if attempt.scheduler_info.get('purpose', None) == 'randomized':
+                    ex_diff = exercise_difficulties[attempt.exercise]
                     ex_diff.num_analytics_cards += 1
-                    ex_diff.num_correct += (correct == 'true')
+                    ex_diff.num_correct += attempt.correct
         print "Difficulties calibrated for %d exercises." % (
                 len(exercise_difficulties.keys()))
 
@@ -122,14 +121,22 @@ class LearningCurvePoint:
 
 
 class Attempt:
-    def __init__(self, exercise, correct, problem_number, 
-                 scheduler_info, time_done, time_taken):
+    def __init__(self, line):
+        (user, topic, exercise, time_done, time_taken,
+                problem_number, correct, scheduler_info, user_segment, dt,
+                alternative) = line.rstrip().split(',')
+        self.user = user
+        self.topic = topic
         self.exercise = exercise
-        self.correct = correct
-        self.problem_number = problem_number
-        self.scheduler_info = scheduler_info
-        self.time_done = time_done
-        self.time_taken = time_taken
+        self.time_done = float(time_done)
+        # NOTE: capping time_taken at 10 minutes to remove outliers
+        self.time_taken = min(int(time_taken), 600)  
+        self.problem_number = int(problem_number)
+        self.correct = correct == "true"
+        self.scheduler_info = json.loads(scheduler_info)
+        self.user_segment = user_segment
+        self.dt = dt
+        self.alternative = alternative
 
 options, args = get_cmd_line_options()
 
@@ -169,7 +176,8 @@ def posterior_ability_samples(exercise_name, correct, num_samples, burn_in=20):
     # burn-in
     mirt_model._update_abilities(history, use_mean=True, num_steps=burn_in)
 
-    # create sample chain
+    # create sample chain, note that this only makes sense for 1d MIRT
+    # TODO(sitan): move to mirt_util or mirt_engine in webapp
     abilities_samples = np.zeros(num_samples)
     for step in range(num_samples):
         mirt_model._update_abilities(history, use_mean=False, num_steps=1)
@@ -191,8 +199,8 @@ def abilities_estimate_for_response(exercise_name, correct):
     return exercise_correct_abilities[key]
 
 
-def parse_input(callback, min_attempts, difficulty_cutoff, truncate):
-    """Parse through lines of stdin; latter three args are for callback"""
+def parse_input(callback, options):
+    """Parse through lines of stdin"""
     lines_processed = 0
     stats = {
         'lines_kept': 0,
@@ -206,12 +214,11 @@ def parse_input(callback, min_attempts, difficulty_cutoff, truncate):
         """
         exercises_seen = []
         for attempt in attempts:
-            exercise, problem_number = attempt.exercise, attempt.problem_number
-            if exercise not in exercises_seen:
-                if problem_number != 1:
+            if attempt.exercise not in exercises_seen:
+                if attempt.problem_number != 1:
                     stats['lines_tossed'] += len(attempts)
                     return True
-                exercises_seen.append(exercise)
+                exercises_seen.append(attempt.exercise)
         #TODO(jace): should also check that every problem_number goes up by +1
         stats['lines_kept'] += len(attempts)
         return False
@@ -222,25 +229,25 @@ def parse_input(callback, min_attempts, difficulty_cutoff, truncate):
     user_alternative = None
     bad_user = False
 
+    def process_user_topic(attempts):
+        attempts.sort(key=lambda attempt: attempt.time_done)
+        if not should_skip(attempts) and not bad_user:
+            callback(attempts, prev_user_topic[0], prev_user_topic[1], 
+                     prev_alternative, options)
+
     for line in sys.stdin:
-        (user, topic, exercise, time_done, time_taken,
-                problem_number, correct, scheduler_info, user_segment, dt,
-                alternative) = line.rstrip().split(',')
+        attempt = Attempt(line)
 
         lines_processed += 1
         if lines_processed % 1e6 == 0:
             print >>sys.stderr, "Processed %d lines." % lines_processed
 
-        user_topic = (user, topic)
+        user_topic = (attempt.user, attempt.topic)
 
         # Every time we see a new (user, topic), first process and flush the
         # buffered data for the previous (user, topic).
         if user_topic != prev_user_topic and prev_user_topic:
-            attempts.sort(key=lambda a: a.time_done)  # sort by time_done
-            if not should_skip(attempts) and not bad_user:
-                callback(attempts, prev_user_topic[0], prev_user_topic[1], 
-                         prev_alternative, min_attempts, difficulty_cutoff, 
-                         truncate)
+            process_user_topic(attempts)
             attempts = []
 
         # TODO(jace): it seems some user_id's are present in more than
@@ -249,48 +256,35 @@ def parse_input(callback, min_attempts, difficulty_cutoff, truncate):
         # all data for a user that ultimately appears in more than one
         # alternative.  For right now, I skip some of such user's data,
         # but only AFTER we see the inconsistent alternatives.
-        if (not prev_user_topic) or (prev_user_topic[0] != user):
-            user_alternative = alternative
+        if (not prev_user_topic) or (prev_user_topic[0] != attempt.user):
+            user_alternative = attempt.alternative
             bad_user = False
-        if alternative != user_alternative and not bad_user:
+        if attempt.alternative != user_alternative and not bad_user:
             print >>sys.stderr, (
                 "A user is in multiple alternatives. %s,%s,%s"
-                % (str(user_topic), alternative, user_alternative))
+                % (str(user_topic), attempt.alternative, user_alternative))
             bad_user = True
 
-        correct = correct == 'true'
-        problem_number = int(problem_number)
-        scheduler_info = json.loads(scheduler_info)
-        # NOTE: capping time_taken at 10 minutes to remove outliers
-        time_taken = min(int(time_taken), 600)
-
-        attempts.append(Attempt(exercise, correct, problem_number, 
-                         scheduler_info, float(time_done), time_taken))
-
+        attempts.append(attempt)
         prev_user_topic = user_topic
-        prev_alternative = alternative
+        prev_alternative = attempt.alternative
 
     # process last new (user,topic)
-    attempts.sort(key=lambda a: a[4])  # sort by time_done
-    if not should_skip(attempts):
-        callback(attempts, prev_user_topic[0], prev_user_topic[1], 
-                 prev_alternative, min_attempts, difficulty_cutoff, truncate)
+    process_user_topic(attempts)
 
     print "lines kept: %d " % stats['lines_kept']
     print "lines tossed: %d " % stats['lines_tossed']
 
 
-def update_topic_curves(attempts, user, topic, alternative, 
-                        min_attempts, difficulty_cutoff, truncate):
-
+def update_topic_curves(attempts, user, topic, alternative, options):
     # Option 1: ignore users who have made too few attempts
-    if min_attempts:
-        if len(attempts) < min_attempts:
+    if options.min_attempts:
+        if len(attempts) < options.min_attempts:
             return
 
     is_test = lambda info: info.get('purpose', None) == 'randomized'
     # a test_card is a tuple of (attempt_index, corrrect, time_taken)
-    test_cards = [(i, a.correct, a.time_taken) for i, a in enumerate(attempts)
+    test_cards = [(i, a) for i, a in enumerate(attempts)
                   if is_test(a.scheduler_info)]
 
     # first, increment count of all cards-- both assessment and regular
@@ -300,40 +294,40 @@ def update_topic_curves(attempts, user, topic, alternative,
     # further filter test_cards to only keep ones with exercises known by
     # our MIRT model...
     known_exs = mirt_model.exercise_ind_dict.keys()
-    test_cards = [tc for tc in test_cards  
-                  if attempts[tc[0]].exercise in known_exs]
+    test_cards = [(i, a) for (i, a) in test_cards  
+                  if a.exercise in known_exs]
 
     # Option 2: filter by exercises above or below a given difficulty
-    if difficulty_cutoff:
+    if options.difficulty_cutoff:
         def keep_difficulty(ex):
             ind = mirt_model.exercise_ind_dict[ex]
             #print ex, mirt_model.couplings[ind, -1]
-            return mirt_model.couplings[ind, -1] < difficulty_cutoff
-        test_cards = [tc for tc in test_cards 
-                      if keep_difficulty(attempts[tc[0]].exercise)]
+            return mirt_model.couplings[ind, -1] < options.difficulty_cutoff
+        test_cards = [(i, a) for (i, a) in test_cards 
+                      if keep_difficulty(a.exercise)]
 
     # Option 3: trim off the last 'truncate' test_cards, 
     # in case there is a bailout effect
-    if truncate:
-        if len(test_cards) > truncate:
-            test_cards = test_cards[:-truncate]
+    if options.truncate:
+        if len(test_cards) > options.truncate:
+            test_cards = test_cards[:-options.truncate]
         else:
             test_cards = []
 
     for i in range(len(test_cards)):
-        [attempt_index, correct, time_taken] = test_cards[i]
-        curr_ex = attempts[attempt_index].exercise
+        attempt_index, attempt = test_cards[i]
+        curr_ex = attempt.exercise
 
         # retrieve ability estimate chain
         abilities_samples = abilities_estimate_for_response(
-                curr_ex, correct)
+                curr_ex, attempt.correct)
 
         # first update the naive learning curve at the position for this
         # assessment card
         curve_point = topic_curves[alternative][topic][attempt_index]
         curve_point.num_analytics_cards += 1
-        curve_point.time_taken += time_taken
-        curve_point.num_correct += correct
+        curve_point.time_taken += attempt.time_taken
+        curve_point.num_correct += attempt.correct
         curve_point.sum_difficulty += exercise_difficulty(curr_ex)
 
         mean = np.mean(abilities_samples)
@@ -347,10 +341,10 @@ def update_topic_curves(attempts, user, topic, alternative,
     # cards to represent the learning gain.
     for i in range(1, len(test_cards)):
         prev_card, curr_card = test_cards[i - 1], test_cards[i]
-        [prev_index, prev_crct, prev_time] = prev_card
-        [curr_index, curr_crct, curr_time] = curr_card
-        curr_ex = attempts[curr_index].exercise 
-        prev_ex = attempts[prev_index].exercise
+        prev_index, prev_attempt = prev_card
+        curr_index, curr_attempt = curr_card
+        curr_ex, curr_crct = curr_attempt.exercise, curr_attempt.correct 
+        prev_ex, prev_crct = prev_attempt.exercise, prev_attempt.correct
 
         total_gain = float(curr_crct) - float(prev_crct)
 
@@ -420,6 +414,8 @@ def aggregate_curve(from_curve, to_curve):
 
 def write_npz_file(agg_curve):
     # first convert all defaultdicts to dicts
+    global topic_curves
+    topic_curves = dict(topic_curves)
     for alt in topic_curves.keys():
         agg_curve[alt] = dict(agg_curve[alt])
         topic_curves[alt] = dict(topic_curves[alt])
@@ -427,13 +423,8 @@ def write_npz_file(agg_curve):
             topic_curves[alt][topic] = dict(topic_curves[alt][topic])
     np.savez(options.output, topic_curves=topic_curves, agg_curve=agg_curve)
 
-
 if __name__ == '__main__':
-    parse_input(update_topic_curves, 
-                options.min_attempts, 
-                options.difficulty_cutoff, 
-                options.truncate)
-
+    parse_input(update_topic_curves, options)
     alternatives = topic_curves.keys()
     # print topic results as well as an aggregation
     agg_curve = {}
