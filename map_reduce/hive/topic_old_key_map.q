@@ -11,13 +11,13 @@
 --  old_key_name topic property this table will likely become obsolete soon.
 
 -- TODO(robert): This table is only necessary as long as
---  badges names are not self explantory. In this case these
+--  badges names are not self explanatory. In this case these
 --  are topic exercise badges which refer to topic's old_key_name.
 
 INSERT OVERWRITE TABLE topic_old_key_name
 SELECT
-  j.title, j.standalone_title, j.old_key_name
+  j.slug, j.title, j.standalone_title, j.old_key_name
 FROM Topic t
-LATERAL VIEW json_tuple(t.json, "title", "standalone_title", "old_key_name") j AS
-    title, standalone_title, old_key_name
+LATERAL VIEW json_tuple(t.json, "slug", "title", "standalone_title", "old_key_name") j AS
+    slug, title, standalone_title, old_key_name
 WHERE j.old_key_name IS NOT NULL;

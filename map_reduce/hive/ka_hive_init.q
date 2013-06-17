@@ -510,6 +510,7 @@ ALTER TABLE badge_summary RECOVER PARTITIONS;
 
 DROP TABLE IF EXISTS topic_old_key_name;
 CREATE EXTERNAL TABLE IF NOT EXISTS topic_old_key_name (
+    slug STRING,
     title STRING,
     standalone_title STRING,
     old_key_name STRING

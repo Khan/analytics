@@ -88,6 +88,12 @@ def coach_student_dashboard():
     return flask.render_template('teacher-student-count.html')
 
 
+@app.route('/badges')
+@auth.login_required
+def badges_dashboard():
+    return flask.render_template('badge_summary.html')
+
+
 @app.route('/data/topic_summary')
 @auth.login_required
 def topic_summary_data():
@@ -157,6 +163,30 @@ def exercise_proficiency_summary(exercise):
     proficiency = data.proficiency_summary(db, exercise)
     return flask.jsonify({
         "proficiency_data": proficiency[0] if len(proficiency) else {}
+    })
+
+
+@app.route('/data/badge-summary/all')
+@auth.login_required
+def all_badge_summary():
+    start_dt = flask.request.args.get('start_date')
+    end_dt = flask.request.args.get('end_date')
+    badges = data.badge_summary(db, start_dt, end_dt)
+    return flask.jsonify({
+        "badges": badges
+    })
+
+
+@app.route('/data/badge-summary/<badge>')
+@auth.login_required
+def badge_summary(badge):
+    start_dt = flask.request.args.get('start_date')
+    end_dt = flask.request.args.get('end_date')
+    context_name = flask.request.args.get('context_name')
+    badges = data.badge_summary(db, start_dt, end_dt,
+                                badge, context_name)
+    return flask.jsonify({
+        "badges": badges
     })
 
 
