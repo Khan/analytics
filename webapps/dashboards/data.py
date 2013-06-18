@@ -429,12 +429,13 @@ def proficiency_summary(mongo, exercise=None):
     return result
 
 
-def badge_summary(mongo, begin_date=None, end_date=None,
+def badge_summary(collection, begin_date=None, end_date=None,
                     badge_name=None, context_name=None):
     """Extract summary for given badge and context.
     Returns summary for a badge in given context by specifying context_name
 
     Arguments:
+        collection - mongo collection from which summary is to be created
         badge_name - name of the badge,
         context_name - context in which badge was awarded
 
@@ -444,6 +445,9 @@ def badge_summary(mongo, begin_date=None, end_date=None,
      "total_awarded": ...,
      "badge_name": ...,
      "context_name": ... (if badge_name isn't None)}
+
+    Due to the fact that there are two tables for badge_summary by passing
+    collection we want to perform aggregation on we can avoid code duplication.
 
     Since it uses Aggregation Framework the results of $group
     stage are stored in memory it might lead to crashes at some point
@@ -476,6 +480,6 @@ def badge_summary(mongo, begin_date=None, end_date=None,
     if select_params:
         pipeline.insert(0, {"$match": select_params})
 
-    badge_data = mongo.report.badge_summary.aggregate(pipeline)
+    badge_data = collection.aggregate(pipeline)
 
     return badge_data["result"]

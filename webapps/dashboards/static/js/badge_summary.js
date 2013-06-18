@@ -39,7 +39,7 @@
     });
 
     var percentify = function(number, total) {
-        return (number * 100 / total).toFixed(2);
+        return (number * 100 / total).toFixed(3);
     };
 
     var TopicOldKeyModel = Backbone.Model.extend({
@@ -230,9 +230,9 @@
         _convertContextName: function(name) {
             var newName = name;
             if(name === "\\N") {
-                newName = "Globally";
+                newName = "None";
             } else if(!name) {
-                newName = "Global Context";
+                newName = "None";
             }
             return newName;
         },

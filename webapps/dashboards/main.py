@@ -227,7 +227,8 @@ def exercise_proficiency_summary(exercise):
 def all_badge_summary():
     start_dt = flask.request.args.get('start_date')
     end_dt = flask.request.args.get('end_date')
-    badges = data.badge_summary(db, start_dt, end_dt)
+    badges = data.badge_summary(db.report.badge_summary,
+        start_dt, end_dt)
     return flask.jsonify({
         "badges": badges
     })
@@ -239,8 +240,8 @@ def badge_summary(badge):
     start_dt = flask.request.args.get('start_date')
     end_dt = flask.request.args.get('end_date')
     context_name = flask.request.args.get('context_name')
-    badges = data.badge_summary(db, start_dt, end_dt,
-                                badge, context_name)
+    badges = data.badge_summary(db.report.badge_context_summary,
+        start_dt, end_dt, badge, context_name)
     return flask.jsonify({
         "badges": badges
     })
