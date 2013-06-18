@@ -101,6 +101,13 @@
       "mongo_collection":  "badge_summary",
       "importer_args": "dt=<day>",
       "hive_init": true
+    },
+    { "hive_script": "s3://ka-mapreduce/code/hive/badge_context_summary.q",
+      "hive_table": "badge_context_summary",
+      "hive_args": {"start_dt": "<day>", "end_dt": "<day_after>"},
+      "mongo_collection":  "badge_context_summary",
+      "importer_args": "dt=<day>",
+      "hive_init": true
     }
   ]
 

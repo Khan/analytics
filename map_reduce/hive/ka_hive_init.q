@@ -494,11 +494,24 @@ CREATE EXTERNAL TABLE IF NOT EXISTS exercise_summary (
   LOCATION 's3://ka-mapreduce/summary_tables/exercise_summary';
 ALTER TABLE exercise_summary RECOVER PARTITIONS;
 
+-- Summary of users badges per context
+DROP TABLE IF EXISTS badge_context_summary;
+CREATE EXTERNAL TABLE IF NOT EXISTS badge_context_summary (
+  badge_name STRING,
+  context_name STRING,
+  total_awarded INT,
+  unique_awarded INT,
+  total_points_earned INT
+  )
+  PARTITIONED BY (dt STRING)
+  LOCATION 's3://ka-mapreduce/summary_tables/badge_context_summary';
+ALTER TABLE badge_context_summary RECOVER PARTITIONS;
+
+
 -- Summary of users badges
 DROP TABLE IF EXISTS badge_summary;
 CREATE EXTERNAL TABLE IF NOT EXISTS badge_summary (
   badge_name STRING,
-  context_name STRING,
   total_awarded INT,
   unique_awarded INT,
   total_points_earned INT
