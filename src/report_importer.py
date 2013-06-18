@@ -167,11 +167,10 @@ def main(table_location,
                     else:
                         doc = None
                         break
-                    raise
 
                 doc[name] = value
 
-            if key_index > -1:
+            if key_index > -1 and doc:
                 # mongo primary keys are labelled as "_id"
                 doc['_id'] = parts[key_index]
 
