@@ -46,3 +46,7 @@ auth_whitelist.py
 
 # GeoIP Database
 GeoLiteCity.dat
+GeoLiteCity.dat.gz
+
+# Auto generated geolocation csv files
+geo/

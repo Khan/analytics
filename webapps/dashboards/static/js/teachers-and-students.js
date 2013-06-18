@@ -167,7 +167,7 @@
 
         parse: parseMongoResponse(GeoTeacherModel),
 
-        url: GEO_QUERY_URL + "?&batch_size=15000"
+        url: GEO_QUERY_URL + "?&batch_size=1000000"
     });
 
 
@@ -259,9 +259,9 @@
             }).value();
 
             createGraph(_.values(teacherSeries), "#teacher-graph-container",
-                "Number of teachers by day");
+                "Number Of Teachers");
             createGraph(_.values(studentSeries), "#student-graph-container",
-                "Number of students by day");
+                "Number Of Students");
         });
     };
 

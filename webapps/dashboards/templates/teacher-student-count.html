@@ -7,6 +7,7 @@ A simple dashboard monthly timeseries corresponding to number of teachers and st
 <head>
 <link rel="shortcut icon" href="http://www.khanacademy.org/favicon.ico?leaf">
 <link rel="stylesheet" type="text/css" href="/static/css/third_party/bootstrap.css">
+<title>Teachers And Students Dashboard</title>
 </head>
 
 <style>
@@ -14,8 +15,12 @@ A simple dashboard monthly timeseries corresponding to number of teachers and st
         margin-top: 40px;
     }
 
+    .row .btn {
+        margin-top: 15px;
+    }
+
     .map {
-        width: 940px;
+        width: 926px;
         height: 600px;
     }
 
@@ -31,7 +36,7 @@ A simple dashboard monthly timeseries corresponding to number of teachers and st
         -webkit-box-shadow: rgba(64, 64, 64, 0.5) 0 2px 5px;
         -moz-box-shadow: rgba(64, 64, 64, 0.5) 0 2px 5px;
         box-shadow: rgba(64, 64, 64, 0.1) 0 2px 5px;
-        width: 940px;
+        width: 926px;
         margin-bottom: 30px;
       }
 </style>
@@ -50,7 +55,7 @@ A simple dashboard monthly timeseries corresponding to number of teachers and st
         {{/if}}
         </h3>
         <p>{{user_email}}</p>
-        <p class="pull-right">{{city}}, {{region}} - {{country}}</p>
+        <p class="pull-right">{{#if city}}{{city}}, {{/if}}{{#if region}}{{region}} - {{/if}}{{country}}</p>
     </div>
 </script>
 {% endraw %}
@@ -92,13 +97,27 @@ A simple dashboard monthly timeseries corresponding to number of teachers and st
         comment, question or answer.  This definition will change over time to
         include more diverse activities.
     </p>
-    <h2>Teachers By Location</h2>
+    <div class="row">
+        <span class="span10">
+            <h2>Teachers Location</h2>
+        </span>
+        <span class="span2">
+            <a class="pull-right btn btn-success" href="/teachers-students/download-map">
+                Download Data
+            </a>
+        </span>
+    </div>
     <div class="map-container">
         <div id="geo-teachers" class="map"></div>
     </div>
+    <p class="muted">
+        Map shows teachers for whom at least one of their pupils performed
+        an activity on the website in the last 180 days, e.g., watching
+        a video or doing an exercise.
+    </p>
 </div>
 
-<script src="http://ajax.googleapis.com/ajax/libs/jquery/2.0.0/jquery.min.js"></script>
+<script src="http://code.jquery.com/jquery-2.0.2.js"></script>
 <script src="http://maps.google.com/maps/api/js?sensor=false"></script>
 <script src="http://code.highcharts.com/highcharts.js"></script>
 <script src="/static/js/third_party/markerclusterer_compiled.js"></script>

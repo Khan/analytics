@@ -13,6 +13,7 @@ It will house more dashboards for fundamental metrics we want to track.
 import collections
 import datetime
 import optparse
+import os
 import time
 
 import flask
@@ -20,6 +21,7 @@ import pymongo
 
 import auth
 import data
+import utf8csv
 
 app = flask.Flask(__name__)
 
@@ -84,7 +86,7 @@ def exercise_summary_dashboard():
 
 @app.route('/teachers-students')
 @auth.login_required
-def coach_student_dashboard():
+def teacher_student_dashboard():
     return flask.render_template('teacher-student-count.html')
 
 
@@ -92,6 +94,60 @@ def coach_student_dashboard():
 @auth.login_required
 def badges_dashboard():
     return flask.render_template('badge_summary.html')
+
+
+# Serve map data as a csv file. Generate one file per week
+@app.route("/teachers-students/download-map")
+@auth.login_required
+def download_teacher_map():
+    path = "geo"
+    if not os.path.exists(path):
+        os.mkdir(path)
+
+    now = datetime.datetime.now()
+    most_recent_monday = now.replace(day=now.day - now.weekday(),
+        hour=0, minute=0, second=0, microsecond=0)
+
+    # Changing file name prefix may impact which files will be deleted below.
+    # When in doubt delete old files since they are auto generated
+    filename_str = "teacher_geo_{0}.csv"
+    date_format = "%Y-%m-%d"
+
+    filename = filename_str.format(most_recent_monday.strftime(date_format))
+    file_path = os.path.join(path, filename)
+
+    geo_data = db.report.teacher_country.find({}, {"_id": 0})
+    with open(file_path, "wb") as f:
+
+        description = ["Teacher ID", "Teacher Email", "Teacher Nickname",
+                       "City", "Region", "Country", "Country Code",
+                       "Longitude", "Latitude"]
+
+        csv_writer = utf8csv.UnicodeWriter(f)
+        csv_writer.writerow(description)
+
+        for db_record in geo_data:
+            row = [db_record["user_id"],
+                   db_record["user_email"],
+                   db_record["user_nickname"],
+                   db_record["city"],
+                   db_record["region"],
+                   db_record["country"],
+                   db_record["country_code"],
+                   str(db_record["longitude"]),
+                   str(db_record["latitude"])]
+
+            csv_writer.writerow(row)
+
+    # This is only correct when lexicographical order of files is the desired
+    #  one.
+    # If some files have the same date (in name) it does not matter which one
+    #  will be removed.
+    files_with_newest_first = sorted(os.listdir(path), reverse=True)
+    for name in files_with_newest_first[1:]:
+        os.unlink(os.path.join(path, name))
+
+    return flask.send_from_directory(path, filename, as_attachment=True)
 
 
 @app.route('/data/topic_summary')
