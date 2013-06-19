@@ -100,7 +100,9 @@ def badges_dashboard():
 @app.route("/teachers-students/download-map")
 @auth.login_required
 def download_teacher_map():
-    path = "geo"
+    # Due to discrepancies with handling relative paths by flask and
+    # python os module we have to make paths absolute to avoid errors
+    path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "geo")
     if not os.path.exists(path):
         os.mkdir(path)
 
