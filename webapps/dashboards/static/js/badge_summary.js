@@ -596,7 +596,14 @@
 
         // Needs fixing, since not always will render in appropriate place
         _error: function() {
-            $.magnificPopup.close();
+            if($.magnificPopup.instance) {
+                if(!$.magnificPopup.instance.isOpen) {
+                    this._toggleLoader();
+                }
+                $.magnificPopup.close();
+            } else {
+                this._toggleLoader();
+            }
             $(".tiles", this.$el).parent().parent().remove();
             $("#badge-modal", this.$el).remove();
             $(this.errorTemplate().trim()).appendTo(this.$el);
