@@ -44,7 +44,7 @@ ${current_dir}/../src/bulk_download.py \
 
 # TODO(benkomalo): make command line flags consistent. "-d" is used for dir
 # in gae_download.py and bingo_download.py but day in bulk_download :(
-${current_dir}/../src/bingo_download.py -d ${archive_dir}
+${current_dir}/../src/bingo_download.py -d ${archive_dir} -s $day
 
 
 # Upload to s3.
