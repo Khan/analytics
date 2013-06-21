@@ -135,14 +135,15 @@ def active_teachers(end_date):
     Code is quite similiar to the one of active_student. However, it might
     be better to keep it separate in case definition changes."""
 
-    last_28days = {}
-    last_28dates = {}
-    student, current_teacher, current_dt = sys.stdin.readline().rstrip(
-        '\n').split('\t')
+    for line in sys.stdin:
+        student, current_teacher, current_dt = line.rstrip('\n').split('\t')
+        if current_teacher != "":
+            break
+
     current_dt_obj = datetime.datetime.strptime(
         current_dt, date_format).date()
-    last_28dates[current_teacher] = [current_dt_obj]
-    last_28days[current_teacher] = [{student: True}]
+    last_28dates = [current_dt_obj]
+    last_28days = {current_teacher: [{student: True}]}
 
     def get_active_teachers(dt):
         """For given date find all active teachers.
@@ -152,8 +153,8 @@ def active_teachers(end_date):
         for some_teacher in last_28days:
             active_students = {}
             for some_time in daterange(dt + datetime.timedelta(-28), dt):
-                if some_time in last_28dates[some_teacher]:
-                    idx = last_28dates[some_teacher].index(some_time)
+                if some_time in last_28dates:
+                    idx = last_28dates.index(some_time)
                     active_students = dict(list(active_students.items()) +
                         list(last_28days[some_teacher][idx].items()))
             if len(active_students) > 9:
@@ -164,26 +165,29 @@ def active_teachers(end_date):
 
     for line in sys.stdin:
         student, teacher, dt = line.rstrip('\n').split('\t')
+        if teacher == "":
+            continue
         dt_obj = datetime.datetime.strptime(dt, date_format).date()
 
         if dt_obj != current_dt_obj:
             [get_active_teachers(missing_date) for
                 missing_date in daterange(current_dt_obj, dt_obj)]
 
-            # Add placeholder for new date and remove oldest date
+            # Add place holder for new date and remove oldest date
             #   if there are more than 28
             current_dt_obj = dt_obj
+            last_28dates.append(current_dt_obj)
+            last_28dates = last_28dates[-28:]
             for some_teacher in last_28days:
                 last_28days[some_teacher].append({})
                 last_28days[some_teacher] = last_28days[some_teacher][-28:]
-                last_28dates[some_teacher].append(current_dt_obj)
-                last_28dates[some_teacher] = last_28dates[some_teacher][-28:]
 
-        # Add placeholder for new teacher
+        # Add place holder for new teacher
         if current_teacher != teacher:
             current_teacher = teacher
-            last_28days[current_teacher] = [{}]
-            last_28dates[current_teacher] = [current_dt_obj]
+            if not current_teacher in last_28days:
+                days_in = len(last_28days[last_28days.iterkeys().next()])
+                last_28days[current_teacher] = [{} for x in range(days_in)]
 
         last_idx = len(last_28days[current_teacher]) - 1
         last_28days[current_teacher][last_idx][student] = True
@@ -195,9 +199,10 @@ def active_teachers(end_date):
 
 
 def main():
+    commands = "{teacher|count|active-student|active-teacher}"
     usage_parts = ["Usage: coach_reduce.py <count_func> <end_date>",
         "       coach_reduce.py teacher",
-        "count_func can be one of {teacher|count|active-student|active_teacher}"]
+        "count_func can be one of {0}".format(commands)]
     usage_str = "\n".join(usage_parts)
     argc = len(sys.argv)
     if argc < 2:

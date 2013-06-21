@@ -382,6 +382,23 @@ CREATE EXTERNAL TABLE IF NOT EXISTS student_teacher_count (
     dt STRING
 ) LOCATION 's3://ka-mapreduce/summary_tables/student_teacher_count';
 
+-- Holds geolocated summary of teachers
+DROP TABLE IF EXISTS teacher_country;
+CREATE EXTERNAL TABLE IF NOT EXISTS teacher_country (
+    teacher STRING,
+    user_id STRING,
+    user_email STRING,
+    user_nickname STRING,
+    joined DOUBLE,
+    ip STRING,
+    city STRING,
+    region STRING,
+    country_code STRING,
+    country STRING,
+    latitude FLOAT,
+    longitude FLOAT
+) LOCATION 's3://ka-mapreduce/summary_tables/teacher_country';
+
 CREATE EXTERNAL TABLE IF NOT EXISTS video_topic(
   vid_key STRING, vid_title STRING, topic_key STRING,
   topic_title STRING, topic_desc STRING)
@@ -476,6 +493,42 @@ CREATE EXTERNAL TABLE IF NOT EXISTS exercise_summary (
   PARTITIONED BY (dt STRING)
   LOCATION 's3://ka-mapreduce/summary_tables/exercise_summary';
 ALTER TABLE exercise_summary RECOVER PARTITIONS;
+
+-- Summary of users badges per context
+DROP TABLE IF EXISTS badge_context_summary;
+CREATE EXTERNAL TABLE IF NOT EXISTS badge_context_summary (
+  badge_name STRING,
+  context_name STRING,
+  total_awarded INT,
+  unique_awarded INT,
+  total_points_earned INT
+  )
+  PARTITIONED BY (dt STRING)
+  LOCATION 's3://ka-mapreduce/summary_tables/badge_context_summary';
+ALTER TABLE badge_context_summary RECOVER PARTITIONS;
+
+
+-- Summary of users badges
+DROP TABLE IF EXISTS badge_summary;
+CREATE EXTERNAL TABLE IF NOT EXISTS badge_summary (
+  badge_name STRING,
+  total_awarded INT,
+  unique_awarded INT,
+  total_points_earned INT
+  )
+  PARTITIONED BY (dt STRING)
+  LOCATION 's3://ka-mapreduce/summary_tables/badge_summary';
+ALTER TABLE badge_summary RECOVER PARTITIONS;
+
+
+DROP TABLE IF EXISTS topic_old_key_name;
+CREATE EXTERNAL TABLE IF NOT EXISTS topic_old_key_name (
+    slug STRING,
+    title STRING,
+    standalone_title STRING,
+    old_key_name STRING
+) LOCATION 's3://ka-mapreduce/summary_tables/topic_old_key_name';
+
 
 DROP TABLE IF EXISTS exercise_proficiency_summary;
 CREATE EXTERNAL TABLE IF NOT EXISTS exercise_proficiency_summary (

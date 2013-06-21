@@ -345,6 +345,32 @@ def update_row(row, db_row, total_info=None):
     return row
 
 
+def prepare_group_select(main_type, sub_type=None,
+                begin_date=None, end_date=None):
+    """
+    Given tuples (name, value) of main and subcategory preparse
+    group and select clauses to group records by these columns
+    from given time frame
+    """
+
+    select_params = {}
+    group_params = {main_type[0]: 1}
+
+    if main_type[1]:
+        select_params[main_type[0]] = main_type[1]
+        if sub_type:
+            group_params[sub_type[0]] = 1
+            if sub_type[1]:
+                select_params[sub_type[0]] = sub_type[1]
+    if begin_date:
+        select_params["dt"] = {"$gte": begin_date}
+    if end_date:
+        select_params.setdefault("dt", {})
+        select_params["dt"]["$lt"] = end_date
+
+    return select_params, group_params
+
+
 def exercise_summary(mongo, begin_date=None, end_date=None,
                         exercise=None, sub_exercise_type=None):
     """Extract summary for given exercises and sub exercise type.
@@ -365,19 +391,8 @@ def exercise_summary(mongo, begin_date=None, end_date=None,
      "sub_exercise_type": ... (if exercise isn't None)}
     """
 
-    select_params = {}
-    group_params = {"exercise": 1}
-
-    if exercise is not None:
-        select_params["exercise"] = exercise
-        group_params["sub_exercise_type"] = 1
-        if sub_exercise_type:
-            select_params["sub_exercise_type"] = sub_exercise_type
-    if begin_date is not None:
-        select_params["dt"] = {"$gte": begin_date}
-    if end_date is not None:
-        select_params.setdefault("dt", {})
-        select_params["dt"]["$lt"] = end_date
+    select_params, group_params = prepare_group_select(("exercise", exercise),
+        ("sub_exercise_type", sub_exercise_type), begin_date, end_date)
 
     metrics_initial = {"time_taken": 0,
                        "correct_attempts": 0,
@@ -406,9 +421,65 @@ def proficiency_summary(mongo, exercise=None):
     if exercise is not None:
         select_params["exercise"] = exercise
 
-    # Omit synthetic mongo _id since it's not serializable
+    # Omit synthetic mongo _id since it's not serializable by flask
     result_cursor = mongo.report.exercise_proficiency_summary.find(
         select_params, {"_id": 0})
     result = [item for item in result_cursor]
 
     return result
+
+
+def badge_summary(collection, begin_date=None, end_date=None,
+                    badge_name=None, context_name=None):
+    """Extract summary for given badge and context.
+    Returns summary for a badge in given context by specifying context_name
+
+    Arguments:
+        collection - mongo collection from which summary is to be created
+        badge_name - name of the badge,
+        context_name - context in which badge was awarded
+
+    Return format depends on passed parameters.
+    {"unique_awarded": ...,
+     "total_points_earned": ...,
+     "total_awarded": ...,
+     "badge_name": ...,
+     "context_name": ... (if badge_name isn't None)}
+
+    Due to the fact that there are two tables for badge_summary by passing
+    collection we want to perform aggregation on we can avoid code duplication.
+
+    Since it uses Aggregation Framework the results of $group
+    stage are stored in memory it might lead to crashes at some point
+        in the future.
+    We cannot use "group" due to 20000 unique groupings limit.
+    On the other hand MapReduce is too slow, however, it's the only foolproof
+    solution.
+    """
+
+    select_params, group_params = prepare_group_select(
+        ("badge_name", badge_name), ("context_name", context_name),
+        begin_date, end_date)
+
+    group_by = {}
+    project_id = {"_id": 0, "total_awarded": 1,
+            "total_points_earned": 1, "unique_awarded": 1}
+
+    for key in group_params.keys():
+        group_by[key] = "${0}".format(key)
+        project_id[key] = "$_id.{0}".format(key)
+
+    pipeline = [{
+        "$group": {
+            "_id": group_by,
+            "total_awarded": {"$sum": "$total_awarded"},
+            "total_points_earned": {"$sum": "$total_points_earned"},
+            "unique_awarded": {"$sum": "$unique_awarded"}
+    }}, {"$project": project_id}]
+
+    if select_params:
+        pipeline.insert(0, {"$match": select_params})
+
+    badge_data = collection.aggregate(pipeline)
+
+    return badge_data["result"]

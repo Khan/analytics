@@ -2,6 +2,12 @@
 """Deploy utilities for map reduce code.
 
 This is a simple wrapper around copying files to S3 for the most part.
+Usually you will want to run it like this:
+    python deploy.py -v code
+
+In rare cases when you're updating GeoIP database on S3 run
+    "python deploy.py geoip"
+For even more information about GeoIP refer to Makefile in this directory
 """
 
 import optparse
@@ -96,7 +102,7 @@ def files_in_prod(branch=""):
     return files
 
 
-def copy_files_to_prod(filenames, branch=None):
+def copy_files_to_prod(filenames, branch=None, flatten=False):
     """Copies all given files to ka-mapreduce S3 code bucket"""
 
     dirname = _get_branch_dirname(branch)
@@ -105,6 +111,8 @@ def copy_files_to_prod(filenames, branch=None):
     bucket = s3conn.get_bucket('ka-mapreduce')
     for filename in filenames:
         with open(filename, 'r') as filestream:
+            if flatten:
+                filename = os.path.basename(filename)
             filepath = "%s%s" % (dirname, filename)
             key = bucket.get_key(filepath)
             if not key:
@@ -172,7 +180,7 @@ def send_hipchat_deploy_message(
 
 
 # TODO(benkomalo): wire up options for subdirectory to deploy to (for testing)
-def do_deploy(verbose, branch=""):
+def do_deploy(verbose, branch="", flatten=False):
     in_tree = set(files_in_tree())
     in_prod = set(files_in_prod(branch))
     new_files = in_tree - in_prod
@@ -194,17 +202,18 @@ def do_deploy(verbose, branch=""):
     if raw_input("Proceed? [y/N]: ").lower() not in ['y', 'yes']:
         return
 
-    copy_files_to_prod(files_to_push, branch)
+    copy_files_to_prod(files_to_push, branch, flatten)
     print "Done!"
-    if not branch.startswith("branch-"):  
+    if not branch.startswith("branch-"):
         # we only notify if not pushing to a personal branch.
-        # "branch-" is the conventional prefix for a personal branch. 
+        # "branch-" is the conventional prefix for a personal branch.
         send_hipchat_deploy_message(
                 replaced_files, new_files, spurious_files, dest_path)
 
 
 if __name__ == '__main__':
-    parser = optparse.OptionParser()
+    usage = "Usage: %prog [options] {code|geoip}"
+    parser = optparse.OptionParser(usage=usage)
     parser.add_option('-v', '--verbose',
         action="store_true", dest="verbose",
         help="Print more information during the deploy process")
@@ -212,6 +221,21 @@ if __name__ == '__main__':
         default="",
         help=("The branch to deploy to. By default, no branch is specified "
               "implying that the default production branch is used"))
+    parser.add_option('-f', '--flatten',
+        action="store_true", dest="flatten",
+        help=("Discard the directory structure from the source."
+              "Uploads files directly to branch speficied"))
 
     options, args = parser.parse_args()
-    do_deploy(options.verbose, options.branch)
+    if len(args) < 1:
+        # Catch invalid usage
+        parser.print_help()
+
+    if args[0] == "code":
+        do_deploy(options.verbose, options.branch, options.flatten)
+    if args[0] == "geoip":
+        geoIpFiles = ["const.py", "util.py", "timezone.py", "__init__.py"]
+        fullPahtFiles = map(
+            lambda f: "../third_party/pygeoip/pygeoip/" + f, geoIpFiles)
+        copy_files_to_prod(["GeoLiteCity.dat"] +
+            fullPahtFiles, "geo/", options.flatten)

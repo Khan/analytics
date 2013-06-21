@@ -156,20 +156,21 @@ def main(table_location,
                         value = float(parts[i])
                     else:
                         value = parts[i]
-                except Exception:
+                except ValueError:
                     if parts[i] == NULL_STRING:
-                        # TODO(benkomalo): figure out why our data has this.
-                        # It seems that sometimes Hive likes to put in
-                        # NULL values for ints and booleans? They don't parse
-                        # well. This is unfortunate - just skip the row since
-                        # it's pretty rare for now.
+                        # Some queries (especially OUTER JOINS) can result in
+                        #  null values in non string type fields.
+                        # In case the person who wrote the query does not
+                        #  replace resultant NULLs with default values
+                        #  the importer should still be able to copy the table
+                        value = None
+                    else:
                         doc = None
                         break
-                    raise
 
                 doc[name] = value
 
-            if key_index > -1:
+            if key_index > -1 and doc:
                 # mongo primary keys are labelled as "_id"
                 doc['_id'] = parts[key_index]
 

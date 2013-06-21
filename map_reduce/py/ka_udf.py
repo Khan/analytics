@@ -8,10 +8,12 @@
 import codecs
 import json
 import sys
+import os
+from subprocess import call
 sys.stdout = codecs.getwriter('utf8')(sys.stdout)
 
 
-def split(split_field, delimiter, selected, 
+def split(split_field, delimiter, selected,
             output_json=False, split_field_required=True):
     """Running split on the split_field from the json string.
 
@@ -55,7 +57,7 @@ def explode(key_fields, explode_field):
     """Running the explode function on the explode field.
        Example: key_fields='a,b' explode_field = 'c'
        input: {"a":"def", "b":"ghi", "c": [1,2,3]}
-       output: 
+       output:
             def\tghi\t1
             def\tghi\t2
             def\tghi\t3
@@ -88,7 +90,7 @@ def rank(key_field_index, rank_field_index, reverse=True, delimiter="\t"):
     sorted by the values in column <key_field_index>. It ranks within each
     group by the values in column <rank_field_index>.  The output is the
     original lines with an additional column for the numerical in-group
-    rank appended as the last column.  Note that the ranks start at 1 for the 
+    rank appended as the last column.  Note that the ranks start at 1 for the
     top value.
     """
     def process_group(lines):
@@ -100,8 +102,9 @@ def rank(key_field_index, rank_field_index, reverse=True, delimiter="\t"):
     prev_key = None
     group = []
     for line in sys.stdin:
-        line = line.strip().split(delimiter)
-        
+        # Due to hive representing empty values as "\n" line cannot be stripped
+        # However, we assume that the empty value isn't the last one in a row
+        line = line.rstrip().split(delimiter)
         key = line[key_field_index]
         if key != prev_key:
             process_group(group)
@@ -119,21 +122,46 @@ def ip_to_country(ip_field_index, delimiter="\t"):
     a new column that contains the country code, or "NULL" if the country
     can't be determined.
 
-    NOTE: the hive caller must ADD FILE for both pygeoip.py and the database.
+    NOTE: the hive caller must ADD FILE for both pygeoip
+        module and the database.
     """
-    sys.path.append(".")
+    # Move pygeoip files to pygeoip subdirectory in current working direcotry
+    # TODO(robert): ADD ARCHIVE should perform what code below does,
+    #   however, I didn't manage to make it work
+    workDir = os.path.dirname(__file__) + "/"
+    files = ["__init__.py", "timezone.py", "util.py", "const.py"]
+    modDir = workDir + "/pygeoip"
+    fullPathFiles = map(lambda f: workDir + f, files)
+    call(["mkdir", "-p", modDir])
+    call(["mv"] + fullPathFiles + [modDir])
+
+    sys.path.append(workDir)
     import pygeoip
-    
-    geo_ip = pygeoip.Database('GeoIP.dat')
+
+    geo_ip = pygeoip.GeoIP("GeoLiteCity.dat", pygeoip.MEMORY_CACHE)
 
     for line in sys.stdin:
-        line = line.strip().split(delimiter)
+        line = line.rstrip().split(delimiter)
         ip = line[ip_field_index]
-        try: 
-            country = geo_ip.lookup(ip).country or "NULL"
-        except:
-            country = "NULL"
-        line.append(country)
+        record = geo_ip.record_by_addr(ip)
+
+        # Python tries reading the strings using ascii encoding
+        # Since the names of cities and regions can have characters
+        #   beyond ascii we need to tell it to use geo ip encoding set.
+        line.append(record["city"].decode(
+            pygeoip.const.ENCODING) if "city" in record else "null")
+        line.append(
+            record["region_name"].decode(
+                pygeoip.const.ENCODING) if "region_name" in record else "null")
+        line.append(
+            record["country_code"] if "country_code" in record else "null")
+        line.append(
+            record["country_name"] if "country_name" in record else "null")
+        line.append(str(
+            record["latitude"]) if "latitude" in record else "null")
+        line.append(str(
+            record["longitude"]) if "longitude" in record else "null")
+
         sys.stdout.write("\t".join(line) + "\n")
 
 
@@ -184,10 +212,10 @@ def main():
         ip_to_country(int(sys.argv[2]))
         exit(0)
 
-    #Unknown 
+    #Unknown
     print >> sys.stderr, "Unknown function %s. Exiting!" % sys.argv[1]
     exit(1)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

@@ -30,6 +30,12 @@ def get_cmd_line_args():
             "-d", "--archive_dir",
             default="archive",
             help="The directory to archive the downloaded experiments.")
+    parser.add_option(
+            "-s", "--date_subdiretory",
+            help="The date subdirectory under archive_dir to store "
+                 "the data in.  Format:  YYYY-MM-DD.  Note that download "
+                 "API will always return the most recent data.  This doesn't "
+                 "change what is downloaded, only where it is written.")
 
     options, _ = parser.parse_args()
     return options
@@ -92,11 +98,14 @@ def fetch_and_process_data(options):
                    fetch_experiments(archived=True))
     logger.info("Downloaded %s experiments" % len(experiments))
 
+    date_subdir = str(datetime.date.today())
+    if options.date_subdiretory:
+        date_subdir = options.date_subdiretory
+
     # Named ".json" to be consistent with the other data files that have
     # JSON in them. They're just raw tab-delimited text files, though.
-    today = datetime.date.today()
     out_path = "%s/%s/bingo_alternative_info/bingo_alternative_info.json" % (
-            options.archive_dir, today)
+            options.archive_dir, date_subdir)
 
     if not os.path.exists(os.path.dirname(out_path)):
         os.makedirs(os.path.dirname(out_path))

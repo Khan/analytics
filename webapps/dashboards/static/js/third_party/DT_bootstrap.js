@@ -111,6 +111,7 @@ $.extend( $.fn.dataTableExt.oPagination, {
 							e.preventDefault();
 							oSettings._iDisplayStart = (parseInt($('a', this).text(),10)-1) * oPaging.iLength;
 							fnDraw( oSettings );
+                            return false;
 						} );
 				}
 

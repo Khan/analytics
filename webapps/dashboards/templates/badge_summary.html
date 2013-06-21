@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html>
+<!--
+Dashboard showing summary of awarded badges on the website
+-->
+
+<head>
+<link rel="shortcut icon" href="http://www.khanacademy.org/favicon.ico?leaf">
+<link rel="stylesheet" type="text/css" href="/static/css/third_party/bootstrap.css">
+<link rel="stylesheet" type="text/css" href="/static/css/third_party/scrollUp_tab.css">
+<link rel="stylesheet" type="text/css" href="/static/css/third_party/magnific-popup.css">
+<link rel="stylesheet" type="text/css" href="/static/css/third_party/DT_bootstrap.css">
+<link rel="stylesheet/less" type="text/css" href="/static/css/badges.less">
+<title>Badge Summary Dashboard</title>
+</head>
+
+<body>
+
+{% include 'navbar.html' %}
+
+{% raw %}
+<script id="badge-controls" type="text/x-handlebars-template">
+    <div class="display-controls">
+        <div class="row">
+            <span class="span12">
+                <h1>Badges</h1>
+            </span>
+        </div>
+        <div class="row">
+            <span class="span7">
+                <div class="btn-group" data-toggle="buttons-radio">
+                    <a class="btn btn-primary btn-large" href="#days/30">Last Month</a>
+                    <a class="btn btn-primary btn-large" href="#days/90">Last 3 Months</a>
+                    <a class="btn btn-primary btn-large" href="#days/365">Last Year</a>
+                    <a class="btn btn-primary btn-large" href="#days/0">All Time</a>
+                </div>
+            </span>
+            <span class="span5">
+                <div class="input-append">
+                    <input type="text" id="filter-query" placeholder="Filter Badges">
+                    <span class="add-on"><i class="icon-remove"></i></span>
+                </div>
+            </span>
+        </div>
+        <div class="row">
+            <span class="span6">
+                <div class="btn-group" data-toggle="buttons-checkbox">
+                {{#each categories}}
+                    <a class="btn btn-success" href="#filter/0/{{filter}}"><img src="{{icon}}" title="{{name}}"></a>
+                {{/each}}
+                </div>
+            </span>
+            <span class="span6 align-categories">
+                <div class="btn-group" data-toggle="buttons-checkbox">
+                {{#each contexts}}
+                    <a class="btn btn-success" href="#filter/1/{{filter}}">{{name}}</a>
+                {{/each}}
+                </div>
+            </span>
+        </div>
+        <div class="row">
+            <span class="span4">
+                <div class="btn-group" data-toggle="buttons-radio">
+                    <a class="btn btn-info" href="#sort/name">Name</a>
+                    <a class="btn btn-info" href="#sort/popularity">Popularity</a>
+                    <a class="btn btn-info" href="#sort/unique">Unique Users</a>
+                </div>
+            </span>
+        </div>
+        <hr class="horizontal-line">
+    </div>
+</script>
+
+<script id="loading-tpl" type="text/x-handlebars-template">
+    <div class="loader-box row">
+        <div class="loader-container">
+            <div class="throbber-row clearfix">
+                 <div class="block-0 throbber-block"></div>
+                 <div class="block-1 throbber-block"></div>
+                 <div class="block-2 throbber-block"></div>
+            </div>
+            <div class="throbber-row clearfix">
+                 <div class="block-7 throbber-block"></div>
+                 <div class="block-8 throbber-block"></div>
+                 <div class="block-3 throbber-block"></div>
+            </div>
+            <div class="throbber-row clearfix">
+                 <div class="block-6 throbber-block"></div>
+                 <div class="block-5 throbber-block"></div>
+                 <div class="block-4 throbber-block"></div>
+            </div>
+        </div>
+    </div>
+</script>
+
+<script id="badge-container" type="text/x-handlebars-template">
+    <div class="row">
+        <span class="span12">
+            <div id="badge-tiles" class="tiles">
+                {{#each data}}
+                    {{> badge-stats}}
+                {{/each}}
+            </div>
+        </span>
+    </div>
+    <div id="badge-modal" class="badge-modal text-center mfp-hide"></div>
+</script>
+
+<script id="badge-modal-tpl" type="text/x-handlebars-template">
+    <div class="row badge-description text-left">
+        <span class="span4 badge-image text-center">
+            <img class="round-image" src="{{{badge_image}}}" width=250 height=250 />
+        </span>
+        <span class="span8">
+            <h2 class="badge-name">{{badge_name}}</h2>
+            <p class="lead">{{badge_description}}</p>
+        </span>
+    </div>
+    <hr class="horizontal-line">
+    <div class="row">
+        <span class="span12">
+            <table id="context-table" class="table table-hover table-striped">
+                <thead>
+                    <tr>
+                        <th>Earned After</th>
+                        <th>Total</th>
+                        <th>Total (%)</th>
+                        <th>Unique</th>
+                        <th>Unique (%)</th>
+                        {{#if badge_has_points}}
+                            <th>Points</th>
+                        {{/if}}
+                    </tr>
+                </thead>
+                <tbody>
+                    {{#each contexts}}
+                        <tr>
+                            <td>{{context_name}}</td>
+                            <td>{{total_awarded}}</td>
+                            <td>{{total_percentage}}</td>
+                            <td>{{unique_awarded}}</td>
+                            <td>{{unique_percentage}}</td>
+                            {{#if ../badge_has_points}}
+                                <td>{{total_points_earned}}</td>
+                            {{/if}}
+                        </tr>
+                    {{/each}}
+                </tbody>
+            </table>
+        </span>
+    </div>
+</script>
+
+<script id="badge-popup-tpl" type="text/x-handlebars-template">
+    <p class="no-margin"><strong>Category:</strong> <span class="label label-warning">{{category_name}}</span></p>
+    <p class=""><strong>Context:</strong> <span class="label label-warning">{{context_name}}</span></p>
+    <dl>
+        <dt>Order Within Category (by Total)</dt>
+        <dd><span class="badge">{{ordinal category_total_awarded_order}}</span> ({{category_total_awarded_percentage}}%)</dd>
+        <dt>Order Within Category (by Unique)</dt>
+        <dd><span class="badge">{{ordinal category_unique_awarded_order}}</span> ({{category_unique_awarded_percentage}}%)</dd>
+        <dt>Order Within Context (by Total)</dt>
+        <dd><span class="badge">{{ordinal context_total_awarded_order}}</span> ({{context_total_awarded_percentage}}%)</dd>
+        <dt>Order Within Context (by Unique)</dt>
+        <dd><span class="badge">{{ordinal context_unique_awarded_order}}</span> ({{context_unique_awarded_percentage}}%)</dd>
+    </dl>
+</script>
+
+<script id="badge-tpl" type="text/x-handlebars-template">
+    <div class="tile text-center {{filter_classes}}" title="{{badge_display_name}}" data-content="{{popup_content}}" data-badge="{{badge}}">
+        <div class="img-background pull-left">
+            <img class="round-image" src="{{badge_image}}" width=80 height=80 />
+        </div>
+        <p class="badge-name">{{badge_display_name}}</p>
+        <div class="badge-stats">
+            <div class="core-stats">
+                <span class="divided-element">Total <p class="no-margin">{{total_awarded}}</p></span>
+                <span class="vertical-divider"></span>
+                <span class="divided-element">Unique <p class="no-margin">{{unique_awarded}}</p></span>
+            </div>
+            <hr class="horizontal-line">
+            <div class="points">
+                <span>Points {{total_points_earned}}</span>
+            </div>
+        </div>
+    </div>
+</script>
+
+<script id="error-tpl" type="text/x-handlebars-template">
+    <div class="alert alert-error fade in">
+        <button type="button" class="close" data-dismiss="alert">×</button>
+        <strong>Oops...</strong> Cannot fetch data from the server. Please try again later.
+    </div>
+</script>
+{% endraw %}
+
+<script src="http://code.jquery.com/jquery-2.0.2.js"></script>
+<script src="http://cdnjs.cloudflare.com/ajax/libs/less.js/1.3.3/less.min.js"></script>
+<script src="/static/js/third_party/handlebars.js"></script>
+<script src="/static/js/third_party/underscore-min.js"></script>
+<script src="/static/js/third_party/backbone-min.js"></script>
+<script src="/static/js/third_party/bootstrap-dropdown.js"></script>
+<script src="/static/js/third_party/bootstrap-button.js"></script>
+<script src="/static/js/third_party/bootstrap-alert.js"></script>
+<script src="/static/js/third_party/bootstrap-tooltip.js"></script>
+<script src="/static/js/third_party/bootstrap-popover.js"></script>
+<script src="/static/js/third_party/moment.min.js"></script>
+<script src="/static/js/third_party/jquery-ajax-localstorage-cache.js"></script>
+<script src="/static/js/third_party/jquery.isotope.min.js"></script>
+<script src="/static/js/third_party/jquery.scrollUp.min.js"></script>
+<script src="/static/js/third_party/jquery.magnific-popup.min.js"></script>
+<script src="/static/js/third_party/jquery.dataTables.js"></script>
+<script src="/static/js/third_party/DT_bootstrap.js"></script>
+<script src="/static/js/third_party/jquery.fuzzymatch.min.js"></script>
+
+<script src="/static/js/badge_summary.js"></script>
+
+</body>
+</html>

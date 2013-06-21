@@ -2,7 +2,7 @@
 <html>
 <head>
 <link rel="shortcut icon" href="http://www.khanacademy.org/favicon.ico?leaf">
-<link rel="stylesheet" type="text/css" href="static/css/third_party/bootstrap.css">
+<link rel="stylesheet" type="text/css" href="/static/css/third_party/bootstrap.css">
 
 <style>
 section {
@@ -35,7 +35,7 @@ section .row {
                 </a>
                 <div>
                     <a href="/goals">
-                        <img src="static/img/preview-goals.png">
+                        <img src="/static/img/preview-goals.png">
                     </a>
                 </div>
             </span>
@@ -47,7 +47,7 @@ section .row {
                 Tracks and gains and losses in active user accounts.
                 <div>
                     <a href="/growth">
-                        <img src="static/img/preview-growth.png">
+                        <img src="/static/img/preview-growth.png">
                     </a>
                 </div>
             </span>
@@ -60,7 +60,7 @@ section .row {
                 Time series graphs on exercises activity
                 <div>
                     <a href="/exercises">
-                        <img src="static/img/preview-dailyex.png">
+                        <img src="/static/img/preview-dailyex.png">
                     </a>
                 </div>
             </span>
@@ -69,7 +69,7 @@ section .row {
                 A summary of videos watched on a given period
                 <div>
                     <a href="/top-videos">
-                        <img src="static/img/preview-videos.png">
+                        <img src="/static/img/preview-videos.png">
                     </a>
                 </div>
             </span>
@@ -81,7 +81,7 @@ section .row {
                 Learning efficiency and retention over time
                 <div>
                     <a href="/learning">
-                        <img src="static/img/preview-learningdash.png">
+                        <img src="/static/img/preview-learningdash.png">
                     </a>
                 </div>
             </span>
@@ -91,7 +91,7 @@ section .row {
                 A/B Test Experiment Results
                 <div>
                     <a href="http://www.khanacademy.org/gae_bingo/dashboard">
-                        <img src="static/img/preview-gaebingo.png">
+                        <img src="/static/img/preview-gaebingo.png">
                     </a>
                 </div>
             </span>
@@ -104,7 +104,7 @@ section .row {
                 location of user.
                 <div>
                     <a href="/real-time">
-                        <img src="static/img/preview-real-time.png">
+                        <img src="/static/img/preview-real-time.png">
                     </a>
                 </div>
             </span>
@@ -114,7 +114,30 @@ section .row {
                 <p>Data about exercises difficulty</p>
                 <div>
                     <a href="/exercise-summary">
-                        <img src="static/img/preview-exercise-summary.png">
+                        <img src="/static/img/preview-exercise-summary.png">
+                    </a>
+                </div>
+            </span>
+        </div>
+
+        <div class="row">
+            <span class="span6">
+                <h3><a href="/teachers-students">Teachers and Students Growth</a></h3>
+                <p>Trends in number of teachers and students using khan academy with
+                    map locating all the teachers.</p>
+                <div>
+                    <a href="/teachers-students">
+                        <img src="/static/img/preview-teachers-students.png">
+                    </a>
+                </div>
+            </span>
+
+            <span class="span6">
+                <h3><a href="/badges">Badges</a></h3>
+                <p>Statistics about awarded badges</p>
+                <div>
+                    <a href="/badges">
+                        <img src="/static/img/preview-badges.png">
                     </a>
                 </div>
             </span>
@@ -130,13 +153,13 @@ section .row {
         <div class="row">
             <span class="span6">
                 <h3><a href="/gae_stats/daily_request_log_url_stats">Top URLs by Count</a></h3>
-                <img src="static/img/appengine.png">
+                <img src="/static/img/appengine.png">
                 <!-- TODO(chris): generate a preview image -->
                 Performance metrics for the most accessed URLs.
             </span>
             <span class="span6">
                 <h3><a href="/gae_stats/url_stats">Stats for One URL</a></h3>
-                <img src="static/img/appengine.png">
+                <img src="/static/img/appengine.png">
                 <!-- TODO(chris): generate a preview image -->
                 Performance metrics over time for each URL.
             </span>
@@ -144,13 +167,13 @@ section .row {
         <div class="row">
             <span class="span6">
                 <h3><a href="/gae_stats/daily_request_log_urlroute_stats">Top URL Routes by Count</a></h3>
-                <img src="static/img/appengine.png">
+                <img src="/static/img/appengine.png">
                 <!-- TODO(chris): generate a preview image -->
                 Performance metrics for the most accessed Flask and webapp2 routes.
             </span>
             <span class="span6">
                 <h3><a href="/gae_stats/urlroute_stats">Stats for One URL Route</a></h3>
-                <img src="static/img/appengine.png">
+                <img src="/static/img/appengine.png">
                 <!-- TODO(chris): generate a preview image -->
                 Performance metrics over time for each URL route.
             </span>
@@ -158,14 +181,14 @@ section .row {
         <div class="row">
             <span class="span6">
                 <h3><a href="/gae_stats/dashboard_charts">Dashboard Charts</a></h3>
-                <img src="static/img/appengine.png">
+                <img src="/static/img/appengine.png">
                 <!-- TODO(chris): generate a preview image -->
                 Replication (with history) of the charts on App
                 Engine's dashboard.
             </span>
             <span class="span6">
                 <h3><a href="/gae_stats/memcache">Memcache</a></h3>
-                <img src="static/img/appengine.png">
+                <img src="/static/img/appengine.png">
                 <!-- TODO(chris): generate a preview image -->
                 Statistics over time for App Engine's memcache.
             </span>
@@ -173,14 +196,14 @@ section .row {
         <div class="row">
             <span class="span6">
                 <h3><a href="/webpagetest/stats">Webpagetest (client) stats</a></h3>
-                <img src="static/img/appengine.png">
+                <img src="/static/img/appengine.png">
                 <!-- TODO(chris): generate a preview image -->
                 Performance metrics over time as seen by a remote client
                 application operated by <a href="http://webpagetest.org">webpagetest.org</a>.
             </span>
             <span class="span6">
                 <h3><a href="/gae_stats/billing_history">Billing History</a></h3>
-                <img src="static/img/appengine.png">
+                <img src="/static/img/appengine.png">
                 <!-- TODO(chris): generate a preview image -->
                 Daily usage reports used for billing by App Engine.
             </span>
@@ -188,7 +211,7 @@ section .row {
         <div class="row">
             <span class="span6">
                 <h3><a href="/gae_stats/instances">Instances</a></h3>
-                <img src="static/img/appengine.png">
+                <img src="/static/img/appengine.png">
                 <!-- TODO(chris): generate a preview image -->
                 Summary data over time for App Engine's instance usage.
             </span>
@@ -202,12 +225,12 @@ section .row {
         <div class="row">
             <span class="span6">
                 <h3><a href="https://www.google.com/analytics/web/?pli=1#report/visitors-overview/a6742635w12978934p13634188/">Google Analytics</a></h3>
-                <img src="static/img/google-analytics.png">
+                <img src="/static/img/google-analytics.png">
                 Various client side reports using the Google Analytics JS API (user counts, page flows, etc).
             </span>
             <span class="span6">
                 <h3><a href="https://developers.facebook.com/apps/160249463991765/insights">Facebook Insights</a></h3>
-                <img src="static/img/fbinsights.png">
+                <img src="/static/img/fbinsights.png">
                 Facebook provided metrics on demographics and shares/CTR/exposure to Facebook users.
             </span>
         </div>
@@ -222,12 +245,12 @@ section .row {
         <div class="row">
             <span class="span6">
                 <h3><a href="https://appengine.google.com/dashboard?&app_id=s~khan-academy">KA AppEngine</a></h3>
-                <img src="static/img/appengine.png">
+                <img src="/static/img/appengine.png">
                 Khan Academy App on GAE
             </span>
             <span class="span6">
                 <h3><a href="http://code.google.com/status/appengine">AppEngine Global</a></h3>
-                <img src="static/img/appengine.png">
+                <img src="/static/img/appengine.png">
                 General AppEngine Health
             </span>
         </div>
@@ -238,7 +261,7 @@ section .row {
             </span>
             <span class="span6">
                 <h3><a href="https://console.aws.amazon.com/console/home">AWS Console</a></h3>
-                <img src="static/img/aws.png">
+                <img src="/static/img/aws.png">
                 Amazon Web Services
             </span>
         </div>
@@ -246,7 +269,7 @@ section .row {
 </div>
 
 <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
-<script src="static/js/third_party/bootstrap-dropdown.js"></script>
+<script src="/static/js/third_party/bootstrap-dropdown.js"></script>
 
 </body>
 </html>

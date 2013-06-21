@@ -1,0 +1,1064 @@
+{
+    "contents": {
+        "badges": {
+            "actonesceneonebadge": {
+                "category": 0, 
+                "context_type": 0, 
+                "description": "Act I Scene I", 
+                "extended_descritpion": "Watch 20 minutes of video", 
+                "name": "actonesceneonebadge", 
+                "points": 0, 
+                "triggers": []
+            }, 
+            "answertimestampreferencebadge": {
+                "category": 0, 
+                "context_type": 0, 
+                "description": "Researcher", 
+                "extended_descritpion": "Reference a timestamp when answering a question on a video or program", 
+                "name": "answertimestampreferencebadge", 
+                "points": 0, 
+                "triggers": [
+                    1
+                ]
+            }, 
+            "atlasbadge": {
+                "category": 4, 
+                "context_type": 0, 
+                "description": "Atlas", 
+                "extended_descritpion": "Achieve proficiency in any 500 skills", 
+                "name": "atlasbadge", 
+                "points": 200000, 
+                "triggers": []
+            }, 
+            "awesomeplaylisttimebadge": {
+                "category": 1, 
+                "context_type": 2, 
+                "description": "Awesome Listener", 
+                "extended_descritpion": "Watch 1 hour of video in a single topic", 
+                "name": "awesomeplaylisttimebadge", 
+                "points": 0, 
+                "triggers": []
+            }, 
+            "awesomestreakbadge": {
+                "category": 0, 
+                "context_type": 1, 
+                "description": "Awesome Streak", 
+                "extended_descritpion": "Correctly answer 60 problems in a row in a single skill", 
+                "name": "awesomestreakbadge", 
+                "points": 0, 
+                "triggers": []
+            }, 
+            "awesometimedproblembadge": {
+                "category": 1, 
+                "context_type": 1, 
+                "description": "Going Supersonic", 
+                "extended_descritpion": "Quickly & correctly answer 20 skill problems in a row (time limit depends on skill difficulty)", 
+                "name": "awesometimedproblembadge", 
+                "points": 750, 
+                "triggers": []
+            }, 
+            "copernicusbadge": {
+                "category": 3, 
+                "context_type": 0, 
+                "description": "Copernicus", 
+                "extended_descritpion": "Achieve proficiency in any 200 skills", 
+                "name": "copernicusbadge", 
+                "points": 80000, 
+                "triggers": []
+            }, 
+            "creatednewscratchpadbadge": {
+                "category": 0, 
+                "context_type": 4, 
+                "description": "Apprentice Programmer", 
+                "extended_descritpion": "Create a program from scratch", 
+                "name": "creatednewscratchpadbadge", 
+                "points": 0, 
+                "triggers": [
+                    2
+                ]
+            }, 
+            "donatebadge": {
+                "category": 2, 
+                "context_type": 0, 
+                "description": "Make it rain", 
+                "extended_descritpion": "Support Khan Academy with a donation of any size", 
+                "name": "donatebadge", 
+                "points": 0, 
+                "triggers": []
+            }, 
+            "doublepowerhourbadge": {
+                "category": 2, 
+                "context_type": 0, 
+                "description": "Double Power Hour", 
+                "extended_descritpion": "Correctly answer 180 problems and watch 30 minutes of video in 2 hours", 
+                "name": "doublepowerhourbadge", 
+                "points": 0, 
+                "triggers": []
+            }, 
+            "fifteendayconsecutiveactivitybadge": {
+                "category": 1, 
+                "context_type": 0, 
+                "description": "Like Clockwork", 
+                "extended_descritpion": "Watch part of any video or work on any skill each day for 15 consecutive days", 
+                "name": "fifteendayconsecutiveactivitybadge", 
+                "points": 0, 
+                "triggers": []
+            }, 
+            "firstdownvotebadge": {
+                "category": 0, 
+                "context_type": 0, 
+                "description": "Thumbs Down", 
+                "extended_descritpion": "Cast your first down vote for an unhelpful discussion post or program", 
+                "name": "firstdownvotebadge", 
+                "points": 0, 
+                "triggers": []
+            }, 
+            "firstflagbadge": {
+                "category": 0, 
+                "context_type": 0, 
+                "description": "Flag Duty", 
+                "extended_descritpion": "Flag your first discussion post on a video or program for a Guardian's attention", 
+                "name": "firstflagbadge", 
+                "points": 0, 
+                "triggers": []
+            }, 
+            "firstupvotebadge": {
+                "category": 0, 
+                "context_type": 0, 
+                "description": "Thumbs Up", 
+                "extended_descritpion": "Cast your first up vote for a helpful discussion post or program", 
+                "name": "firstupvotebadge", 
+                "points": 0, 
+                "triggers": []
+            }, 
+            "fivedayconsecutiveactivitybadge": {
+                "category": 0, 
+                "context_type": 0, 
+                "description": "Good Habits", 
+                "extended_descritpion": "Watch part of any video or work on any skill each day for 5 consecutive days", 
+                "name": "fivedayconsecutiveactivitybadge", 
+                "points": 0, 
+                "triggers": []
+            }, 
+            "fivehundredthousandairebadge": {
+                "category": 2, 
+                "context_type": 0, 
+                "description": "Five Times Ten to the Fifth", 
+                "extended_descritpion": "Earn 500,000 energy points", 
+                "name": "fivehundredthousandairebadge", 
+                "points": 0, 
+                "triggers": []
+            }, 
+            "forkedofficialscratchpadbadge": {
+                "category": 0, 
+                "context_type": 4, 
+                "description": "Mad Scientist", 
+                "extended_descritpion": "Make changes to an official program", 
+                "name": "forkedofficialscratchpadbadge", 
+                "points": 0, 
+                "triggers": [
+                    3
+                ]
+            }, 
+            "forkeduserscratchpadbadge": {
+                "category": 0, 
+                "context_type": 4, 
+                "description": "Collaborator", 
+                "extended_descritpion": "Make changes to another user's program", 
+                "name": "forkeduserscratchpadbadge", 
+                "points": 0, 
+                "triggers": [
+                    3
+                ]
+            }, 
+            "getforkedfiftytimesbadge": {
+                "category": 2, 
+                "context_type": 4, 
+                "description": "Incredible Inspiration", 
+                "extended_descritpion": "Other users created 50 programs based on one of yours", 
+                "name": "getforkedfiftytimesbadge", 
+                "points": 5000, 
+                "triggers": [
+                    4
+                ]
+            }, 
+            "getforkedoncebadge": {
+                "category": 0, 
+                "context_type": 4, 
+                "description": "Inspiration", 
+                "extended_descritpion": "Another user created a program based on one of yours", 
+                "name": "getforkedoncebadge", 
+                "points": 500, 
+                "triggers": [
+                    4
+                ]
+            }, 
+            "getforkedtentimesbadge": {
+                "category": 1, 
+                "context_type": 4, 
+                "description": "Good Inspiration", 
+                "extended_descritpion": "Other users created 10 programs based on one of yours", 
+                "name": "getforkedtentimesbadge", 
+                "points": 1000, 
+                "triggers": [
+                    4
+                ]
+            }, 
+            "getforkedtwentyfivetimesbadge": {
+                "category": 2, 
+                "context_type": 4, 
+                "description": "Great Inspiration", 
+                "extended_descritpion": "Other users created 25 programs based on one of yours", 
+                "name": "getforkedtwentyfivetimesbadge", 
+                "points": 2500, 
+                "triggers": [
+                    4
+                ]
+            }, 
+            "gettingstartedbadge": {
+                "category": 0, 
+                "context_type": 0, 
+                "description": "Just Getting Started", 
+                "extended_descritpion": "Achieve proficiency in any 3 skills", 
+                "name": "gettingstartedbadge", 
+                "points": 100, 
+                "triggers": []
+            }, 
+            "greatplaylisttimebadge": {
+                "category": 0, 
+                "context_type": 2, 
+                "description": "Great Listener", 
+                "extended_descritpion": "Watch 30 minutes of video in a single topic", 
+                "name": "greatplaylisttimebadge", 
+                "points": 0, 
+                "triggers": []
+            }, 
+            "greatstreakbadge": {
+                "category": 0, 
+                "context_type": 1, 
+                "description": "Great Streak", 
+                "extended_descritpion": "Correctly answer 40 problems in a row in a single skill", 
+                "name": "greatstreakbadge", 
+                "points": 0, 
+                "triggers": []
+            }, 
+            "greattimedproblembadge": {
+                "category": 1, 
+                "context_type": 1, 
+                "description": "Going Transonic", 
+                "extended_descritpion": "Quickly & correctly answer 10 skill problems in a row (time limit depends on skill difficulty)", 
+                "name": "greattimedproblembadge", 
+                "points": 500, 
+                "triggers": []
+            }, 
+            "hardatworkbadge": {
+                "category": 1, 
+                "context_type": 0, 
+                "description": "Hard at Work", 
+                "extended_descritpion": "Achieve proficiency in any 25 skills", 
+                "name": "hardatworkbadge", 
+                "points": 6000, 
+                "triggers": []
+            }, 
+            "hundreddayconsecutiveactivitybadge": {
+                "category": 2, 
+                "context_type": 0, 
+                "description": "10,000 Year Clock", 
+                "extended_descritpion": "Watch part of any video or work on any skill each day for 100 consecutive days", 
+                "name": "hundreddayconsecutiveactivitybadge", 
+                "points": 0, 
+                "triggers": []
+            }, 
+            "hundredthousandairebadge": {
+                "category": 1, 
+                "context_type": 0, 
+                "description": "Ten to the Fifth", 
+                "extended_descritpion": "Earn 100,000 energy points", 
+                "name": "hundredthousandairebadge", 
+                "points": 0, 
+                "triggers": []
+            }, 
+            "keepfightingbadge": {
+                "category": 1, 
+                "context_type": 1, 
+                "description": "Steadfastness", 
+                "extended_descritpion": "Answer more than 40 problems mostly correctly in a skill before becoming proficient", 
+                "name": "keepfightingbadge", 
+                "points": 0, 
+                "triggers": []
+            }, 
+            "kelvinbadge": {
+                "category": 1, 
+                "context_type": 4, 
+                "description": "1000 Kelvin", 
+                "extended_descritpion": "Have a red-hot program at the top of the Community Programs list", 
+                "name": "kelvinbadge", 
+                "points": 1000, 
+                "triggers": [
+                    8
+                ]
+            }, 
+            "keplerbadge": {
+                "category": 3, 
+                "context_type": 0, 
+                "description": "Kepler", 
+                "extended_descritpion": "Achieve proficiency in any 300 skills", 
+                "name": "keplerbadge", 
+                "points": 125000, 
+                "triggers": []
+            }, 
+            "levelfivealgebraistbadge": {
+                "category": 1, 
+                "context_type": 0, 
+                "description": "Artisan III Algebraist", 
+                "extended_descritpion": "Achieve proficiency in New operator definitions 1, New operator definitions 2, Expressions with unknown variables 2, Abs Val Eq., Rad Eq 1, Rate Prob 1", 
+                "name": "levelfivealgebraistbadge", 
+                "points": 1000, 
+                "triggers": []
+            }, 
+            "levelfouralgebraistbadge": {
+                "category": 1, 
+                "context_type": 0, 
+                "description": "Artisan II Algebraist", 
+                "extended_descritpion": "Achieve proficiency in Multi-step equations, Multi-step linear inequalities, Average word problems, Finding the equation of a line, Quadr. Fac., Quad Frmula, Solving Var, Unkn Vars 1", 
+                "name": "levelfouralgebraistbadge", 
+                "points": 1000, 
+                "triggers": []
+            }, 
+            "levelonealgebraistbadge": {
+                "category": 1, 
+                "context_type": 0, 
+                "description": "Apprentice Algebraist", 
+                "extended_descritpion": "Achieve proficiency in Fractional exponents, Exponent rules, Simplifying logarithms, One-step equations with multiplication, % Word 1, Functions 1", 
+                "name": "levelonealgebraistbadge", 
+                "points": 100, 
+                "triggers": []
+            }, 
+            "leveloneanswerqualitycountbadge": {
+                "category": 2, 
+                "context_type": 0, 
+                "description": "Guru", 
+                "extended_descritpion": "Post 10 answers that earn 3+ votes", 
+                "name": "leveloneanswerqualitycountbadge", 
+                "points": 0, 
+                "triggers": [
+                    0
+                ]
+            }, 
+            "leveloneanswervotecountbadge": {
+                "category": 1, 
+                "context_type": 3, 
+                "description": "Good Answer", 
+                "extended_descritpion": "Post an answer that earns 10+ votes", 
+                "name": "leveloneanswervotecountbadge", 
+                "points": 0, 
+                "triggers": []
+            }, 
+            "levelonearithmeticianbadge": {
+                "category": 1, 
+                "context_type": 0, 
+                "description": "Apprentice Arithmetician", 
+                "extended_descritpion": "Achieve proficiency in 1-digit addition, 1-digit subtraction, Multiplying 1-digit numbers, 1-digit division", 
+                "name": "levelonearithmeticianbadge", 
+                "points": 100, 
+                "triggers": []
+            }, 
+            "leveloneprealgebraistbadge": {
+                "category": 1, 
+                "context_type": 0, 
+                "description": "Apprentice Pre-algebraist", 
+                "extended_descritpion": "Achieve proficiency in Positive and zero exponents, Adding and subtracting negative numbers, Adding and subtracting fractions", 
+                "name": "leveloneprealgebraistbadge", 
+                "points": 100, 
+                "triggers": []
+            }, 
+            "levelonequestionqualitycountbadge": {
+                "category": 2, 
+                "context_type": 0, 
+                "description": "Investigator", 
+                "extended_descritpion": "Ask 10 questions that earn 3+ votes", 
+                "name": "levelonequestionqualitycountbadge", 
+                "points": 0, 
+                "triggers": [
+                    0
+                ]
+            }, 
+            "levelonequestionvotecountbadge": {
+                "category": 1, 
+                "context_type": 3, 
+                "description": "Good Question", 
+                "extended_descritpion": "Ask a question that earns 10+ votes", 
+                "name": "levelonequestionvotecountbadge", 
+                "points": 0, 
+                "triggers": []
+            }, 
+            "levelonetrigonometricianbadge": {
+                "category": 1, 
+                "context_type": 0, 
+                "description": "Apprentice Trigonometrician", 
+                "extended_descritpion": "Achieve proficiency in Angles 2, Distance formula, Pythagorean theorem", 
+                "name": "levelonetrigonometricianbadge", 
+                "points": 100, 
+                "triggers": []
+            }, 
+            "levelthreealgebraistbadge": {
+                "category": 1, 
+                "context_type": 0, 
+                "description": "Artisan I Algebraist", 
+                "extended_descritpion": "Achieve proficiency in Equations with variables on both sides, Systems of equations, Multiplying expressions 1, Even/Odd fx, Inverse fx, Line slope, Midpoint F., Line Relat., Functions 3", 
+                "name": "levelthreealgebraistbadge", 
+                "points": 750, 
+                "triggers": []
+            }, 
+            "levelthreeanswervotecountbadge": {
+                "category": 2, 
+                "context_type": 3, 
+                "description": "Incredible Answer", 
+                "extended_descritpion": "Post an answer that earns 50+ votes", 
+                "name": "levelthreeanswervotecountbadge", 
+                "points": 0, 
+                "triggers": []
+            }, 
+            "levelthreearithmeticianbadge": {
+                "category": 1, 
+                "context_type": 0, 
+                "description": "Artisan Arithmetician", 
+                "extended_descritpion": "Achieve proficiency in Multiplying decimals, Dividing decimals, Multiplying fractions, Dividing fractions", 
+                "name": "levelthreearithmeticianbadge", 
+                "points": 750, 
+                "triggers": []
+            }, 
+            "levelthreeprealgebraistbadge": {
+                "category": 1, 
+                "context_type": 0, 
+                "description": "Artisan Pre-algebraist", 
+                "extended_descritpion": "Achieve proficiency in Fractional exponents, Order of operations, Ordering numbers, Scientific notation, Units, Simplifying radicals", 
+                "name": "levelthreeprealgebraistbadge", 
+                "points": 750, 
+                "triggers": []
+            }, 
+            "levelthreequestionvotecountbadge": {
+                "category": 2, 
+                "context_type": 3, 
+                "description": "Incredible Question", 
+                "extended_descritpion": "Ask a question that earns 50+ votes", 
+                "name": "levelthreequestionvotecountbadge", 
+                "points": 0, 
+                "triggers": []
+            }, 
+            "levelthreetrigonometricianbadge": {
+                "category": 1, 
+                "context_type": 0, 
+                "description": "Artisan Trigonometrician", 
+                "extended_descritpion": "Achieve proficiency in Trigonometry 2, Graphs of sine and cosine, Inverse trig functions, Pythagorean identities, Trig+-ident", 
+                "name": "levelthreetrigonometricianbadge", 
+                "points": 750, 
+                "triggers": []
+            }, 
+            "leveltwoalgebraistbadge": {
+                "category": 1, 
+                "context_type": 0, 
+                "description": "Journeyman Algebraist", 
+                "extended_descritpion": "Achieve proficiency in 2-step equations, Percentage word problems 2, Evaluating expressions with function notation, Domain fx., Even/Odd fx, Shif/Ref fx", 
+                "name": "leveltwoalgebraistbadge", 
+                "points": 500, 
+                "triggers": []
+            }, 
+            "leveltwoanswerqualitycountbadge": {
+                "category": 3, 
+                "context_type": 0, 
+                "description": "Oracle", 
+                "extended_descritpion": "Post 100 answers that earn 3+ votes", 
+                "name": "leveltwoanswerqualitycountbadge", 
+                "points": 0, 
+                "triggers": [
+                    0
+                ]
+            }, 
+            "leveltwoanswervotecountbadge": {
+                "category": 2, 
+                "context_type": 3, 
+                "description": "Great Answer", 
+                "extended_descritpion": "Post an answer that earns 25+ votes", 
+                "name": "leveltwoanswervotecountbadge", 
+                "points": 0, 
+                "triggers": []
+            }, 
+            "leveltwoarithmeticianbadge": {
+                "category": 1, 
+                "context_type": 0, 
+                "description": "Journeyman Arithmetician", 
+                "extended_descritpion": "Achieve proficiency in 4-digit addition with carrying, 4-digit subtraction with borrowing , Multi-digit multiplication, Div. 4", 
+                "name": "leveltwoarithmeticianbadge", 
+                "points": 500, 
+                "triggers": []
+            }, 
+            "leveltwoprealgebraistbadge": {
+                "category": 1, 
+                "context_type": 0, 
+                "description": "Journeyman Pre-algebraist", 
+                "extended_descritpion": "Achieve proficiency in Negative exponents, Multiplying and dividing negative numbers, Multiplying fractions, Div. Frac.", 
+                "name": "leveltwoprealgebraistbadge", 
+                "points": 500, 
+                "triggers": []
+            }, 
+            "leveltwoquestionqualitycountbadge": {
+                "category": 3, 
+                "context_type": 0, 
+                "description": "Detective", 
+                "extended_descritpion": "Ask 100 questions that earn 3+ votes", 
+                "name": "leveltwoquestionqualitycountbadge", 
+                "points": 0, 
+                "triggers": [
+                    0
+                ]
+            }, 
+            "leveltwoquestionvotecountbadge": {
+                "category": 2, 
+                "context_type": 3, 
+                "description": "Great Question", 
+                "extended_descritpion": "Ask a question that earns 25+ votes", 
+                "name": "leveltwoquestionvotecountbadge", 
+                "points": 0, 
+                "triggers": []
+            }, 
+            "leveltwotrigonometricianbadge": {
+                "category": 1, 
+                "context_type": 0, 
+                "description": "Journeyman Trigonometrician", 
+                "extended_descritpion": "Achieve proficiency in Special right triangles, Trigonometry 1", 
+                "name": "leveltwotrigonometricianbadge", 
+                "points": 500, 
+                "triggers": []
+            }, 
+            "ludicrousplaylisttimebadge": {
+                "category": 3, 
+                "context_type": 2, 
+                "description": "Ludicrous Listener", 
+                "extended_descritpion": "Watch 10 hours of video in a single topic", 
+                "name": "ludicrousplaylisttimebadge", 
+                "points": 0, 
+                "triggers": []
+            }, 
+            "ludicrousstreakbadge": {
+                "category": 1, 
+                "context_type": 1, 
+                "description": "Ludicrous Streak", 
+                "extended_descritpion": "Correctly answer 100 problems in a row in a single skill", 
+                "name": "ludicrousstreakbadge", 
+                "points": 0, 
+                "triggers": []
+            }, 
+            "ludicroustimedproblembadge": {
+                "category": 2, 
+                "context_type": 1, 
+                "description": "299,792,458 Meters per Second", 
+                "extended_descritpion": "Quickly & correctly answer 75 skill problems in a row (time limit depends on skill difficulty)", 
+                "name": "ludicroustimedproblembadge", 
+                "points": 5000, 
+                "triggers": []
+            }, 
+            "magellanbadge": {
+                "category": 3, 
+                "context_type": 0, 
+                "description": "Magellan", 
+                "extended_descritpion": "Achieve proficiency in any 100 skills", 
+                "name": "magellanbadge", 
+                "points": 30000, 
+                "triggers": []
+            }, 
+            "makingprogressbadge": {
+                "category": 0, 
+                "context_type": 0, 
+                "description": "Making Progress", 
+                "extended_descritpion": "Achieve proficiency in any 7 skills", 
+                "name": "makingprogressbadge", 
+                "points": 1000, 
+                "triggers": []
+            }, 
+            "millionairebadge": {
+                "category": 3, 
+                "context_type": 0, 
+                "description": "Millionaire", 
+                "extended_descritpion": "Earn 1,000,000 energy points", 
+                "name": "millionairebadge", 
+                "points": 0, 
+                "triggers": []
+            }, 
+            "moderatorbadge": {
+                "category": 2, 
+                "context_type": 0, 
+                "description": "Guardian", 
+                "extended_descritpion": "Become a Guardian who moderates discussion posts on videos and programs", 
+                "name": "moderatorbadge", 
+                "points": 0, 
+                "triggers": []
+            }, 
+            "newtonbadge": {
+                "category": 3, 
+                "context_type": 0, 
+                "description": "Newton", 
+                "extended_descritpion": "Achieve proficiency in any 400 skills", 
+                "name": "newtonbadge", 
+                "points": 150000, 
+                "triggers": []
+            }, 
+            "niceplaylisttimebadge": {
+                "category": 0, 
+                "context_type": 2, 
+                "description": "Nice Listener", 
+                "extended_descritpion": "Watch 15 minutes of video in a single topic", 
+                "name": "niceplaylisttimebadge", 
+                "points": 0, 
+                "triggers": []
+            }, 
+            "nicestreakbadge": {
+                "category": 0, 
+                "context_type": 1, 
+                "description": "Nice Streak", 
+                "extended_descritpion": "Correctly answer 20 problems in a row in a single skill", 
+                "name": "nicestreakbadge", 
+                "points": 0, 
+                "triggers": []
+            }, 
+            "nicetimedproblembadge": {
+                "category": 0, 
+                "context_type": 1, 
+                "description": "Picking Up Steam", 
+                "extended_descritpion": "Quickly & correctly answer 5 skill problems in a row (time limit depends on skill difficulty)", 
+                "name": "nicetimedproblembadge", 
+                "points": 100, 
+                "triggers": []
+            }, 
+            "powerfifteenminutesbadge": {
+                "category": 0, 
+                "context_type": 0, 
+                "description": "Inspired 15 Minutes", 
+                "extended_descritpion": "Correctly answer 10 problems and watch 10 minutes of video in 15 minutes", 
+                "name": "powerfifteenminutesbadge", 
+                "points": 0, 
+                "triggers": []
+            }, 
+            "powerhourbadge": {
+                "category": 1, 
+                "context_type": 0, 
+                "description": "Power Hour", 
+                "extended_descritpion": "Correctly answer 90 problems and watch 15 minutes of video in 1 hour", 
+                "name": "powerhourbadge", 
+                "points": 0, 
+                "triggers": []
+            }, 
+            "productivebadge": {
+                "category": 1, 
+                "context_type": 0, 
+                "description": "Productive", 
+                "extended_descritpion": "Achieve proficiency in any 15 skills", 
+                "name": "productivebadge", 
+                "points": 2000, 
+                "triggers": []
+            }, 
+            "profilecustomizationbadge": {
+                "category": 0, 
+                "context_type": 0, 
+                "description": "Express Yourself", 
+                "extended_descritpion": "Customize your profile avatar and fill up your display case", 
+                "name": "profilecustomizationbadge", 
+                "points": 0, 
+                "triggers": []
+            }, 
+            "questiontimestampreferencebadge": {
+                "category": 0, 
+                "context_type": 0, 
+                "description": "Bibliographer", 
+                "extended_descritpion": "Reference a timestamp when asking a question on a video or program", 
+                "name": "questiontimestampreferencebadge", 
+                "points": 0, 
+                "triggers": [
+                    1
+                ]
+            }, 
+            "recoverybadge": {
+                "category": 0, 
+                "context_type": 1, 
+                "description": "Persistence", 
+                "extended_descritpion": "Answer a problem correctly after having some trouble with a few problems and sticking with the skill", 
+                "name": "recoverybadge", 
+                "points": 0, 
+                "triggers": []
+            }, 
+            "resurrectionbadge": {
+                "category": 1, 
+                "context_type": 1, 
+                "description": "Sticktoitiveness", 
+                "extended_descritpion": "Answer a problem correctly after having some trouble with many problems and sticking with the skill", 
+                "name": "resurrectionbadge", 
+                "points": 0, 
+                "triggers": []
+            }, 
+            "ridiculousplaylisttimebadge": {
+                "category": 2, 
+                "context_type": 2, 
+                "description": "Ridiculous Listener", 
+                "extended_descritpion": "Watch 4 hours of video in a single topic", 
+                "name": "ridiculousplaylisttimebadge", 
+                "points": 0, 
+                "triggers": []
+            }, 
+            "ridiculousstreakbadge": {
+                "category": 1, 
+                "context_type": 1, 
+                "description": "Ridiculous Streak", 
+                "extended_descritpion": "Correctly answer 80 problems in a row in a single skill", 
+                "name": "ridiculousstreakbadge", 
+                "points": 0, 
+                "triggers": []
+            }, 
+            "ridiculoustimedproblembadge": {
+                "category": 2, 
+                "context_type": 1, 
+                "description": "Sub-light Speed", 
+                "extended_descritpion": "Quickly & correctly answer 42 skill problems in a row (time limit depends on skill difficulty)", 
+                "name": "ridiculoustimedproblembadge", 
+                "points": 1500, 
+                "triggers": []
+            }, 
+            "scratchpadtinkererbadge": {
+                "category": 0, 
+                "context_type": 4, 
+                "description": "Tinkerer", 
+                "extended_descritpion": "Pause a tutorial and tinker with the code", 
+                "name": "scratchpadtinkererbadge", 
+                "points": 0, 
+                "triggers": [
+                    7
+                ]
+            }, 
+            "sharedscratchpadbadge": {
+                "category": 0, 
+                "context_type": 4, 
+                "description": "Virus", 
+                "extended_descritpion": "Share a program you've created via Facebook, Twitter, or Email", 
+                "name": "sharedscratchpadbadge", 
+                "points": 0, 
+                "triggers": [
+                    5
+                ]
+            }, 
+            "soclosebadge": {
+                "category": 0, 
+                "context_type": 1, 
+                "description": "Perseverance", 
+                "extended_descritpion": "Answer more than 30 problems mostly correctly in a skill before becoming proficient", 
+                "name": "soclosebadge", 
+                "points": 0, 
+                "triggers": []
+            }, 
+            "tenmillionairebadge": {
+                "category": 4, 
+                "context_type": 0, 
+                "description": "Tesla", 
+                "extended_descritpion": "Earn 10,000,000 energy points", 
+                "name": "tenmillionairebadge", 
+                "points": 0, 
+                "triggers": []
+            }, 
+            "tenthousandairebadge": {
+                "category": 0, 
+                "context_type": 0, 
+                "description": "Ten to the Fourth", 
+                "extended_descritpion": "Earn 10,000 energy points", 
+                "name": "tenthousandairebadge", 
+                "points": 0, 
+                "triggers": []
+            }, 
+            "thirtydayconsecutiveactivitybadge": {
+                "category": 1, 
+                "context_type": 0, 
+                "description": "Atomic Clockwork", 
+                "extended_descritpion": "Watch part of any video or work on any skill each day for 30 consecutive days", 
+                "name": "thirtydayconsecutiveactivitybadge", 
+                "points": 0, 
+                "triggers": []
+            }, 
+            "toplevelalgebraistbadge": {
+                "category": 5, 
+                "context_type": 0, 
+                "description": "Master of Algebra", 
+                "extended_descritpion": "Complete the Algebra challenge", 
+                "name": "toplevelalgebraistbadge", 
+                "points": 10000, 
+                "triggers": []
+            }, 
+            "toplevelarithmeticianbadge": {
+                "category": 5, 
+                "context_type": 0, 
+                "description": "Master of Arithmetic", 
+                "extended_descritpion": "Complete the Arithmetic challenge", 
+                "name": "toplevelarithmeticianbadge", 
+                "points": 10000, 
+                "triggers": []
+            }, 
+            "toplevelprealgebraistbadge": {
+                "category": 5, 
+                "context_type": 0, 
+                "description": "Master of Pre-algebra", 
+                "extended_descritpion": "Complete the Pre-algebra challenge", 
+                "name": "toplevelprealgebraistbadge", 
+                "points": 10000, 
+                "triggers": []
+            }, 
+            "topleveltrigonometricianbadge": {
+                "category": 5, 
+                "context_type": 0, 
+                "description": "Master of Trigonometry", 
+                "extended_descritpion": "Complete the Trigonometry challenge", 
+                "name": "topleveltrigonometricianbadge", 
+                "points": 10000, 
+                "triggers": []
+            }, 
+            "undeterrablebadge": {
+                "category": 1, 
+                "context_type": 1, 
+                "description": "Tenacity", 
+                "extended_descritpion": "Answer more than 50 problems mostly correctly in a skill before becoming proficient", 
+                "name": "undeterrablebadge", 
+                "points": 0, 
+                "triggers": []
+            }, 
+            "watchedscratchpadplaybackbadge": {
+                "category": 0, 
+                "context_type": 4, 
+                "description": "CS Scholar", 
+                "extended_descritpion": "Finish watching a CS tutorial", 
+                "name": "watchedscratchpadplaybackbadge", 
+                "points": 0, 
+                "triggers": [
+                    6
+                ]
+            }, 
+            "workhorsebadge": {
+                "category": 2, 
+                "context_type": 0, 
+                "description": "Work Horse", 
+                "extended_descritpion": "Achieve proficiency in any 50 skills", 
+                "name": "workhorsebadge", 
+                "points": 14000, 
+                "triggers": []
+            }, 
+            "yearonebadge": {
+                "category": 0, 
+                "context_type": 0, 
+                "description": "Cypress", 
+                "extended_descritpion": "Remain a member of the Khan Academy for 1 year", 
+                "name": "yearonebadge", 
+                "points": 0, 
+                "triggers": []
+            }, 
+            "yearthreebadge": {
+                "category": 2, 
+                "context_type": 0, 
+                "description": "Sequoia", 
+                "extended_descritpion": "Remain a member of the Khan Academy for 3 years", 
+                "name": "yearthreebadge", 
+                "points": 0, 
+                "triggers": []
+            }, 
+            "yeartwobadge": {
+                "category": 1, 
+                "context_type": 0, 
+                "description": "Redwood", 
+                "extended_descritpion": "Remain a member of the Khan Academy for 2 years", 
+                "name": "yeartwobadge", 
+                "points": 0, 
+                "triggers": []
+            }
+        }, 
+        "categories": {
+            "0": {
+                "category": 0, 
+                "compact_icon_src": "http://khanacademy.org/images/badges/meteorite-60x60.png", 
+                "description": "Meteorite badges are common and easy to earn when just getting started.", 
+                "icon_src": "http://khanacademy.org/images/badges/meteorite-small.png", 
+                "label": "Meteorite", 
+                "large_icon_src": "http://khanacademy.org/images/badges/meteorite.png", 
+                "medium_icon_src": "http://khanacademy.org/images/badges/meteorite-medium.png"
+            }, 
+            "1": {
+                "category": 1, 
+                "compact_icon_src": "http://khanacademy.org/images/badges/moon-60x60.png", 
+                "description": "Moon badges are uncommon and represent an investment in learning.", 
+                "icon_src": "http://khanacademy.org/images/badges/moon-small.png", 
+                "label": "Moon", 
+                "large_icon_src": "http://khanacademy.org/images/badges/moon.png", 
+                "medium_icon_src": "http://khanacademy.org/images/badges/moon-medium.png"
+            }, 
+            "2": {
+                "category": 2, 
+                "compact_icon_src": "http://khanacademy.org/images/badges/earth-60x60.png", 
+                "description": "Earth badges are rare. They require a significant amount of learning.", 
+                "icon_src": "http://khanacademy.org/images/badges/earth-small.png", 
+                "label": "Earth", 
+                "large_icon_src": "http://khanacademy.org/images/badges/earth.png", 
+                "medium_icon_src": "http://khanacademy.org/images/badges/earth-medium.png"
+            }, 
+            "3": {
+                "category": 3, 
+                "compact_icon_src": "http://khanacademy.org/images/badges/sun-60x60.png", 
+                "description": "Sun badges are epic. Earning them is a true challenge, and they require impressive dedication.", 
+                "icon_src": "http://khanacademy.org/images/badges/sun-small.png", 
+                "label": "Sun", 
+                "large_icon_src": "http://khanacademy.org/images/badges/sun.png", 
+                "medium_icon_src": "http://khanacademy.org/images/badges/sun-medium.png"
+            }, 
+            "4": {
+                "category": 4, 
+                "compact_icon_src": "http://khanacademy.org/images/badges/eclipse-60x60.png", 
+                "description": "Black Hole badges are legendary and unknown. They are the most unique Khan Academy awards.", 
+                "icon_src": "http://khanacademy.org/images/badges/eclipse-small.png", 
+                "label": "Black Hole", 
+                "large_icon_src": "http://khanacademy.org/images/badges/eclipse.png", 
+                "medium_icon_src": "http://khanacademy.org/images/badges/eclipse-medium.png"
+            }, 
+            "5": {
+                "category": 5, 
+                "compact_icon_src": "http://khanacademy.org/images/badges/master-challenge-blue-60x60.png", 
+                "description": "Challenge Patches are special awards for completing topic challenges.", 
+                "icon_src": "http://khanacademy.org/images/badges/master-challenge-blue-small.png", 
+                "label": "Challenge Patches", 
+                "large_icon_src": "http://khanacademy.org/images/badges/master-challenge-blue.png", 
+                "medium_icon_src": "http://khanacademy.org/images/badges/master-challenge-blue-medium.png"
+            }
+        }, 
+        "contexts": {
+            "0": {
+                "context": 0, 
+                "description": "Context-less badges, which means they can only be earned once.", 
+                "name": "NONE"
+            }, 
+            "1": {
+                "context": 1, 
+                "description": "Exercise badges (can earn one for every Exercise).", 
+                "name": "EXERCISE"
+            }, 
+            "2": {
+                "context": 2, 
+                "description": "Topic badges (one for every Topic).", 
+                "name": "TOPIC"
+            }, 
+            "3": {
+                "context": 3, 
+                "description": "Feedback badges (one for every piece of discussion Feedback).", 
+                "name": "FEEDBACK"
+            }, 
+            "4": {
+                "context": 4, 
+                "description": "Earned for computer science specific actions.", 
+                "name": "CS"
+            }
+        }, 
+        "topic_exercise_badges": {
+            "custom_icons": [
+                "circles", 
+                "area--perimeter--and-volume", 
+                "probability", 
+                "similarity", 
+                "segments-and-angles", 
+                "multiplication-division", 
+                "telling-time", 
+                "fractions", 
+                "systems-of-eq-and-ineq", 
+                "triangle-properties", 
+                "conic-sections", 
+                "absolute-value", 
+                "triangles", 
+                "congruent-triangles", 
+                "factors-multiples", 
+                "linear-equations-and-inequalitie", 
+                "transformations", 
+                "quadrilaterals-and-polygons", 
+                "rational-expressions", 
+                "linear_inequalities", 
+                "applying-math-reasoning-topic", 
+                "percents", 
+                "calculus", 
+                "exponents-radicals", 
+                "addition-subtraction", 
+                "parallel-and-perpendicular-lines", 
+                "algebra-matrices", 
+                "polynomials", 
+                "solving-linear-equations-and-inequalities", 
+                "pythagorean-theorem", 
+                "angles", 
+                "quadratics", 
+                "statistics-inferential", 
+                "complex-numbers", 
+                "rates-and-ratios", 
+                "vectors", 
+                "basic-geometry", 
+                "algebra-functions", 
+                "chemistry", 
+                "decimals", 
+                "trigonometry", 
+                "order-of-operations", 
+                "default"
+            ], 
+            "description": "Achieve proficiency in all skills in ", 
+            "icon_src": "http://khanacademy.org/images/power-mode/badges/", 
+            "icon_suffixes": {
+                "compact_icon": "-60x60.png?9", 
+                "completed_icon": "-completed-40x40.png?9", 
+                "icon": "-40x40.png?9", 
+                "large_icon": "-250x250.png?9"
+            }
+        }, 
+        "triggers": {
+            "0": {
+                "description": "For badges that can be earned (by the feedback author) by having a feedback item that gets voted on.", 
+                "name": "VOTEE", 
+                "trigger": 0
+            }, 
+            "1": {
+                "description": "For badges that can be earned (by the author) by posting a feedback item.", 
+                "name": "POST", 
+                "trigger": 1
+            }, 
+            "2": {
+                "description": "Earned by creating a brand new scratchpad.", 
+                "name": "NEW_SCRATCHPAD", 
+                "trigger": 2
+            }, 
+            "3": {
+                "description": "Earned by forking another user's scratchpad.", 
+                "name": "FORK_SCRATCHPAD", 
+                "trigger": 3
+            }, 
+            "4": {
+                "description": "Earned by having a scratchpad forked.", 
+                "name": "GET_FORKED", 
+                "trigger": 4
+            }, 
+            "5": {
+                "description": "For badges that can be earned by sharing a scratchpad", 
+                "name": "SCRATCHPAD_SHARE", 
+                "trigger": 5
+            }, 
+            "6": {
+                "description": "For badges that can be earned by finishing watching a scratchpad tutorial", 
+                "name": "SCRATCHPAD_FINISH_TUTORIAL", 
+                "trigger": 6
+            }, 
+            "7": {
+                "description": "For cs_badges.ScratchpadTinkerer", 
+                "name": "SCRATCHPAD_TINKER", 
+                "trigger": 7
+            }, 
+            "8": {
+                "description": "", 
+                "name": "LEADERBOARD_STANDING", 
+                "trigger": 8
+            }
+        }
+    }, 
+    "created": "Auto generated on 2013-06-16 15:32:17.338299 by tools/parse_badges.py", 
+    "description": "Cache of badge meta data generated bytools/parse_badges.py for use by dashboard.khanacademy.org when serving information about badges. Example usage can be found at dashboards.khanacademy.org/badges"
+}
