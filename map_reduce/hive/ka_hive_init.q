@@ -386,6 +386,7 @@ CREATE EXTERNAL TABLE IF NOT EXISTS student_teacher_count (
 DROP TABLE IF EXISTS teacher_country;
 CREATE EXTERNAL TABLE IF NOT EXISTS teacher_country (
     teacher STRING,
+    student_count INT,
     user_id STRING,
     user_email STRING,
     user_nickname STRING,

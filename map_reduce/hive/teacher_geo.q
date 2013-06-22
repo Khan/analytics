@@ -1,12 +1,18 @@
 -- Script to geolocate teachers using their ip addresses
 -- Uses last 180 days of ProblemLog to get most popular ip for given user
 
+-- Depends on:
+--   1. map_reduce/hive/student_teacher_current.q
+--   2. third_party/pygeoip/pygeoip
+--   3. GeoLiteCity.dat (only in S3 under path specified below)
+
 -- There are several steps to this query
 --  1st: Map users from ProblemLog to their most popular ip address
 --   from last 180 days
 --  2nd: Join teachers and users to find most popular ip for each
 --   coach who has become a teacher before end_dt
---      2.1nd: Peform geolocation
+--      2.1st: Peform geolocation
+--      2.2nd: Add size of the class to each teacher entry
 --  3rd: Join geolocated teachers with their user information
 --   for friendlier display
 
@@ -41,7 +47,8 @@ CREATE EXTERNAL TABLE IF NOT EXISTS teacher_country_staged (
   country_code STRING,
   country STRING,
   latitude FLOAT,
-  longitude FLOAT
+  longitude FLOAT,
+  student_count INT
 ) LOCATION 's3://ka-mapreduce/tmp/teacher_country_staged';
 
 -- User to ip mapping
@@ -83,36 +90,48 @@ WHERE user_ip_rank.rank = 1;
 --  plot the results, we might be losing information by taking most popular
 --  location after ip resolution.
 INSERT OVERWRITE TABLE teacher_country_staged
-SELECT TRANSFORM(teacher_ip_rank.teacher, teacher_ip_rank.ip)
-USING 'ka_udf.py ip_to_country 1'
-AS (teacher STRING, ip STRING,
-  city STRING, region STRING, country_code STRING, country STRING,
-  latitude FLOAT, longitude FLOAT)
+SELECT
+  teacher_ip.*, teacher_class.student_count
 FROM (
-  SELECT TRANSFORM(teacher_ip_count.teacher, teacher_ip_count.ip, teacher_ip_count.ip_count)
-
-  -- rank entries with same 0th column (teacher)
-  --  according to 2nd column (ip_count)
-  USING 'ka_udf.py rank 0 2 DESC'
-  AS (teacher STRING, ip STRING, ip_count INT, rank INT)
+  SELECT TRANSFORM(teacher_ip_rank.teacher, teacher_ip_rank.ip)
+  USING 'ka_udf.py ip_to_country 1'
+  AS (teacher STRING, ip STRING,
+    city STRING, region STRING, country_code STRING, country STRING,
+    latitude FLOAT, longitude FLOAT)
   FROM (
-    SELECT
-      student_on_date.teacher,
-      user_ip.ip,
-      COUNT(1) as ip_count
-    FROM student_on_date
-    JOIN user_ip
-    ON student_on_date.student = user_ip.user
-    GROUP BY student_on_date.teacher, user_ip.ip
-  ) teacher_ip_count
+    SELECT TRANSFORM(teacher_ip_count.teacher, teacher_ip_count.ip,
+      teacher_ip_count.ip_count)
 
-) teacher_ip_rank
-WHERE teacher_ip_rank.rank = 1;
+    -- rank entries with same 0th column (teacher)
+    --  according to 2nd column (ip_count)
+    USING 'ka_udf.py rank 0 2 DESC'
+    AS (teacher STRING, ip STRING, ip_count INT, rank INT)
+    FROM (
+      SELECT
+        student_on_date.teacher,
+        user_ip.ip,
+        COUNT(1) as ip_count
+      FROM student_on_date
+      JOIN user_ip
+      ON student_on_date.student = user_ip.user
+      GROUP BY student_on_date.teacher, user_ip.ip
+    ) teacher_ip_count
+
+  ) teacher_ip_rank
+  WHERE teacher_ip_rank.rank = 1
+) teacher_ip
+JOIN (
+  SELECT
+    teacher, COUNT(1) AS student_count
+  FROM student_on_date
+  GROUP BY teacher
+) teacher_class
+ON teacher_ip.teacher = teacher_class.teacher;
 
 -- Join teacher_country_staged with userdata_info
 --  to add some personal information
 INSERT OVERWRITE TABLE teacher_country
-SELECT d.teacher, u.user_id, u.user_email, u.user_nickname,
+SELECT d.teacher, d.student_count, u.user_id, u.user_email, u.user_nickname,
     u.joined, d.ip, d.city, d.region, d.country_code, d.country,
     d.latitude, d.longitude
 FROM teacher_country_staged d
