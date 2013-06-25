@@ -36,7 +36,7 @@ def fill_value(value, from_dt, to_dt):
         emit_data_row(value, date_string)
 
 
-def reduce_coaches():
+def reduce_coaches(threshold):
     """Process input lines and determine whether given coach is a teacher
     Fills in missing spots with values from preceeding dates
     Assumes sortedness of data, i.e. data for single coach
@@ -53,7 +53,7 @@ def reduce_coaches():
             num_students = 0
 
         num_students = num_students + 1
-        if num_students == 10:
+        if num_students == threshold:
             emit_data_row([current_coach], joined_on)
 
 
@@ -128,7 +128,7 @@ def active_students(end_date):
         missing_date in daterange(current_dt_obj, end_date_obj)]
 
 
-def active_teachers(end_date):
+def active_teachers(end_date, threshold):
     """Compute number of active teachers.
     Active teacher is a teacher with at least 10 active students.
 
@@ -157,7 +157,7 @@ def active_teachers(end_date):
                     idx = last_28dates.index(some_time)
                     active_students = dict(list(active_students.items()) +
                         list(last_28days[some_teacher][idx].items()))
-            if len(active_students) > 9:
+            if len(active_students) >= threshold:
                 active_teachers = active_teachers + 1
 
         emit_data_row([str(active_teachers)],
@@ -199,32 +199,37 @@ def active_teachers(end_date):
 
 
 def main():
-    commands = "{teacher|count|active-student|active-teacher}"
-    usage_parts = ["Usage: coach_reduce.py <count_func> <end_date>",
-        "       coach_reduce.py teacher",
-        "count_func can be one of {0}".format(commands)]
+    prog_name = sys.argv[0]
+    usage_parts = ["Usage: ",
+        "  {0} teacher <threshold>".format(prog_name),
+        "  {0} active-teacher <end_date> <threshold>".format(prog_name),
+        "  {0} active-student <end_date>".format(prog_name),
+        "  {0} count <end_date>".format(prog_name)]
     usage_str = "\n".join(usage_parts)
     argc = len(sys.argv)
     if argc < 2:
         print >> sys.stderr, usage_str
         exit(1)
 
-    if sys.argv[1] != "teacher" and argc != 3:
+    if sys.argv[1] == "active-teacher" and argc != 4:
+        print >> sys.stderr, usage_str
+        exit(1)
+
+    if sys.argv[1] != "active-teacher" and argc != 3:
         print >> sys.stderr, usage_str
         exit(1)
 
     if sys.argv[1] == "teacher":
-        reduce_coaches()
+        reduce_coaches(int(sys.argv[2]))
     elif sys.argv[1] == "count":
         fill_counts(sys.argv[2])
     elif sys.argv[1] == "active-student":
         active_students(sys.argv[2])
     elif sys.argv[1] == "active-teacher":
-        active_teachers(sys.argv[2])
+        active_teachers(sys.argv[2], int(sys.argv[3]))
     else:
         print >> sys.stderr, "Unkown option"
         print >> sys.stderr, usage_str
-        print >> sys.stderr, "       coach_reduce.py teacher"
         exit(1)
 
 

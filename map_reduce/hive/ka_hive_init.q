@@ -377,10 +377,24 @@ DROP TABLE IF EXISTS student_teacher_count;
 CREATE EXTERNAL TABLE IF NOT EXISTS student_teacher_count (
     teacher_count INT,
     student_count INT,
+    coach_count INT,
+    user_coach_count INT,
     active_teacher_count INT,
     active_student_count INT,
+    active_coach_count INT,
+    active_user_coach_count INT,
+    teacher_vists_count INT,
+    coach_visits_count INT,
     dt STRING
 ) LOCATION 's3://ka-mapreduce/summary_tables/student_teacher_count';
+
+DROP TABLE IF EXISTS daily_class_profile_visits;
+CREATE EXTERNAL TABLE IF NOT EXISTS daily_class_profile_visits (
+    bingo_id STRING,
+    url STRING
+) PARTITIONED BY (dt STRING)
+LOCATION 's3://ka-mapreduce/summary_tables/daily_class_profile_visits';
+ALTER TABLE daily_class_profile_visits RECOVER PARTITIONS;
 
 -- Holds geolocated summary of teachers
 DROP TABLE IF EXISTS teacher_country;

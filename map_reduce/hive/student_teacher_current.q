@@ -5,6 +5,7 @@ DROP TABLE IF EXISTS user_coach_date;
 CREATE EXTERNAL TABLE IF NOT EXISTS user_coach_date(
   user STRING,
   coach STRING,
+  gae_bingo_identity STRING,
   joined_on STRING,
   self_coach BOOLEAN
 ) LOCATION 's3://ka-mapreduce/tmp/user_coach_date';
@@ -26,16 +27,17 @@ ADD FILE s3://ka-mapreduce/code/py/coach_reduce.py;
 ADD FILE s3://ka-mapreduce/code/py/ka_udf.py;
 
 -- Extract relevant information from UserData table
+-- bingo_identity is used to extract data from website request logs
 INSERT OVERWRITE TABLE user_coach_date
-SELECT a.user, a.coach,
+SELECT a.user, a.coach, a.gae_bingo_identity,
   from_unixtime(cast(cast(a.joined AS FLOAT) AS INT), 'yyyy-MM-dd')
     AS joined_on,
   (a.coach = a.user or a.coach = a.user_email or
    a.coach = a.user_id) as self_coach
 FROM (
   SELECT TRANSFORM(UserData.json)
-  USING 'ka_udf.py explode user,user_id,user_email,joined coaches'
-  AS user, user_id, user_email, joined, coach
+  USING 'ka_udf.py explode user,user_id,user_email,joined,gae_bingo_identity coaches'
+  AS user, user_id, user_email, joined, gae_bingo_identity, coach
   FROM UserData
 ) a;
 
@@ -51,7 +53,7 @@ FROM (
 ) st_date
 INSERT OVERWRITE TABLE teacher_on_date
 REDUCE st_date.user, st_date.coach, st_date.joined_on
-USING 'coach_reduce.py teacher' AS teacher, dt;
+USING 'coach_reduce.py teacher 10' AS teacher, dt;
 
 -- Find first date when each user, coach pair became student, teacher pair
 INSERT OVERWRITE TABLE student_on_date
