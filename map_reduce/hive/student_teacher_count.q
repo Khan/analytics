@@ -209,15 +209,15 @@ LEFT OUTER JOIN (
 ON t_nr.dt = act_cu.dt
 LEFT OUTER JOIN (
     FROM (
-        SELECT teacher_on_date_tmp.teacher AS teacher,
-          daily_class_profile_visits_tmp.dt AS dt
-        FROM teacher_on_date_tmp
-        JOIN user_coach_date_tmp b
-        ON teacher_on_date_tmp.teacher = b.coach
-        JOIN daily_class_profile_visits_tmp
-        ON daily_class_profile_visits_tmp.bingo_id = b.gae_bingo_identity
-        GROUP BY teacher_on_date_tmp.teacher,
-          daily_class_profile_visits_tmp.dt
+        SELECT teacher_on_date.teacher AS teacher,
+          daily_class_profile_visits.dt AS dt
+        FROM teacher_on_date
+        JOIN user_coach_date b
+        ON teacher_on_date.teacher = b.coach
+        JOIN daily_class_profile_visits
+        ON daily_class_profile_visits.bingo_id = b.gae_bingo_identity
+        GROUP BY teacher_on_date.teacher,
+          daily_class_profile_visits.dt
         ORDER BY dt
     ) teacher_visit
     REDUCE teacher_visit.teacher, teacher_visit.dt
@@ -226,15 +226,15 @@ LEFT OUTER JOIN (
 ON t_nr.dt = v_t.dt
 LEFT OUTER JOIN (
     FROM (
-        SELECT coach_on_date_tmp.coach AS coach,
-          daily_class_profile_visits_tmp.dt AS dt
+        SELECT coach_on_date.coach AS coach,
+          daily_class_profile_visits.dt AS dt
         FROM coach_on_date
         JOIN user_coach_date b
-        ON coach_on_date_tmp.coach = b.coach
+        ON coach_on_date.coach = b.coach
         JOIN daily_class_profile_visits
-        ON daily_class_profile_visits_tmp.bingo_id = b.gae_bingo_identity
-        GROUP BY coach_on_date_tmp.coach,
-            daily_class_profile_visits_tmp.dt
+        ON daily_class_profile_visits.bingo_id = b.gae_bingo_identity
+        GROUP BY coach_on_date.coach,
+            daily_class_profile_visits.dt
         ORDER BY dt
     ) coach_visit
     REDUCE coach_visit.coach, coach_visit.dt
