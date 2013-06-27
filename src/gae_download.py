@@ -37,12 +37,13 @@ from util import (mkdir_p, load_unstripped_json,
                   get_logger, db_decorator)
 import ka_download_coordinator as kdc
 
+import notify
 
 DEFAULT_DOWNLOAD_SETTINGS = {
     "max_threads": 4,  # max number of parrellel threads
     "max_tries": 8,  # max number of tries to download entities
     "interval": 120,  # data accumulated before writing into mongodb
-    "sub_process_time_out": 1800,  # sub process timeout in seconds
+    "sub_process_time_out": 10800,  # sub process timeout in seconds
     "max_logs": 1000,  # max number of entities from gae foreach pbuf call
     "dbhost": "localhost",
     "dbport": 28017,
@@ -226,6 +227,11 @@ def monitor(config, processes):
                 g_logger.error(
                     "Process hung with kind: %s start_dt: %s end_dt: %s" % (
                     params["kind"], params["start_dt"], params["end_dt"]))
+
+                message = "Process hung with kind: %s start: %s end: %s" % (
+                    params["kind"], params["start_dt"], params["end_dt"])
+                notify.send_hipchat(message)
+                notify.send_email("WARNING: gae subprocess hung", message)
             else:
                 remaining.append((process, params))
     processes = remaining
