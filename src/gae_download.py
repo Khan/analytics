@@ -224,14 +224,11 @@ def monitor(config, processes):
                 process.terminate()
                 #NOTE: Although it get terminated. The duration should be
                 # re-scheduled with the upcoming control-db implementation.
-                g_logger.error(
-                    "Process hung with kind: %s start_dt: %s end_dt: %s" % (
-                    params["kind"], params["start_dt"], params["end_dt"]))
-
-                message = "Process hung with kind: %s start: %s end: %s" % (
+                msg = "Process hung with kind: %s start_dt: %s end_dt: %s" % (
                     params["kind"], params["start_dt"], params["end_dt"])
-                notify.send_hipchat(message)
-                notify.send_email("WARNING: gae subprocess hung", message)
+                g_logger.error(msg)
+                notify.send_hipchat(msg)
+                notify.send_email("WARNING: gae subprocess hung", msg)
             else:
                 remaining.append((process, params))
     processes = remaining
