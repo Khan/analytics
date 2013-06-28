@@ -43,7 +43,7 @@ DEFAULT_DOWNLOAD_SETTINGS = {
     "max_threads": 4,  # max number of parrellel threads
     "max_tries": 8,  # max number of tries to download entities
     "interval": 120,  # data accumulated before writing into mongodb
-    "sub_process_time_out": 10800,  # sub process timeout in seconds
+    "sub_process_time_out": 10800,  # sub process timeout in seconds (3 hours)
     "max_logs": 1000,  # max number of entities from gae foreach pbuf call
     "dbhost": "localhost",
     "dbport": 28017,
@@ -224,8 +224,11 @@ def monitor(config, processes):
                 process.terminate()
                 #NOTE: Although it get terminated. The duration should be
                 # re-scheduled with the upcoming control-db implementation.
-                msg = "Process hung with kind: %s start_dt: %s end_dt: %s" % (
-                    params["kind"], params["start_dt"], params["end_dt"])
+                msg = (("Process hung with kind: %s" + 
+                        " start_dt: %s end_dt: %s" +
+                        " after %s seconds") % (
+                        params["kind"], params["start_dt"], 
+                        params["end_dt"], config["sub_process_time_out"]))
                 g_logger.error(msg)
                 notify.send_hipchat(msg)
                 notify.send_email("WARNING: gae subprocess hung", msg)
