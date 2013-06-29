@@ -383,7 +383,7 @@ CREATE EXTERNAL TABLE IF NOT EXISTS student_teacher_count (
     active_student_count INT,
     active_coach_count INT,
     active_user_coach_count INT,
-    teacher_vists_count INT,
+    teacher_visits_count INT,
     coach_visits_count INT,
     dt STRING
 ) LOCATION 's3://ka-mapreduce/summary_tables/student_teacher_count';

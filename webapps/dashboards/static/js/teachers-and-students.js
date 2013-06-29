@@ -25,7 +25,7 @@
 
     // Handler for marker click
     var markerClickHandler = function(marker, e) {
-        if(googleMap.infoWindow.getMap() &&
+        if (googleMap.infoWindow.getMap() &&
             googleMap.infoWindow.getPosition() === marker.position) {
                 googleMap.infoWindow.close();
         } else {
@@ -53,13 +53,13 @@
     var googleMap = {};
     googleMap.infoWindow = new google.maps.InfoWindow();
     googleMap.shadow = new google.maps.MarkerImage(
-        'https://www.google.com/intl/en_ALL/mapfiles/shadow50.png',
+        "https://www.google.com/intl/en_ALL/mapfiles/shadow50.png",
         new google.maps.Size(37, 34), // size - for sprite clipping
         new google.maps.Point(0, 0), // origin - ditto
         new google.maps.Point(10, 34) // anchor - where to meet map location
     );
 
-    googleMap.map = new google.maps.Map(document.getElementById('geo-teachers'), {
+    googleMap.map = new google.maps.Map(document.getElementById("geo-teachers"), {
         zoom: 3,
         maxZoom: 16,
         center: new google.maps.LatLng(30, -55),
@@ -76,15 +76,15 @@
         gridSize: 40
     });
 
-    googleMap.oms.addListener('click', markerClickHandler);
+    googleMap.oms.addListener("click", markerClickHandler);
 
     // Triggered when multiple points are moved aside (due to overlapping)
     //  to view them
-    googleMap.oms.addListener('spiderfy', closeInfoWindow);
+    googleMap.oms.addListener("spiderfy", closeInfoWindow);
 
-    google.maps.event.addListener(googleMap.map, 'click', closeInfoWindow);
+    google.maps.event.addListener(googleMap.map, "click", closeInfoWindow);
 
-    google.maps.event.addListener(googleMap.map, 'idle', function() {
+    google.maps.event.addListener(googleMap.map, "idle", function() {
         // When user pans or zooms the map update the markers
         googleMap.oms.clearMarkers();
         googleMap.markerClusterer.clearMarkers();
@@ -147,7 +147,7 @@
         initialize: function(attr, options) {
             Backbone.Model.prototype.initialize.call(this, attr, options);
             // Unfortunately this case is not handled by handlebars if
-            if(attr.user_nickname === "null") {
+            if (attr.user_nickname === "null") {
                 this.set({
                     user_nickname: attr.user_email
                 });
@@ -189,18 +189,22 @@
                 minRange: 7 * 24 * 3600000,
                 dateTimeLabelFormats: { day: "%a %e %b" }
             },
-            yAxis: {
-                min: -1000,
+            yAxis: [{
                 startOnTick: false,
                 title: { text: "" }
-            },
+            }, {
+                startOnTick: false,
+                gridLineWidth: 0,
+                title: { text: "" },
+                opposite: true
+            }],
             series: dataSeries,
             plotOptions: {
                 spline: {
                     shadow: true,
                     marker: {
                         enabled: false
-                    },
+                    }
                 }
             },
             credits: { enabled: false }
@@ -222,8 +226,25 @@
                     "name": "teachers",
                     "data": []
                 },
+                "coaches": {
+                    "name": "coaches",
+                    "data": [],
+                    "yAxis": 1
+                },
                 "active_teachers": {
                     "name": "active teachers",
+                    "data": []
+                },
+                "active_coaches": {
+                    "name": "active coaches",
+                    "data": []
+                },
+                "class_profile_teachers": {
+                    "name": "teachers using coach dashboard",
+                    "data": []
+                },
+                "class_profile_coaches": {
+                    "name": "coaches using coach dashboard",
                     "data": []
                 }
             };
@@ -233,8 +254,16 @@
                     "name": "students",
                     "data": []
                 },
+                "user_coach": {
+                    "name": "users with coaches",
+                    "data": []
+                },
                 "active_students": {
                     "name": "active students",
+                    "data": []
+                },
+                "active_user_coach": {
+                    "name": "active users with coaches",
                     "data": []
                 }
             };
@@ -247,14 +276,32 @@
                 teacherSeries["teachers"]["data"].push(
                     [epochTime, record["teacher_count"]]
                 );
-                studentSeries["students"]["data"].push(
-                    [epochTime, record["student_count"]]
+                teacherSeries["coaches"]["data"].push(
+                    [epochTime, record["coach_count"]]
                 );
                 teacherSeries["active_teachers"]["data"].push(
                     [epochTime, record["active_teacher_count"]]
                 );
+                teacherSeries["active_coaches"]["data"].push(
+                    [epochTime, record["active_coach_count"]]
+                );
+                teacherSeries["class_profile_teachers"]["data"].push(
+                    [epochTime, record["teacher_visits_count"]]
+                );
+                teacherSeries["class_profile_coaches"]["data"].push(
+                    [epochTime, record["coach_visits_count"]]
+                );
+                studentSeries["students"]["data"].push(
+                    [epochTime, record["student_count"]]
+                );
+                studentSeries["user_coach"]["data"].push(
+                    [epochTime, record["user_coach_count"]]
+                );
                 studentSeries["active_students"]["data"].push(
                     [epochTime, record["active_student_count"]]
+                );
+                studentSeries["active_user_coach"]["data"].push(
+                    [epochTime, record["active_user_coach_count"]]
                 );
             }).value();
 
