@@ -36,7 +36,7 @@ INNER JOIN (
     WHERE experiment="topic-mode-difficulty") u
 ON t.user = u.user_id  -- topic_attempts.user should be named user_id
 WHERE
-  t.dt>='2012-11-20' AND t.dt <= '2013-11-20' AND
+  t.dt>='2012-04-10' AND t.dt <= '2013-06-27' AND
   t.topic != 'any';
 
   Note: Again be sure to tweak the range of acceptable dt's as needed. 
