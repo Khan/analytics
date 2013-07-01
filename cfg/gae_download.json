@@ -1,7 +1,7 @@
 {
   "max_threads": 8, # max number of parrallel threads
   "max_tries": 4, # max number of tries to fetch entities
-  "sub_process_time_out": 1800, # sub process timeout in seconds
+  "sub_process_time_out": 10800, # sub process timeout in seconds
   "max_logs": 1000, # max number of entities from gae for each pbuf call
   "dbhost": "localhost",
   "dbport": 12345,
@@ -36,6 +36,6 @@
   "coordinator_cfg": {
     "control_db": "ka_download_cntrl",
     "default_start_time": 86400,
-    "monitor_lag": 1800
+    "monitor_lag":  
   }
 }
