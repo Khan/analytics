@@ -36,6 +36,6 @@
   "coordinator_cfg": {
     "control_db": "ka_download_cntrl",
     "default_start_time": 86400,
-    "monitor_lag":  
+    "monitor_lag": 1800
   }
 }
