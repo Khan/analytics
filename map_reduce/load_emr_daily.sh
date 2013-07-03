@@ -37,6 +37,13 @@ archive_dir="$HOME/kabackup/daily_new"
 
 LOG_URI="s3://ka-mapreduce/logs/"
 
+# Check that downloads are complete by counting number of unzipped jsons
+json_count=1
+while [ ${json_count} -gt 0 ]; do
+    json_count=$(find ${archive_dir}/${day} -name "*.json" | wc -l)
+    sleep 60
+done
+
 # Bulk download small factual tables.
 # TODO(yunfang): Revisit if this is the best place to do the download
 ${current_dir}/../src/bulk_download.py \
