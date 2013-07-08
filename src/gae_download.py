@@ -257,7 +257,7 @@ def start_data_process(config, start_dt_arg, end_dt_arg):
                     args=(kind, start_dt, next_dt, fetch_interval, config))
                 p.start()
                 download_params = {"kind": kind, "start_dt": start_dt,
-                                   "end_dt": end_dt, "start": time.time()}
+                                   "end_dt": next_dt, "start": time.time()}
                 processes.append((p, download_params))
                 start_dt = next_dt
             else:
