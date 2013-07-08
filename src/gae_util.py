@@ -12,15 +12,16 @@ def _discover_sdk_path():
     # Poor-man's `which` command.
     for path in os.environ['PATH'].split(':'):
         if os.path.isdir(path) and 'dev_appserver.py' in os.listdir(path):
+            # Follow symlinks to the real appengine install directory.
+            realpath = os.path.realpath(os.path.join(path, 'dev_appserver.py'))
+            path = os.path.dirname(realpath)
             break
     else:
         raise RuntimeError("couldn't find dev_appserver.py on $PATH")
 
-    # Find out where App Engine lives so we can import it.
-    app_engine_path = os.path.join(os.path.dirname(path), 'google_appengine')
-    if not os.path.isdir(app_engine_path):
-        raise RuntimeError('%s is not a directory' % app_engine_path)
-    return app_engine_path
+    # Verify the App Engine installation directory looks right.
+    assert os.path.isdir(os.path.join(path, 'google', 'appengine')), path
+    return path
 
 
 def fix_sys_path(appengine_sdk_dir=None):
