@@ -20,6 +20,7 @@ from google.appengine.api import datastore
 from google.appengine.datastore import entity_pb
 
 import date_util
+import notify
 import oauth_util.fetch_url
 
 
@@ -125,6 +126,7 @@ def download_entities(kind,
     entity_list = []
     interval_start = start_dt
     time_delta = dt.timedelta(seconds=fetch_interval_seconds)
+    prev_start = None
     while interval_start < end_dt:
         interval_end = min(interval_start + time_delta, end_dt)
         response = attempt_fetch_entities(kind,
@@ -135,6 +137,29 @@ def download_entities(kind,
                                           index_name,
                                           verbose)
         response_list = pickle.loads(response)
+
+        # TODO(sitan): Right now I've bumped up max_logs in gae_download.json
+        # to 10000 as a temporary fix, but we should use a query cursor and
+        # keep a smaller max_logs so that we can still make requests to the
+        # server for entities of the same timestamp in a paginated fashion.
+        # The problem currently is that downloads are hanging because the
+        # number of entities in some interval of time will exceed the number
+        # allowed by max_logs, so when we query again, we're getting the
+        # same entities back and never updating interval_start. 
+        if interval_start == prev_start:
+            msg = (("Number of entities of kind %s with timestamp %s " +
+                    "in range (%s,%s) exceeded max_logs = %s, " +
+                    "pickle download failed") % (
+                    kind, interval_start, start_dt,
+                    end_dt, max_entities_per_fetch))
+            subject = "Failed to fetch entity, too many matching timestamps"
+            g_logger.error(msg)
+            notify.send_hipchat(msg)
+            notify.send_email(subject, msg)
+            break
+
+        prev_start = interval_start
+
         entity_list += response_list
 
         if len(response_list) == max_entities_per_fetch:

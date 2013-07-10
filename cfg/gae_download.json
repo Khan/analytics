@@ -2,7 +2,7 @@
   "max_threads": 8, # max number of parrallel threads
   "max_tries": 4, # max number of tries to fetch entities
   "sub_process_time_out": 10800, # sub process timeout in seconds
-  "max_logs": 1000, # max number of entities from gae for each pbuf call
+  "max_logs": 10000, # max number of entities from gae for each pbuf call
   "dbhost": "localhost",
   "dbport": 12345,
   "emails": ["jace@khanacademy.org"],
