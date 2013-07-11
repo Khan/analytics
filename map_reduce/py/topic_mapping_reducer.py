@@ -22,6 +22,7 @@ import sys
 
 def main():
     topics_map = {}
+    ancestor_lookup_errors = 0
     # Load all the topics to the topic_map
     for line in sys.stdin:
         line = line.strip()
@@ -33,8 +34,13 @@ def main():
             ancestors = topic_dict['ancestor_keys'][::-1]
             topic_title = topic_dict['title']
             ancestor_titles = []
+            ancestor_keys = []
             for ancestor_key in ancestors:
-                ancestor_titles.append(topics_map[ancestor_key]['title'])
+                if ancestor_key in topics_map:
+                    ancestor_titles.append(topics_map[ancestor_key]['title'])
+                    ancestor_keys.append(ancestor_key)
+                else:
+                    ancestor_lookup_errors += 1
             ancestor_titles.append(topic_title)
             ancestor_keys_str = json.dumps({'keys': ancestors})
             ancestor_title_str = json.dumps({'titles': ancestor_titles})
@@ -45,6 +51,7 @@ def main():
             # Not UTF-8 encoding can throw "UnicodeEncodeError: 'ascii' codec
             # can't encode character u'\xf4' in position..".
             print s.encode("UTF-8")
+    print >>sys.stderr, "%d ancestor lookup errors." % ancestor_lookup_errors
 
 if __name__ == '__main__':
     main()
