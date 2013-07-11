@@ -22,6 +22,9 @@ from google.appengine.datastore import entity_pb
 import date_util
 import notify
 import oauth_util.fetch_url
+from util import get_logger
+
+g_logger = get_logger()
 
 
 # TODO(benkomalo): rename "max_logs" to max_results or something.
@@ -126,7 +129,6 @@ def download_entities(kind,
     entity_list = []
     interval_start = start_dt
     time_delta = dt.timedelta(seconds=fetch_interval_seconds)
-    prev_start = None
     while interval_start < end_dt:
         interval_end = min(interval_start + time_delta, end_dt)
         response = attempt_fetch_entities(kind,
@@ -137,29 +139,6 @@ def download_entities(kind,
                                           index_name,
                                           verbose)
         response_list = pickle.loads(response)
-
-        # TODO(sitan): Right now I've bumped up max_logs in gae_download.json
-        # to 10000 as a temporary fix, but we should use a query cursor and
-        # keep a smaller max_logs so that we can still make requests to the
-        # server for entities of the same timestamp in a paginated fashion.
-        # The problem currently is that downloads are hanging because the
-        # number of entities in some interval of time will exceed the number
-        # allowed by max_logs, so when we query again, we're getting the
-        # same entities back and never updating interval_start. 
-        if interval_start == prev_start:
-            msg = (("Number of entities of kind %s with timestamp %s " +
-                    "in range (%s,%s) exceeded max_logs = %s, " +
-                    "pickle download failed") % (
-                    kind, interval_start, start_dt,
-                    end_dt, max_entities_per_fetch))
-            subject = "Failed to fetch entity, too many matching timestamps"
-            g_logger.error(msg)
-            notify.send_hipchat(msg)
-            notify.send_email(subject, msg)
-            break
-
-        prev_start = interval_start
-
         entity_list += response_list
 
         if len(response_list) == max_entities_per_fetch:
@@ -173,11 +152,42 @@ def download_entities(kind,
             # ModelAdapter. But here we just need access to the
             # backup_timestamp property (index_name), so deserializing the
             # protobuf into the lower-level Entity will suffice.
-            pb = response_list[-1]
-            entity = datastore.Entity._FromPb(entity_pb.EntityProto(pb))
-            if index_name in entity:
-                interval_end = entity[index_name]
-        interval_start = interval_end
+            pb_first, pb_last = response_list[0], response_list[-1]
+            entity_first = datastore.Entity._FromPb(
+                entity_pb.EntityProto(pb_first))
+            entity_last = datastore.Entity._FromPb(
+                entity_pb.EntityProto(pb_last))
+            if index_name in entity_first:
+                timestamp_first = entity_first[index_name]
+            if index_name in entity_last:
+                timestamp_last = entity_last[index_name]
+
+        if (date_util.to_date_iso(timestamp_first) != 
+                date_util.to_date_iso(timestamp_last)):
+            interval_start = timestamp_last
+        else:
+            # TODO(sitan): I've bumped up max_logs in gae_download.json
+            # to 10000 as a temporary fix, but we should use a query cursor and
+            # keep a smaller max_logs so that we can still make requests to the
+            # server for entities of the same timestamp in a paginated fashion.
+            # The problem currently is that downloads are hanging because the
+            # number of entities with the exact same ISO 8601 timestamp will 
+            # exceed the number allowed by max_logs, so when we query again, 
+            # we're getting the same entities back and never updating 
+            # interval_start. The necessary sufficient condition for this is 
+            # that the ISO 8601 timestamps of the first and last entity 
+            # retrieved are the same.
+            msg = (("Number of entities of kind %s with timestamp %s " +
+                    "in range (%s,%s) exceeded max_logs = %s, " +
+                    "pickle download failed") % (
+                    kind, timestamp_last, start_dt,
+                    end_dt, max_entities_per_fetch))
+            subject = "Failed to fetch entity, too many matching timestamps"
+            g_logger.error(msg)
+            notify.send_hipchat(msg)
+            notify.send_email(subject, msg)
+            return []
+
     return entity_list
 
 
