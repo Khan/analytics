@@ -9,16 +9,18 @@ def from_date_iso(s_date):
     return datetime.datetime.strptime(s_date, "%Y-%m-%dT%H:%M:%SZ")
 
 
-def to_date_iso(date):
+def to_date_iso(date, micro=False):
     """
     Converts a datetime object to our modified ISO 8601 format
-    (no microseconds).
+    (optionally keeping the microseconds).
     """
     datestring = date.isoformat()
-    idx = string.rfind(datestring, '.')
-    if idx != -1:
-        datestring = datestring[:idx]
-    return "%sZ" % datestring
+    if not micro:
+        idx = string.rfind(datestring, '.')
+        if idx != -1:
+            datestring = datestring[:idx]
+        return "%sZ" % datestring
+    return datestring
 
 
 def get_week_boundaries(date):

@@ -52,8 +52,8 @@ def fetch_entities(entity_type, is_ndb, start_date=None, end_date=None,
 
     qs_map = filter(lambda x: x[1], [
         ('is_ndb', int(is_ndb)),
-        ('dt_start', date_util.to_date_iso(start_date)),
-        ('dt_end', date_util.to_date_iso(end_date)),
+        ('dt_start', start_date.isoformat()),
+        ('dt_end', end_date.isoformat()),
         ('max', max_logs),
         ('index', index_name),
     ])
@@ -166,17 +166,14 @@ def download_entities(kind,
                 date_util.to_date_iso(timestamp_last)):
             interval_start = timestamp_last
         else:
-            # TODO(sitan): I've bumped up max_logs in gae_download.json
-            # to 10000 as a temporary fix, but we should use a query cursor and
-            # keep a smaller max_logs so that we can still make requests to the
-            # server for entities of the same timestamp in a paginated fashion.
-            # The problem currently is that downloads are hanging because the
-            # number of entities with the exact same ISO 8601 timestamp will 
-            # exceed the number allowed by max_logs, so when we query again, 
-            # we're getting the same entities back and never updating 
+            # TODO(sitan): There was a problem with downloads hanging because
+            # the number of entities with the exact same ISO 8601 timestamp (by
+            # second) would exceed the number allowed by max_logs, so when we
+            # queried again, we'd get the same entities back and never update 
             # interval_start. The necessary sufficient condition for this is 
             # that the ISO 8601 timestamps of the first and last entity 
-            # retrieved are the same.
+            # retrieved are the same. This issue is, however, much less likely
+            # now that we are making GQL queries with microsecond resolution.
             msg = (("Number of entities of kind %s with timestamp %s " +
                     "in range (%s,%s) exceeded max_logs = %s, " +
                     "pickle download failed") % (
