@@ -162,8 +162,7 @@ def download_entities(kind,
             if index_name in entity_last:
                 timestamp_last = entity_last[index_name]
 
-        if (date_util.to_date_iso(timestamp_first) != 
-                date_util.to_date_iso(timestamp_last)):
+        if timestamp_first != timestamp_last:
             interval_start = timestamp_last
         else:
             # TODO(sitan): There was a problem with downloads hanging because
