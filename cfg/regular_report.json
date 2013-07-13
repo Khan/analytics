@@ -15,7 +15,7 @@
     },
     { "hive_script": "s3://ka-mapreduce/code/hive/student_teacher_count.q",
       "hive_table": "student_teacher_count",
-      "hive_args": {"end_dt": "<day_after>"},
+      "hive_args": {"end_dt": "<end_dt>"},
       "mongo_collection":  "student_teacher_count",
       "importer_args": "",
       "hive_init": true,
