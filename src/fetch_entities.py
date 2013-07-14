@@ -52,8 +52,8 @@ def fetch_entities(entity_type, is_ndb, start_date=None, end_date=None,
 
     qs_map = filter(lambda x: x[1], [
         ('is_ndb', int(is_ndb)),
-        ('dt_start', start_date.isoformat()),
-        ('dt_end', end_date.isoformat()),
+        ('dt_start', start_date.isoformat() + "Z"),
+        ('dt_end', end_date.isoformat() + "Z"),
         ('max', max_logs),
         ('index', index_name),
     ])
@@ -157,32 +157,33 @@ def download_entities(kind,
                 entity_pb.EntityProto(pb_first))
             entity_last = datastore.Entity._FromPb(
                 entity_pb.EntityProto(pb_last))
-            if index_name in entity_first:
-                timestamp_first = entity_first[index_name]
-            if index_name in entity_last:
-                timestamp_last = entity_last[index_name]
+            timestamp_first = entity_first.get(index_name, None)
+            timestamp_last = entity_last.get(index_name, None)
 
-        if timestamp_first != timestamp_last:
-            interval_start = timestamp_last
-        else:
-            # TODO(sitan): There was a problem with downloads hanging because
-            # the number of entities with the exact same ISO 8601 timestamp (by
-            # second) would exceed the number allowed by max_logs, so when we
-            # queried again, we'd get the same entities back and never update 
-            # interval_start. The necessary sufficient condition for this is 
-            # that the ISO 8601 timestamps of the first and last entity 
-            # retrieved are the same. This issue is, however, much less likely
-            # now that we are making GQL queries with microsecond resolution.
-            msg = (("Number of entities of kind %s with timestamp %s " +
-                    "in range (%s,%s) exceeded max_logs = %s, " +
-                    "pickle download failed") % (
-                    kind, timestamp_last, start_dt,
-                    end_dt, max_entities_per_fetch))
-            subject = "Failed to fetch entity, too many matching timestamps"
-            g_logger.error(msg)
-            notify.send_hipchat(msg)
-            notify.send_email(subject, msg)
-            return []
+            if (not timestamp_first or not timestamp_last or
+                    timestamp_first != timestamp_last):
+                # TODO(sitan): There is a possibility that the number of 
+                # entities with the exact same ISO 8601 timestamp exceeds the 
+                # number allowed by max_logs, in which case if we were to query
+                # again, we'd get the same entities back and never update 
+                # interval_start. The necessary and sufficient condition for
+                # this is that the ISO 8601 timestamps of the first and last 
+                # entity retrieved are the same. In such a case, raise an
+                # error. Ideally, we'd want to use a query cursor to fix this,
+                # but we'd have to change the api call to protobuf-query
+                # because protobuf doesn't return a query cursor.
+                msg = (("Number of entities of kind %s with timestamp %s " +
+                        "in range (%s,%s) exceeded max_logs = %s, " +
+                        "pickle download failed") % (
+                        kind, timestamp_last, start_dt,
+                        end_dt, max_entities_per_fetch))
+                subject = "Failed to fetch entity, too many matching timestamps"
+                g_logger.error(msg)
+                notify.send_hipchat(msg)
+                notify.send_email(subject, msg)
+                return []
+            else:
+                interval_start = timestamp_last
 
     return entity_list
 
