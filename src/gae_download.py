@@ -296,5 +296,5 @@ if __name__ == '__main__':
     # are present.
     dirname = "/home/analytics/kabackup/daily_new/tokens/"
     filename = "token%s.txt" % dt.datetime.now().hour
-    f = open(dirname + filename, "w"):
+    f = open(dirname + filename, "w")
     f.close()
