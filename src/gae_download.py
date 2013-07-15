@@ -36,7 +36,6 @@ import fetch_entities
 from util import (mkdir_p, load_unstripped_json,
                   get_logger, db_decorator)
 import ka_download_coordinator as kdc
-
 import notify
 
 DEFAULT_DOWNLOAD_SETTINGS = {
@@ -292,3 +291,10 @@ def main():
 
 if __name__ == '__main__':
     main()
+    # Write token file upon completion. gae_download.py runs under an hourly,
+    # cronjob, so load_emr_daily.sh will start only when all 24 token files
+    # are present.
+    dirname = "/home/analytics/kabackup/daily_new/tokens/"
+    filename = "token%s.txt" % dt.datetime.now().hour
+    f = open(dirname + filename, "w"):
+    f.close()

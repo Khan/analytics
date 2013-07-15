@@ -37,12 +37,15 @@ archive_dir="$HOME/kabackup/daily_new"
 
 LOG_URI="s3://ka-mapreduce/logs/"
 
-# Check that downloads are complete by counting number of unzipped jsons
-json_count=1
-while [ ${json_count} -gt 0 ]; do
-    json_count=$(find ${archive_dir}/${day} -name "*.json" | wc -l)
+# Before taking off, check that gae_download has finished by counting tokens.
+# If all 24 tokens are present, clear the tokens directory.
+token_count=$(find ${archive_dir}/tokens -name ".txt" | wc -l)
+while [ ${token_count} -ne 24 ]; do
+    echo "Waiting for gae_download.py to finish"
     sleep 60
+    token_count=$(find ${archive_dir}/tokens -name ".txt" | wc -l)
 done
+rm ${archive_dir}/tokens/*
 
 # Bulk download small factual tables.
 # TODO(yunfang): Revisit if this is the best place to do the download
