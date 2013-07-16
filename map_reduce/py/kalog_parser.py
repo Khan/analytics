@@ -21,10 +21,7 @@ def main():
         if start >= 0:
             start += len('x.mindset.message_text') + 1
             end = kalog.find(';', start)
-            if end < 0:
-                message_text = kalog[start:]
-            else:
-                message_text = kalog[start:end]
+            message_text = kalog[start:end]
             print '\t'.join([bingo_id, message_text])
 
 if __name__ == '__main__':
