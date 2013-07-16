@@ -10,6 +10,8 @@ Output:
     For each log, emits the value in the x.message_text field, if it exists
 """
 
+import sys
+
 def main():
     key1 = 'x.mindset.message_text'
     key2 = 'id.bingo'
@@ -25,4 +27,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-    
