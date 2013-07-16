@@ -274,7 +274,7 @@ def write_tokens(start_dt, end_dt):
     # are present.
     datestr = str(start_dt.date())
     dirname = "/home/analytics/kabackup/daily_new/"
-    dirname += "%s/tokens/" % (config['archive_dir'], datestr, kind)
+    dirname += "%s/tokens/" % datestr
     mkdir_p(dirname)
     filename = "token-%s-%s.txt" % (start_dt.time(), end_dt.time())
     f = open(dirname + filename, "w")
