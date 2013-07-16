@@ -39,13 +39,12 @@ LOG_URI="s3://ka-mapreduce/logs/"
 
 # Before taking off, check that gae_download has finished by counting tokens.
 # If all 24 tokens are present, clear the tokens directory.
-token_count=$(find ${archive_dir}/tokens -name ".txt" | wc -l)
+token_count=$(find ${archive_dir}/${day}/tokens -name "token*.txt" | wc -l)
 while [ ${token_count} -lt 24 ]; do
     echo "Waiting for gae_download.py to finish"
     sleep 60
-    token_count=$(find ${archive_dir}/tokens -name ".txt" | wc -l)
+    token_count=$(find ${archive_dir}/${day}/tokens -name "token*.txt" | wc -l)
 done
-rm ${archive_dir}/tokens/*
 
 # Bulk download small factual tables.
 # TODO(yunfang): Revisit if this is the best place to do the download

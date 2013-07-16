@@ -268,12 +268,15 @@ def start_data_process(config, start_dt_arg, end_dt_arg):
         time.sleep(10)
 
 
-def write_tokens():
+def write_tokens(start_dt, end_dt):
     # Write token file at end of main. gae_download.py runs under an hourly,
     # cronjob, so load_emr_daily.sh will start only when all 24 token files
     # are present.
-    dirname = "/home/analytics/kabackup/daily_new/tokens/"
-    filename = "token%s.txt" % dt.datetime.now().hour
+    datestr = str(start_dt.date())
+    dirname = "/home/analytics/kabackup/daily_new/"
+    dirname += "%s/tokens/" % (config['archive_dir'], datestr, kind)
+    mkdir_p(dirname)
+    filename = "token-%s-%s.txt" % (start_dt.time(), end_dt.time())
     f = open(dirname + filename, "w")
     f.close()
 
@@ -297,7 +300,7 @@ def main():
         # Override the archive directory, if specified.
         config['archive_dir'] = options.archive_dir
     start_data_process(config, start_dt, end_dt)
-    write_tokens()
+    write_tokens(start_dt, end_dt)
 
 
 if __name__ == '__main__':
