@@ -26,6 +26,11 @@
       "hive_table": "teacher_country",
       "mongo_collection":  "teacher_country",
       "drop": true
+    },
+    { "hive_script": "s3://ka-mapreduce/code/hive/class_size_histogram.q",
+      "hive_table": "class_size_histogram",
+      "mongo_collection":  "class_size_histogram",
+      "drop": true
     }
 
   ]

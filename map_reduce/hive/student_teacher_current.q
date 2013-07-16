@@ -10,6 +10,19 @@ CREATE EXTERNAL TABLE IF NOT EXISTS user_coach_date(
   self_coach BOOLEAN
 ) LOCATION 's3://ka-mapreduce/tmp/user_coach_date';
 
+DROP TABLE IF EXISTS coach_on_date;
+CREATE EXTERNAL TABLE IF NOT EXISTS coach_on_date (
+  coach STRING,
+  dt STRING
+) LOCATION 's3://ka-mapreduce/tmp/coach_on_date';
+
+DROP TABLE IF EXISTS user_on_date;
+CREATE EXTERNAL TABLE IF NOT EXISTS user_on_date (
+  user STRING,
+  coach STRING,
+  dt STRING
+) LOCATION 's3://ka-mapreduce/tmp/user_on_date';
+
 DROP TABLE IF EXISTS teacher_on_date;
 CREATE EXTERNAL TABLE IF NOT EXISTS teacher_on_date(
   teacher STRING,
@@ -64,3 +77,23 @@ JOIN teacher_on_date t_dt
 ON u_dt.coach = t_dt.teacher
 WHERE NOT u_dt.self_coach
 GROUP BY u_dt.user, t_dt.teacher;
+
+-- Find all coaches who are not teachers
+-- It's a lot simpler with coaches since we don't have to know the date
+--  they have became a teacher
+INSERT OVERWRITE TABLE coach_on_date
+SELECT
+  coach, MIN(joined_on) AS dt
+FROM user_coach_date
+GROUP BY coach
+HAVING COUNT(1) < 10;
+
+-- Find all (user, coach) pairs who are in a group of less than 10
+INSERT OVERWRITE TABLE user_on_date
+SELECT
+  u_dt.user, u_dt.coach, MIN(u_dt.joined_on) AS dt
+FROM user_coach_date u_dt
+LEFT OUTER JOIN student_on_date
+ON student_on_date.student = u_dt.user
+WHERE student_on_date.teacher IS NULL
+GROUP BY u_dt.user, u_dt.coach;

@@ -388,6 +388,12 @@ CREATE EXTERNAL TABLE IF NOT EXISTS student_teacher_count (
     dt STRING
 ) LOCATION 's3://ka-mapreduce/summary_tables/student_teacher_count';
 
+DROP TABLE IF EXISTS class_size_histogram;
+CREATE EXTERNAL TABLE IF NOT EXISTS class_size_histogram (
+    student_count INT,
+    class_count INT
+) LOCATION 's3://ka-mapreduce/summary_tables/class_size_histogram';
+
 DROP TABLE IF EXISTS daily_class_profile_visits;
 CREATE EXTERNAL TABLE IF NOT EXISTS daily_class_profile_visits (
     bingo_id STRING,
