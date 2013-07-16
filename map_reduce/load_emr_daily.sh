@@ -40,7 +40,7 @@ LOG_URI="s3://ka-mapreduce/logs/"
 # Before taking off, check that gae_download has finished by counting tokens.
 # If all 24 tokens are present, clear the tokens directory.
 token_count=$(find ${archive_dir}/tokens -name ".txt" | wc -l)
-while [ ${token_count} -ne 24 ]; do
+while [ ${token_count} -lt 24 ]; do
     echo "Waiting for gae_download.py to finish"
     sleep 60
     token_count=$(find ${archive_dir}/tokens -name ".txt" | wc -l)
