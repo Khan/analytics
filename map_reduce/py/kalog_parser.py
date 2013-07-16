@@ -12,6 +12,7 @@ Output:
 
 import sys
 
+
 def main():
     key1 = 'x.mindset.message_text'
     key2 = 'id.bingo'
