@@ -161,7 +161,7 @@ def download_entities(kind,
             timestamp_last = entity_last.get(index_name, None)
 
             if (not timestamp_first or not timestamp_last or
-                    timestamp_first != timestamp_last):
+                    timestamp_first == timestamp_last):
                 # TODO(sitan): There is a possibility that the number of 
                 # entities with the exact same ISO 8601 timestamp exceeds the 
                 # number allowed by max_logs, in which case if we were to query
@@ -184,7 +184,8 @@ def download_entities(kind,
                 return []
             else:
                 interval_start = timestamp_last
-
+        else:
+            interval_start = interval_end
     return entity_list
 
 
