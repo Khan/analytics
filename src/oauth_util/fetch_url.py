@@ -30,3 +30,14 @@ def fetch_url(url_path, post_params=None):
 
     method = "POST" if post_params else "GET"
     return client.access_resource(url_path, access_token, method, post_params)
+
+
+def post_json(url_path, json=None):
+    client = test_oauth_client.TestOAuthClient(
+        consts.SERVER_URL, consts.CONSUMER_KEY, consts.CONSUMER_SECRET)
+
+    access_token = oauth.OAuthToken.from_string(ACCESS_TOKEN_RESPONSE)
+
+    return client.post_resources(url_path, access_token, "POST", json,
+                            "application/json")
+

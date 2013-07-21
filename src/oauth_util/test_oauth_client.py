@@ -69,6 +69,27 @@ class TestOAuthClient(object):
 
         return response
 
+    def post_resources(self,
+                       relative_url,
+                       access_token,
+                       method="POST",
+                       data=None,
+                       content_type=None):
+        full_url = self.server_url + relative_url
+
+        oauth_request = OAuthRequest.from_consumer_and_token(
+                self.consumer,
+                token = access_token,
+                http_url = full_url,
+                http_method=method
+                )
+
+        oauth_request.sign_request(OAuthSignatureMethod_HMAC_SHA1(), self.consumer, access_token)
+
+        return post_response(oauth_request.to_url(), data, content_type)
+
+
+
 def get_response(url):
     response = ""
     file = None
@@ -81,11 +102,18 @@ def get_response(url):
 
     return response
 
-def post_response(url, data):
+def post_response(url, data, content_type=None):
     response = ""
     file = None
+    headers = {}
+
+    if content_type:
+        headers = {'Content-Type': content_type}
+
+    req = urllib2.Request(url, data, headers)
+
     try:
-        file = urllib2.urlopen(url, data)
+        file = urllib2.urlopen(req)
         response = file.read()
     finally:
         if file:
