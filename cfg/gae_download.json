@@ -22,7 +22,7 @@
             "Scratchpad": [1800, 100, 1, 1, "key"],
             "ScratchpadRevision": [1800, 100, 0, 1, "key"],
             "LearningTask" : [300, 15, 1, 1, "key"],
-            "UserAssessment": [300, 15, 1, 1, "key"],
+            "LearningTask": [300, 15, 1, 1, "key"],
             "UserMission": [300, 15, 1, 1, "key"],
 
             # The following are also duplicated in the bulk download process.
