@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<!--
+A simple dashboard monthly timeseries corresponding to the company growth goals.
+-->
+
+<head>
+<link rel="shortcut icon" href="http://www.khanacademy.org/favicon.ico?leaf">
+<link rel="stylesheet" type="text/css" href="static/css/third_party/bootstrap.css">
+<link rel="stylesheet" type="text/css" href="static/css/third_party/jquery/flick/jquery-ui-1.8.20.custom.css">
+<link rel="stylesheet" href="/static/css/cover_graph.css">
+</head>
+
+<body>
+	{% include 'navbar.html' %}
+	<div id="chart"></div>
+	<div id="graph-nav">
+		<input id="divs"/>
+		<div id="ex-info">
+		</div>
+	</div>
+    <script src="/static/js/third_party/d3.min.js"></script>
+	<script src="http://code.jquery.com/jquery-2.0.2.js"></script>
+	<script src="/static/js/third_party/bootstrap-collapse.js"></script>
+	<script src="/static/js/third_party/jquery-ui-1.8.23.custom.min.js"></script>
+	<script src="/static/js/cover_graph.js"></script>
+
+</body>
+</html>

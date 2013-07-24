@@ -97,6 +97,12 @@ def badges_dashboard():
     return flask.render_template('badge_summary.html')
 
 
+@app.route('/cover-graph')
+@auth.login_required
+def cover_graph():
+    return flask.render_template('cover_graph.html')
+
+
 # Serve map data as a csv file. Generate one file per week
 @app.route("/teachers-students/download-map")
 @auth.login_required

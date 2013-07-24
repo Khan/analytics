@@ -1,0 +1,60 @@
+body {
+  background-color: #eee;
+}
+
+#chart {
+	width: 75%;
+	float: left;
+	margin-top:45px;
+  background-color: white;
+}
+
+#graph-nav {
+    width: 24%;
+    float: right;
+    margin-top:45px;
+}
+
+circle.node {
+}
+
+path.link {
+  fill: none;
+  stroke: #666;
+  stroke-width: 1.5px;
+}
+
+.tooltip {
+  position: absolute;
+  text-align: center;
+  padding: 8px;
+  font: 10px sans-serif;
+  background: #ddd;
+  border: solid 2px #fff;
+  border-radius: 12px;
+  pointer-events: none;
+}
+
+#ex-info {
+	margin: 0px;
+  max-height: inherit;
+}
+
+#divs {
+  width: 95%;
+}
+
+.card {
+  width: 95%;
+  background-color:white;
+  margin-top:10px;
+}
+
+.card-title {
+  background-color:#aaa;
+}
+
+.cover-list {
+  background-color:#fefefe;
+  padding: 5px;
+}
