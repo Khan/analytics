@@ -99,6 +99,6 @@ if __name__ == "__main__":
                            " Default is to fail immediately")
     (options, args) = parser.parse_args()
     if len(args) != 1:
-        parser.error()
+        parser.error("missing required .backup_info file")
     backup_info = args[0]
     sys.exit(main(backup_info, options.force))
