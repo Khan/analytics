@@ -116,5 +116,33 @@ INSERT OVERWRITE TABLE UserAssessmentP PARTITION(dt='${end_dt}')
 SELECT TRANSFORM(json) USING 'find_latest_record.py'
 AS key, json;
 
+FROM (
+  FROM (
+    SELECT key, json FROM LearningTaskP
+    WHERE dt = '${start_dt}'
+    UNION ALL
+    SELECT key, json FROM LearningTaskIncr
+    WHERE dt > '${start_dt}' AND dt <= '${end_dt}'
+  ) map_out
+  SELECT key, json CLUSTER BY key
+)  red_out
+INSERT OVERWRITE TABLE LearningTaskP PARTITION(dt='${end_dt}')
+SELECT TRANSFORM(json) USING 'find_latest_record.py'
+AS key, json;
+
+FROM (
+  FROM (
+    SELECT key, json FROM UserMissionP
+    WHERE dt = '${start_dt}'
+    UNION ALL
+    SELECT key, json FROM UserMissionIncr
+    WHERE dt > '${start_dt}' AND dt <= '${end_dt}'
+  ) map_out
+  SELECT key, json CLUSTER BY key
+)  red_out
+INSERT OVERWRITE TABLE UserMissionP PARTITION(dt='${end_dt}')
+SELECT TRANSFORM(json) USING 'find_latest_record.py'
+AS key, json;
+
 ADD FILE s3://ka-mapreduce/code/shell/set_userdata_partition.sh;
 !/mnt/var/lib/hive_081/downloaded_resources/set_userdata_partition.sh;

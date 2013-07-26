@@ -100,6 +100,21 @@
     }
 },
 
+  {
+    "Name": "Loading <dt> UserEvent into EMR",
+    "ActionOnFailure": "CONTINUE",
+    "HadoopJarStep": {
+      "Jar": "/home/hadoop/contrib/streaming/hadoop-streaming.jar",
+      "Args": [
+         "-D", "mapred.output.compress=true",
+         "-input",    "s3n://ka-mapreduce/rawdata/<dt>/UserEvent/*.json.gz",
+         "-output",   "s3n://ka-mapreduce/entity_store/UserEvent/dt=<dt>/",
+         "-mapper",   "/bin/cat",
+         "-reducer",  "/bin/cat",
+         "-numReduceTasks", "16"
+      ]
+    }
+  },
 
 {
     "Name": "Loading <dt> Exercise into EMR",

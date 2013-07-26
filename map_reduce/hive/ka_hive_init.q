@@ -86,6 +86,14 @@ CREATE EXTERNAL TABLE IF NOT EXISTS ScratchpadRevision (
   LOCATION '${INPATH}/ScratchpadRevision';
 ALTER TABLE ScratchpadRevision RECOVER PARTITIONS;
 
+CREATE EXTERNAL TABLE IF NOT EXISTS UserEvent (
+    user string, json string
+  )
+  PARTITIONED BY (dt string)
+  ROW FORMAT DELIMITED FIELDS TERMINATED BY '\t'
+  LOCATION '${INPATH}/UserEvent';
+ALTER TABLE UserEvent RECOVER PARTITIONS;
+
 --------------------------------------------------------------------------------
 -- Incrementally fetched entities
 
@@ -240,6 +248,46 @@ CREATE VIEW UserAssessment
 AS SELECT * FROM UserAssessmentP
 WHERE dt = '${userdata_partition}';
 
+-- UserMission
+CREATE EXTERNAL TABLE IF NOT EXISTS UserMissionIncr (key string, json string)
+COMMENT 'Daily incremental UserMission updates'
+PARTITIONED BY (dt string)
+ROW FORMAT DELIMITED FIELDS TERMINATED BY '\t'
+LOCATION 's3://ka-mapreduce/entity_store_incr/UserMission';
+ALTER TABLE UserMissionIncr RECOVER PARTITIONS;
+
+CREATE EXTERNAL TABLE IF NOT EXISTS UserMissionP (key string, json string)
+COMMENT 'UserMission snapshots (created from multiple UserMissionIncr partitions)'
+PARTITIONED BY (dt string)
+LOCATION '${INPATH}/UserMissionP';
+ALTER TABLE UserMissionP RECOVER PARTITIONS;
+
+DROP TABLE IF EXISTS UserMission;
+DROP VIEW IF EXISTS UserMission;
+CREATE VIEW UserMission
+AS SELECT * FROM UserMissionP
+WHERE dt = '${userdata_partition}';
+
+
+-- LearningTask
+CREATE EXTERNAL TABLE IF NOT EXISTS LearningTaskIncr (key string, json string)
+COMMENT 'Daily incremental LearningTask updates'
+PARTITIONED BY (dt string)
+ROW FORMAT DELIMITED FIELDS TERMINATED BY '\t'
+LOCATION 's3://ka-mapreduce/entity_store_incr/LearningTask';
+ALTER TABLE LearningTaskIncr RECOVER PARTITIONS;
+
+CREATE EXTERNAL TABLE IF NOT EXISTS LearningTaskP (key string, json string)
+COMMENT 'LearningTask snapshots (created from multiple LearningTaskIncr partitions)'
+PARTITIONED BY (dt string)
+LOCATION '${INPATH}/LearningTaskP';
+ALTER TABLE LearningTaskP RECOVER PARTITIONS;
+
+DROP TABLE IF EXISTS LearningTask;
+DROP VIEW IF EXISTS LearningTask;
+CREATE VIEW LearningTask
+AS SELECT * FROM LearningTaskP
+WHERE dt = '${userdata_partition}';
 
 --------------------------------------------------------------------------------
 -- Summary Tables
