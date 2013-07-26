@@ -3,19 +3,29 @@ body {
 }
 
 #chart {
-	width: 75%;
-	float: left;
-	margin-top:45px;
+  margin-top:5px;
   background-color: white;
+  height:50%;
 }
 
 #graph-nav {
-    width: 24%;
-    float: right;
-    margin-top:45px;
+  margin-top:45px;
+  height: 10%;
+  padding: 1px;
 }
 
-circle.node {
+.node rect {
+  stroke: #000;
+  fill: #fff;
+}
+
+.node text {
+  font: 300 16px "Helvetica Neue";
+}
+
+.node:hover {
+  cursor: pointer;
+  opacity: 0.4;
 }
 
 path.link {
@@ -24,37 +34,38 @@ path.link {
   stroke-width: 1.5px;
 }
 
-.tooltip {
-  position: absolute;
-  text-align: center;
-  padding: 8px;
-  font: 10px sans-serif;
-  background: #ddd;
-  border: solid 2px #fff;
-  border-radius: 12px;
-  pointer-events: none;
+#divs {
+  padding: 1px;
+  width: 99%;
+  margin-left: 0.25%;
 }
 
 #ex-info {
-	margin: 0px;
-  max-height: inherit;
-}
-
-#divs {
-  width: 95%;
+  position:fixed;
+  bottom:0px;
+  height: 50px;
+  overflow-x:scroll;
+  overflow-y:hidden;
 }
 
 .card {
-  width: 95%;
+  display: inline;
+  float:left;
   background-color:white;
-  margin-top:10px;
+  height:45px;
+  width:12.5%;
 }
 
 .card-title {
+  padding:2px;
   background-color:#aaa;
+  font-size: 12px;
+  font-style: bold;
 }
 
 .cover-list {
   background-color:#fefefe;
-  padding: 5px;
+  padding: 2px;
+  font-size: 10px;
+  line-height: 1.2;
 }
