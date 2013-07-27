@@ -5,12 +5,15 @@ import requests
 
 G = nx.DiGraph()
 topictree = requests.get("http://www.khanacademy.org/api/v1/topictree").json()
+
+
 def get_nodes(top):
     if 'node_slug' in top and 'e/' in top['node_slug']:
         G.add_node(top['node_slug'][2:])
     if 'children' in top:
         for child in top['children']:
             get_nodes(child)
+
 
 def get_edges(top):
     if 'covers' in top:
