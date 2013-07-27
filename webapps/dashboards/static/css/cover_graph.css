@@ -39,11 +39,27 @@ path.link {
   stroke-width: 1.5px;
 }
 
+
 #search {
   padding: 1px;
-  width: 99%;
+  width: 97%;
   margin-left: 0.25%;
 }
+
+#home {
+  background-color: #ddd;
+  padding: 3px;
+  padding-left: 6px;
+  float:right;
+  width: 1.26%;
+  margin-right: 0.25%;
+  text-align: center
+}
+
+#home:active {
+  background-color: #ccc;
+}
+
 
 #warning {
   width:800px;

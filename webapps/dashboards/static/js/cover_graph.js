@@ -142,14 +142,17 @@ d3.json('/static/cover_graph.json', function(json) {
     rects = results[2];
 
     opacities = {}
+    strokes = {}
     node
       .each(function(d) {
-          opacity = connected(d, matches) ? 1 : 0.4;
-          opacities[d.id] = opacity;
-          stroke = (matches.indexOf(d) > -1) ? 5 : 1;
+          opacities[d.id] = connected(d, matches) ? 1 : 0.4;
+          strokes[d.id] = (matches.indexOf(d) > -1) ? 5 : 0;
           d3.select(this)
-            .style("opacity", opacity)
-            .style("stroke-width", stroke)
+            .style("opacity", opacities[d.id])
+            if(matches.indexOf(d) > -1)
+              d3.select(this)
+                .style("stroke", "black")
+                .style("text-stroke", 2)
             .on("mouseover", function() {
               d3.select(this)
                 .style("opacity", 0.2)
@@ -203,6 +206,16 @@ d3.json('/static/cover_graph.json', function(json) {
   $(window).resize(function() {
     $("svg").css("height", $(window).height() - 85)
   })
+
+  // when home icon is pressed, return to initial display
+  $('#home').on("click", function() {
+    d3.select("#chart")
+      .style("opacity", 1e-6)
+      .transition()
+        .duration(1000)
+        .style("opacity", 1); 
+    draw(json.nodes, json.links); 
+  });
 
   // main function for rendering DAG out of list of nodes and links
   function draw(nodes, links) {
