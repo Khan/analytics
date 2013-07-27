@@ -5,7 +5,10 @@ body {
 #chart {
   margin-top:5px;
   background-color: white;
-  height:50%;
+}
+
+svg {
+  cursor: move;
 }
 
 #graph-nav {
@@ -15,17 +18,19 @@ body {
 }
 
 .node rect {
-  stroke: #000;
-  fill: #fff;
 }
 
 .node text {
-  font: 300 16px "Helvetica Neue";
+  font: 300 20px "Helvetica Neue";
+}
+
+.link:hover {
+  cursor: auto;
 }
 
 .node:hover {
   cursor: pointer;
-  opacity: 0.4;
+  opacity: 0.2;
 }
 
 path.link {
@@ -34,38 +39,22 @@ path.link {
   stroke-width: 1.5px;
 }
 
-#divs {
+#search {
   padding: 1px;
   width: 99%;
   margin-left: 0.25%;
 }
 
-#ex-info {
-  position:fixed;
-  bottom:0px;
-  height: 50px;
-  overflow-x:scroll;
-  overflow-y:hidden;
-}
-
-.card {
-  display: inline;
-  float:left;
-  background-color:white;
-  height:45px;
-  width:12.5%;
-}
-
-.card-title {
-  padding:2px;
-  background-color:#aaa;
-  font-size: 12px;
-  font-style: bold;
-}
-
-.cover-list {
-  background-color:#fefefe;
-  padding: 2px;
-  font-size: 10px;
-  line-height: 1.2;
+#warning {
+  width:800px;
+  position:absolute;
+  left:50%;
+  top:50%;
+  margin:0px 0 0 -400px;
+  text-align: center;
+  font-style: italic;
+  font: "Helvetica";
+  display: none;
+  font-size: 50px;
+  opacity: 0.1;
 }
