@@ -1,12 +1,13 @@
 # From https://github.com/khan/khan-api
 
 import cgi
-import logging
 import urllib2
 import urlparse
 import webbrowser
 
-from oauth import OAuthConsumer, OAuthToken, OAuthRequest, OAuthSignatureMethod_HMAC_SHA1
+from oauth import OAuthConsumer, OAuthToken
+from oauth import OAuthRequest, OAuthSignatureMethod_HMAC_SHA1
+
 
 class TestOAuthClient(object):
 
@@ -17,21 +18,23 @@ class TestOAuthClient(object):
     def start_fetch_request_token(self):
         oauth_request = OAuthRequest.from_consumer_and_token(
                 self.consumer,
-                http_url = "%s/api/auth/request_token" % self.server_url
-                )
+                http_url="%s/api/auth/request_token" % self.server_url
+        )
 
-        oauth_request.sign_request(OAuthSignatureMethod_HMAC_SHA1(), self.consumer, None)
+        oauth_request.sign_request(
+            OAuthSignatureMethod_HMAC_SHA1(), self.consumer, None)
         webbrowser.open(oauth_request.to_url())
 
     def fetch_access_token(self, request_token):
 
         oauth_request = OAuthRequest.from_consumer_and_token(
                 self.consumer,
-                token = request_token,
-                http_url = "%s/api/auth/access_token" % self.server_url
-                )
+                token=request_token,
+                http_url="%s/api/auth/access_token" % self.server_url
+        )
 
-        oauth_request.sign_request(OAuthSignatureMethod_HMAC_SHA1(), self.consumer, request_token)
+        oauth_request.sign_request(
+            OAuthSignatureMethod_HMAC_SHA1(), self.consumer, request_token)
 
         response = get_response(oauth_request.to_url())
 
@@ -54,13 +57,14 @@ class TestOAuthClient(object):
 
         oauth_request = OAuthRequest.from_consumer_and_token(
                 self.consumer,
-                token = access_token,
-                http_url = full_url,
-                parameters = full_params,
+                token=access_token,
+                http_url=full_url,
+                parameters=full_params,
                 http_method=method
-                )
+        )
 
-        oauth_request.sign_request(OAuthSignatureMethod_HMAC_SHA1(), self.consumer, access_token)
+        oauth_request.sign_request(
+            OAuthSignatureMethod_HMAC_SHA1(), self.consumer, access_token)
 
         if method == "GET":
             response = get_response(oauth_request.to_url())
@@ -79,15 +83,15 @@ class TestOAuthClient(object):
 
         oauth_request = OAuthRequest.from_consumer_and_token(
                 self.consumer,
-                token = access_token,
-                http_url = full_url,
+                token=access_token,
+                http_url=full_url,
                 http_method=method
-                )
+        )
 
-        oauth_request.sign_request(OAuthSignatureMethod_HMAC_SHA1(), self.consumer, access_token)
+        oauth_request.sign_request(
+            OAuthSignatureMethod_HMAC_SHA1(), self.consumer, access_token)
 
         return post_response(oauth_request.to_url(), data, content_type)
-
 
 
 def get_response(url):
@@ -101,6 +105,7 @@ def get_response(url):
             file.close()
 
     return response
+
 
 def post_response(url, data, content_type=None):
     response = ""
