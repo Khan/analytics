@@ -1,0 +1,66 @@
+/* Lifted from http://panic.com/statusboard/modules/spacepeople/index.html */
+
+@font-face {
+    font-family: "Roadgeek2005SeriesD";
+    src: url("http://panic.com/fonts/Roadgeek 2005 Series D/Roadgeek 2005 Series D.otf");
+}
+
+body, * {
+
+}
+
+body,div,dl,dt,dd,ul,ol,li,h1,h2,h3,h4,h5,h6,pre,form,fieldset,input,textarea,p,blockquote,th,td {
+    margin: 0;
+    padding: 0;
+}
+
+fieldset,img {
+    border: 0;
+}
+
+html, body, #main {
+    overflow: hidden;
+}
+
+body {
+    color: white;
+    font-family: 'Roadgeek2005SeriesD', sans-serif;
+    font-size: 20px;
+    line-height: 24px;
+}
+
+body, html, #main {
+    background: transparent !important;
+}
+
+#container {
+    width: 506px;
+    height: 250px;
+    text-align: center;
+    background-size: 250px 187px;
+}
+
+#container * {
+    font-weight: normal;
+}
+
+h1 {
+    font-size: 120px;
+    line-height: 120px;
+    margin-top: 42px;
+    margin-bottom: 28px;
+    color: white;
+    text-shadow:0px -2px 0px black;
+    text-transform: uppercase;
+}
+
+h2 {
+    margin: 0px auto;
+    margin-top: 8px;
+    margin-left: 14px;
+    font-size: 21px;
+    line-height: 21px;
+    color: white;
+    text-transform: uppercase;
+    text-align: left;
+}

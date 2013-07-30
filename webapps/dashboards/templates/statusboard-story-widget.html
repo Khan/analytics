@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+    <head>
+        {# TODO(dylan): Also don't cache the related CSS and JS files #}
+        <meta http-equiv="Content-Type" content="text/html; charset=utf8" />
+        <meta http-equiv="Cache-control" content="no-cache" />
+        <link rel="stylesheet" href="/static/css/statusboard-story-widget.css">
+        <script type="text/javascript" src="//ajax.googleapis.com/ajax/libs/jquery/2.0.3/jquery.min.js"></script>
+        <script type="text/javascript" src="/static/js/third_party/jquery.ellipsis.js"></script>
+        <script type="text/javascript" src="/static/js/third_party/underscore-min.js"></script>
+        <script type="text/javascript" src="/static/js/statusboard-story-widget.js"></script>
+    </head>
+    <body>
+        <div id="main">
+            <div id="container">
+                <h2 id="title">{{title}}</h2>
+                <p id="value" data-source="{{source}}">{{value}}</p>
+            </div>
+        </div>
+    </body>
+</html>

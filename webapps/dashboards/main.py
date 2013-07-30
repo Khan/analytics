@@ -12,6 +12,7 @@ It will house more dashboards for fundamental metrics we want to track.
 
 import collections
 import datetime
+import operator
 import optparse
 import os
 import time
@@ -247,6 +248,152 @@ def badge_summary(badge):
     return flask.jsonify({
         "badges": badges
     })
+
+
+@app.route("/data/statusboard/company-goals")
+def statusboard_company_goals():
+    """Return company goals data formatted for http://panic.com/statusboard/"""
+    collection = db["report"]["company_metrics"]
+    results = collection.find(sort=[("activity_month", 1)])
+    long_term_users = []
+    registered_users = []
+    highly_engaged_users = []
+    for result in results:
+        dt = result["activity_month"]
+        long_term_users.append({
+            "title": dt,
+            "value": result["long_term_users_active_this_month"]
+        })
+        registered_users.append({
+            "title": dt,
+            "value": result["registrations_this_month"]
+        })
+        highly_engaged_users.append({
+            "title": dt,
+            "value": result["highly_engaged_users_active_this_month"]
+        })
+    return flask.jsonify({
+        "graph": {
+            "title": "Company Growth Metrics",
+            "type": "line",
+            "datasequences": [
+                {
+                    "title": "Long term users",
+                    "color": "pink",
+                    "datapoints": long_term_users
+                },
+                {
+                    "title": "Highly engaged users",
+                    "color": "green",
+                    "datapoints": highly_engaged_users
+                },
+                {
+                    "title": "Registered users",
+                    "color": "orange",
+                    "datapoints": registered_users
+                }
+            ]
+        }
+    })
+
+
+@app.route("/data/statusboard/exercises")
+def statusboard_exercises():
+    """Return exercise data formatted for http://panic.com/statusboard/"""
+    collection = db["report"]["daily_exercise_stats"]
+    criteria = {
+        "exercise": "ALL",
+        "sub_mode": "everything",
+        "super_mode": "everything"
+    }
+    results = collection.find(criteria, sort=[("dt", -1)])
+    exercises = []
+    for result in results[:28]:
+        exercises.append({
+            "title": result["dt"],
+            "value": result["problems"]
+        })
+    exercises.reverse()
+    return flask.jsonify({
+        "graph": {
+            "title": "Exercises",
+            "type": "bar",
+            "total": True,
+            "datasequences": [
+                {
+                    "title": "Problems per day",
+                    "color": "yellow",
+                    "datapoints": exercises
+                }
+            ]
+        }
+    })
+
+
+@app.route("/data/statusboard/videos")
+def statusboard_videos():
+    """Return video data formatted for http://panic.com/statusboard/"""
+    results = sorted(
+                data.video_title_summary(db, "Total", "day", None, None),
+                key=operator.itemgetter("dt"),
+                reverse=True)
+    videos = []
+    for result in results[:28]:
+        videos.append({
+            "title": result["dt"],
+            "value": int(result["hours_all"] * 60)
+        })
+    videos.reverse()
+    return flask.jsonify({
+        "graph": {
+            "title": "Videos",
+            "type": "bar",
+            "total": True,
+            "datasequences": [
+                {
+                    "title": "Minutes viewed per day",
+                    "color": "blue",
+                    "datapoints": videos
+                }
+            ]
+        }
+    })
+
+
+@app.route("/data/statusboard/exercises/today")
+def statusboard_exercises_today_value():
+    """Return data for the exercise widget for http://panic.com/statusboard/"""
+    collection = db["report"]["daily_exercise_stats"]
+    criteria = {
+        "exercise": "ALL",
+        "sub_mode": "everything",
+        "super_mode": "everything"
+    }
+    results = collection.find(criteria, sort=[("dt", -1)])
+    week_ago = datetime.date.today() - datetime.timedelta(days=7)
+    week_ago_str = week_ago.strftime("%Y-%m-%d")
+    for result in results[:7]:
+        if result["dt"] == week_ago_str:
+            return flask.jsonify({"value": result["problems"]})
+    # TODO(dylan): Do something better than fudging the value
+    return flask.jsonify({"value": 1500000})
+
+
+@app.route("/data/statusboard/videos/today")
+def statusboard_videos_today_value():
+    """Return data for the video widget for http://panic.com/statusboard/"""
+    start_dt = datetime.date.today() - datetime.timedelta(days=7)
+    end_dt = start_dt + datetime.timedelta(days=1)
+    start_dt_str = start_dt.strftime("%Y-%m-%d")
+    end_dt_str = end_dt.strftime("%Y-%m-%d")
+    summary = data.video_title_summary(
+        db, "Total", "day", start_dt_str, end_dt_str)
+    if len(summary) == 0:
+        # TODO(dylan): Do something better than fudging the value
+        value = 20000 * 60
+    else:
+        value = summary[0]["hours_all"] * 60
+    return flask.jsonify({"value": value})
 
 
 @app.route('/db/exercise-summary/<exercise>/sub_types')
@@ -877,6 +1024,39 @@ def webpagetest_stats():
         template_dict[f + '_all'] = input_field_info.all_field_values(f)
 
     return flask.render_template('webpagetest/stats.html', **template_dict)
+
+
+@app.route("/statusboard/exercises/today")
+def statusboard_exercises_today_widget():
+    """Return an exercise widget for http://panic.com/statusboard/"""
+    return flask.render_template(
+                "statusboard-counter-widget.html",
+                title="Exercises completed today",
+                value="",
+                source="/data/statusboard/exercises/today"
+            )
+
+
+@app.route("/statusboard/videos/today")
+def statusboard_videos_today_widget():
+    """Return a video widget for http://panic.com/statusboard/"""
+    return flask.render_template(
+                "statusboard-counter-widget.html",
+                title="Minutes of video watched today",
+                value="",
+                source="/data/statusboard/videos/today"
+            )
+
+
+@app.route("/statusboard/stories")
+def statusboard_stories_widget():
+    """Return a story widget for http://panic.com/statusboard/"""
+    return flask.render_template(
+                "statusboard-story-widget.html",
+                title="Stories",
+                value="",
+                source="http://www.khanacademy.org/api/v1/stories?count=100"
+            )
 
 
 def utc_as_dt(days_ago=0):
