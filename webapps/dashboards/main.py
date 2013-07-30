@@ -280,17 +280,17 @@ def statusboard_company_goals():
                 {
                     "title": "Long term users",
                     "color": "pink",
-                    "datapoints": long_term_users
+                    "datapoints": long_term_users[:-1]
                 },
                 {
                     "title": "Highly engaged users",
                     "color": "green",
-                    "datapoints": highly_engaged_users
+                    "datapoints": highly_engaged_users[:-1]
                 },
                 {
                     "title": "Registered users",
                     "color": "orange",
-                    "datapoints": registered_users
+                    "datapoints": registered_users[:-1]
                 }
             ]
         }
