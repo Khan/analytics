@@ -3,7 +3,7 @@ oauth2==1.5.211
 pymongo==2.3
 
 # For interacting with AWS via Python
-boto==2.4.1
+boto==2.9.9
 
 # numerical and machine learning python packages
 numpy==1.6.2
