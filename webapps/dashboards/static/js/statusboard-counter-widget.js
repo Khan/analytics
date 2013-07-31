@@ -7,30 +7,34 @@ $(function() {
     // For ease of local development, add ?desktop to the URL
     if (document.location.href.indexOf("desktop") !== -1)
         $("#container").css("backgroundColor", "black");
-    updateData();
-    var dataInterval = setInterval(updateData, 86400);
-    var displayInterval = setInterval(updateDisplay, 1500);
+    var dataInterval = setInterval(updateData, 24 * 60 * 60 * 1000);
+    updateData().then(function() {
+        updateDisplayLoop();
+    });
 });
 
 var updateData = function() {
     var url = $("#value").data("source");
-    $.get(url, function(data) {
+    return $.get(url, function(data) {
         value = data.value;
     });
 };
+
+function updateDisplayLoop() {
+    updateDisplay();
+    setTimeout(updateDisplayLoop, 90);
+}
 
 var updateDisplay = function() {
     // The closest we can get to a real-time count of exercises and videos done
     // today is by fetching that number from seven days ago and interpolating
     // based on the time of day.
-    setTimeout(function() {
-        var now = new Date();
-        var todayMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
-        var secsElapsedToday = (now - todayMidnight) / 1000;
-        var percentDayComplete = secsElapsedToday / 86400;
-        var displayValue = Math.floor(value * percentDayComplete);
-        $("#value").text(commaSeparateNumber(displayValue));
-    }, 1000 * Math.random());
+    var now = new Date();
+    var todayMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
+    var secsElapsedToday = (now - todayMidnight) / 1000;
+    var percentDayComplete = secsElapsedToday / 86400;
+    var displayValue = Math.floor(value * percentDayComplete);
+    $("#value").text(commaSeparateNumber(displayValue));
 };
 
 // http://stackoverflow.com/a/12947816

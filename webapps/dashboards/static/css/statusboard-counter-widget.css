@@ -40,12 +40,8 @@ body, html, #main {
     background-size: 250px 187px;
 }
 
-#container * {
-    font-weight: normal;
-}
-
 h1 {
-    font-size: 120px;
+    font: 500 120px Avenir, sans-serif;
     line-height: 120px;
     margin-top: 42px;
     margin-bottom: 28px;
@@ -55,10 +51,11 @@ h1 {
 }
 
 h2 {
+    font-size: 21px;
+    font-weight: normal;
     margin: 0px auto;
     margin-top: 8px;
     margin-left: 14px;
-    font-size: 21px;
     line-height: 21px;
     color: white;
     text-transform: uppercase;
