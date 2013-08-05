@@ -1,16 +1,23 @@
 var fill = d3.scale.category20(),
     nodePadding = 10,
+    // each node is an object with an id (the name of the exercise)
+    // as well as a list of links of the form {source: <sourceID>, 
+    // target: <targetID>}. each link in graph is of the form
+    // {source: <sourceObject>, target: <targetObject>}
     graph = {nodes: [], links: []};
 
 $.get("http://www.khanacademy.org/api/v1/topictree", function(data) {
-    // helper function to get the index of a node in graph.nodes by id
+    // helper function to get the index of a node in the list of nodes arr,
+    // (which will be graph.nodes) by id
     function indexOfNode(arr, nodeID) {
         return arr.map(function(e) { return e.id; }).indexOf(nodeID);
     }
 
+    // helper function to determine whether edge from source to target
+    // exists in the graph arr, which will be graph.nodes.\
     function edgeExists(arr, source, target) {
         return arr.some(function(e) { 
-            return e.source == source && e.target == target; })
+            return e.source === source && e.target === target; })
     }
 
     // parse data to construct rudimentary version of graph
@@ -20,26 +27,28 @@ $.get("http://www.khanacademy.org/api/v1/topictree", function(data) {
                 var source = top.node_slug.substring(2)
                 var target = top.covers[i]
                 var newLinkDict = {source: source, target: target};
-                var source_index = indexOfNode(graph.nodes, source);
-                var target_index = indexOfNode(graph.nodes, target);
+                var sourceIndex = indexOfNode(graph.nodes, source);
+                var targetIndex = indexOfNode(graph.nodes, target);
                 if(!edgeExists(graph.links, source, target)) {
                     graph.links.push(newLinkDict);
-                    if(source_index > -1)
-                        graph.nodes[source_index].edges.push(newLinkDict);
+                    if(sourceIndex > -1)
+                        graph.nodes[sourceIndex].edges.push(newLinkDict);
                     else
                         graph.nodes.push({id: source, edges: [newLinkDict]});
-                    if(target_index > -1)
-                        graph.nodes[target_index].edges.push(newLinkDict);
+                    if(targetIndex > -1)
+                        graph.nodes[targetIndex].edges.push(newLinkDict);
                     else
                         graph.nodes.push({id: target, edges: [newLinkDict]});
                 }
                 
             }
         }
-        if(!(top.children) || top.children.length < 1)
+        if(!(top.children) || top.children.length < 1) {
             return;
-        for(i in top.children)
+        }
+        for(i in top.children) {
             makeGraph(top.children[i]);
+        }
     }
 
     makeGraph(data);
@@ -74,7 +83,7 @@ $.get("http://www.khanacademy.org/api/v1/topictree", function(data) {
             return false;
     }
 
-    // returns list of id's of nodes covering v1
+    // returns list of id"s of nodes covering v1
     function getCovers(v1) {
         var covers = new Array();
         graph.nodes.forEach(function (v2) {
@@ -84,7 +93,7 @@ $.get("http://www.khanacademy.org/api/v1/topictree", function(data) {
         return covers;
     }
 
-    // returns list of id's of nodes covered by v1
+    // returns list of id"s of nodes covered by v1
     function getCovered(v1) {
         var covered = new Array();
         graph.nodes.forEach(function (v2) {
@@ -97,14 +106,14 @@ $.get("http://www.khanacademy.org/api/v1/topictree", function(data) {
     // check if node is connected to any node in arr
     function connected(v1, arr) {
         return arr.some( function(v2) {
-            return (isEdge(v1,v2)|| isEdge(v2,v1) || v1.id == v2.id);
+            return (isEdge(v1,v2)|| isEdge(v2,v1) || v1.id === v2.id);
         });
     }
 
     // check if edge is adjacent to any node in arr
     function adjacent(e, arr) {
         return arr.some( function(v) {
-            return e.source == v || e.target == v;
+            return e.source === v || e.target === v;
         });
     }
 
@@ -115,7 +124,7 @@ $.get("http://www.khanacademy.org/api/v1/topictree", function(data) {
         function getChildrenHelper(v1) {
             children.push(v1)
             v1.edges.forEach(function(e) {
-                if(v1.id == e.source.id) {
+                if(v1.id === e.source.id) {
                     edges.push(e)
                     getChildrenHelper(e.target)
                 }
@@ -132,15 +141,13 @@ $.get("http://www.khanacademy.org/api/v1/topictree", function(data) {
         function getParentsHelper(v1) {
             parents.push(v1)
             v1.edges.forEach(function(e) {
-                if(v1.id == e.target.id) {
+                if(v1.id === e.target.id) {
                     edges.push(e);
                     getParentsHelper(e.source);
                 }
             })
         }
         getParentsHelper(v);
-        console.log(parents)
-        console.log(edges)
         return {parents: parents, edges: edges};
     }
 
@@ -163,20 +170,20 @@ $.get("http://www.khanacademy.org/api/v1/topictree", function(data) {
     // Displays "connected components" (see above definition) of nodes matching
     // query, bolds borders of those nodes, fades out indirect covers/coverers
     function show(matches) {
-        var tmp_nodes = [];
-        var tmp_links = [];
+        var tempNodes = [];
+        var tempLinks = [];
 
         matches.forEach(function (d) {
             var connectedComponent = getConnectedComponent(d)
-            tmp_nodes = tmp_nodes.concat(connectedComponent.nodes);
-            tmp_links = tmp_links.concat(connectedComponent.edges);
+            tempNodes = tempNodes.concat(connectedComponent.nodes);
+            tempLinks = tempLinks.concat(connectedComponent.edges);
         })
 
-        var nodes = tmp_nodes.filter(function (d, i) {
-            return tmp_nodes.indexOf(d) == i;
+        var nodes = tempNodes.filter(function (d, i) {
+            return tempNodes.indexOf(d) === i;
         })
-        var links = tmp_links.filter(function (d, i) {
-            return tmp_links.indexOf(d) == i;
+        var links = tempLinks.filter(function (d, i) {
+            return tempLinks.indexOf(d) === i;
         })
 
         var results = draw(nodes, links)
@@ -220,20 +227,20 @@ $.get("http://www.khanacademy.org/api/v1/topictree", function(data) {
     // when user starts searching, display matches using show(),
     // but if the input in the search bar is empty, show the entire graph
     // if there are no matches, show "no matches" in div id="warning"
-    $('.search').keyup(function(event) {
-        $('.warning').hide();
-        val = $('.search').val();
+    $(".search").keyup(function(event) {
+        $(".warning").hide();
+        val = $(".search").val();
         if(val != ""){
             var matches = graph.nodes
                 .filter(function (d) {
-                    return ((d.id).indexOf(val) == 0);
+                    return ((d.id).indexOf(val) === 0);
             })
             if(matches.length > 0) {
                 show(matches);
             }
             else{
-                $('#chart').empty();
-                $('.warning').show();
+                $("#chart").empty();
+                $(".warning").show();
             }
         }
         else {
@@ -242,13 +249,13 @@ $.get("http://www.khanacademy.org/api/v1/topictree", function(data) {
         }
     });
 
-    // we don't want any ugly scroll bars
+    // we don"t want any ugly scroll bars
     $(window).resize(function() {
         $("svg").css("height", $(window).height() - 85)
     })
 
     // when home icon is pressed, return to initial display
-    $('.home').on("click", function() {
+    $(".home").on("click", function() {
         fade(); 
         draw(graph.nodes, graph.links); 
     });
@@ -298,10 +305,10 @@ $.get("http://www.khanacademy.org/api/v1/topictree", function(data) {
         function level(v) {
             var max = 0;
             for(i in links) {
-                if(links[i].source.id == v.id) {
-                    var max_new = level(links[i].target);
-                    if(max < max_new) {
-                        max = max_new;
+                if(links[i].source.id === v.id) {
+                    var maxNew = level(links[i].target);
+                    if(max < maxNew) {
+                        max = maxNew;
                     }
                 }
             }
@@ -315,7 +322,7 @@ $.get("http://www.khanacademy.org/api/v1/topictree", function(data) {
         var vis = d3.select("#chart")
                 .append("svg:svg")
                     .call(d3.behavior.zoom().on("zoom", redraw))
-                .append('svg:g')
+                .append("svg:g")
 
         // svg magic to create arrows for our edges, borrowed from
         // http://www.d3noob.org/2013/03/
@@ -401,7 +408,7 @@ $.get("http://www.khanacademy.org/api/v1/topictree", function(data) {
 
         // absolutely position each node based on where the DAG 
         // rendered has placed them
-        node.attr("transform", function(d) { return 'translate('+ d.dagre.x +','+ d.dagre.y +')'; });
+        node.attr("transform", function(d) { return "translate("+ d.dagre.x +","+ d.dagre.y +")"; });
 
         // again, source: https://github.com/cpettitt/dagre
         // the next chunk of code gets a list of spline points for the edges,
@@ -421,7 +428,7 @@ $.get("http://www.khanacademy.org/api/v1/topictree", function(data) {
         });
 
         path
-            .attr('id', function(e) { return e.dagre.id; })
+            .attr("id", function(e) { return e.dagre.id; })
             .attr("d", function(e) { return spline(e); });
 
         var svgBBox = vis.node().getBBox();
@@ -432,14 +439,14 @@ $.get("http://www.khanacademy.org/api/v1/topictree", function(data) {
         var nodeDrag = d3.behavior.drag()
             // Set the right origin (based on the Dagre layout or the current position)
             .origin(function(d) { return d.pos ? {x: d.pos.x, y: d.pos.y} : {x: d.dagre.x, y: d.dagre.y}; })
-            .on('drag', function (d, i) {
+            .on("drag", function (d, i) {
                 var prevX = d.dagre.x,
                         prevY = d.dagre.y;
 
                 // The node must be inside the SVG area
                 d.dagre.x = Math.max(d.width / 2, Math.min(svgBBox.width - d.width / 2, d3.event.x));
                 d.dagre.y = Math.max(d.height / 2, Math.min(svgBBox.height - d.height / 2, d3.event.y));
-                d3.select(this).attr('transform', 'translate('+ d.dagre.x +','+ d.dagre.y +')');
+                d3.select(this).attr("transform", "translate("+ d.dagre.x +","+ d.dagre.y +")");
 
                 var dx = d.dagre.x - prevX,
                         dy = d.dagre.y - prevY;
@@ -447,14 +454,14 @@ $.get("http://www.khanacademy.org/api/v1/topictree", function(data) {
                 // Edges position (inside SVG area)
                 d.edges.forEach(function(e) {
                     translateEdge(e, dx, dy);
-                    d3.select('#'+ e.dagre.id).attr('d', spline(e));
+                    d3.select("#"+ e.dagre.id).attr("d", spline(e));
                 });
             });
 
         var edgeDrag = d3.behavior.drag()
-            .on('drag', function (d, i) {
+            .on("drag", function (d, i) {
                 translateEdge(d, d3.event.dx, d3.event.dy);
-                d3.select(this).attr('d', spline(d));
+                d3.select(this).attr("d", spline(d));
             });
 
         node.call(nodeDrag);
