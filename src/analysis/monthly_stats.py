@@ -39,7 +39,7 @@ def monthly_video_exercise_activity(output_collection):
     """Count users with minimum distinct video and exercise views.
     
     Creates a time series of data points (ie, mongo documents) formatted as
-    described in the file docstring and inserts them in the ouput_collection
+    described in the file docstring and inserts them in the output_collection
     for each activity threshold tuple in a list (which is currently hardcoded 
     below). The thresholds for each series are specified as a 
     (min_vid, min_ex) tuple.  min_vid is the minimum number of distinct videos
