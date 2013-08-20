@@ -260,11 +260,15 @@ def parse_log_file(input_file_name,
     return requests_found
 
 
-def find_log_files_for(timestamp, time_delta=DEFAULT_TIME_DELTA):
+def find_log_files_for(backends, timestamp, time_delta=DEFAULT_TIME_DELTA):
     """Find the files with logs lines in time_delta seconds before timestamp
 
     Files on the analytics machine are stored in UTC.
     """
+    file_name_format = "%Y/%m/%d/%H:00:00Z.log.gz"
+    if backends:
+        file_name_format = "%Y/%m/%d/backends-%H:00:00Z.log.gz"
+
     start_timestamp = timestamp - time_delta
     start_hour_timestamp = start_timestamp - start_timestamp % 3600
     start_hour_datetime = datetime.datetime.fromtimestamp(start_hour_timestamp)
@@ -274,7 +278,7 @@ def find_log_files_for(timestamp, time_delta=DEFAULT_TIME_DELTA):
     while current_hour_datetime < end_datetime:
         filename = (BASE_DIR +
                     datetime.datetime.strftime(current_hour_datetime,
-                                               "%Y/%m/%d/%H:00:00Z.log.gz"))
+                                               file_name_format))
         files.append(filename)
         current_hour_datetime += datetime.timedelta(hours=1)
     return files
@@ -296,10 +300,10 @@ if __name__ == '__main__':
                       help='Only output logs with this status code. By '
                      'default it does not filter by status')
     parser.add_option('--timestamp', '-t', dest='timestamp', type=int,
-                      help=('Timestamp for the end of the time range to look '
-                            'at. If none is provided and none is listed in '
-                            'the issue then it will look at the end of the '
-                            'most recent log that has been fully downloaded.'))
+                  help=('UNIX timestamp for the end of the time range to look '
+                        'at. If none is provided and none is listed in '
+                        'the issue then it will look at the end of the '
+                        'most recent log that has been fully downloaded.'))
     parser.add_option('--timedelta', '-d', dest='time_delta', type=int,
                       default=DEFAULT_TIME_DELTA,
                       help=('How long before the timestamp you want to search '
@@ -320,6 +324,10 @@ if __name__ == '__main__':
                       help=('Whether to supress header and footer information '
                             'about the search and the results found. By '
                             'default the header is shown.'))
+    parser.add_option('--backends', '-n', dest='backends', action='store_true',
+                      help=('Whether to to search backend logs. By default, th'
+                        'is setting is False and frontend logs are searched.'),
+                        default=False)
 
     options, args = parser.parse_args()
 
@@ -361,7 +369,8 @@ if __name__ == '__main__':
         current_hour = now - now % 3600
         target_timestamp = current_hour - 3600
 
-    file_names = find_log_files_for(int(target_timestamp), time_delta)
+    file_names = find_log_files_for(
+        options.backends, int(target_timestamp), time_delta)
 
     if not options.quiet:
         start_time = time.time()
