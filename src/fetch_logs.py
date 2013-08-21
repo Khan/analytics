@@ -138,7 +138,7 @@ def get_cmd_line_args():
                       help=("If set will try and read the logs from the "
                             "versions in the file designated by "
                             "--file_for_alternate_appengine_versions with "
-                            "'mapreducebackends-' prefixed onto them. If "
+                            "'-mapreducebackend' appended to them. If "
                             "there is no file, then no versions will be "
                             "searched"))
 
@@ -213,7 +213,7 @@ def main():
             appengine_versions.remove(None)
         except ValueError:
             pass
-        appengine_versions = ["mapreducebackend-" + v
+        appengine_versions = [v + "-mapreducebackend"
                               for v in appengine_versions]
 
     print >>sys.stderr, ('Looking at these appengine versions: %s'
