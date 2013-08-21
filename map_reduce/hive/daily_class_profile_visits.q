@@ -28,7 +28,9 @@ WHERE w.dt >= "${start_dt}" AND w.dt < "${end_dt}" AND
 --  strings in hive are 1 indexed.
 -- We ignore the leading "/" for readability. Hence, we take substring
 --  from 2nd position
-  substr(w.url, 2, 13) = "class_profile";
+  (substr(w.url, 2, 13) = "class_profile" OR
+-- Coach Reports refactor changes path from /class_profile to /coach/reports
+  substr(w.url, 2, 13) = "coach/reports");
 
 
 SET hive.exec.dynamic.partition.mode=nonstrict;
