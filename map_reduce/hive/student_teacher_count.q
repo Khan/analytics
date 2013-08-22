@@ -1,7 +1,7 @@
 -- Query to produce time series of students and teachers using the site.
 -- TODO(robert): Results produced by these queries are fundamentally flawed.
---  We have to record date of change of coach to be able to produce
---  accurate report
+-- We have to record date of change of coach to be able to produce
+-- accurate report
 
 -- Arguments:
 --   end_dt: exclusive end date in YYYY-MM-DD format
@@ -20,6 +20,7 @@ DROP TABLE IF EXISTS active_user_on_date;
 CREATE EXTERNAL TABLE IF NOT EXISTS active_user_on_date (
   user STRING,
   coach STRING,
+  joined_on STRING,
   dt STRING
 ) LOCATION 's3://ka-mapreduce/tmp/active_user_on_date';
 
@@ -27,16 +28,18 @@ DROP TABLE IF EXISTS active_student_on_date;
 CREATE EXTERNAL TABLE IF NOT EXISTS active_student_on_date (
   student STRING,
   teacher STRING,
+  joined_on STRING,
   dt STRING
 ) LOCATION 's3://ka-mapreduce/tmp/active_student_on_date';
 
--- Find all active students
---  Active student is a user who performed an action,
---      as defined by user_daily_activity, in last 28 days
+-- Find all active students.
+-- Active student is a user who performed an action,
+-- as defined by user_daily_activity, in last 28 days
 INSERT OVERWRITE TABLE active_student_on_date
 SELECT
   student_on_date.student,
   student_on_date.teacher,
+  student_on_date.dt,
   user_daily_activity.dt
 FROM user_daily_activity
 JOIN student_on_date
@@ -46,13 +49,14 @@ WHERE user_daily_activity.dt < '${end_dt}' AND
 GROUP BY student_on_date.student, student_on_date.teacher,
     user_daily_activity.dt;
 
--- Find all active users with coaches
---  Active user is a user who performed an action,
---      as defined by user_daily_activity, in last 28 days
+-- Find all active users with coaches.
+-- Active user is a user who performed an action,
+-- as defined by user_daily_activity, in last 28 days
 INSERT OVERWRITE TABLE active_user_on_date
 SELECT
   user_on_date.user,
   user_on_date.coach,
+  user_on_date.dt,
   user_daily_activity.dt
 FROM user_daily_activity
 JOIN user_on_date
@@ -76,14 +80,16 @@ GROUP BY user_on_date.user, user_on_date.coach,
 --  * number of coaches (with less than 10 students)
 --     who in last 28 days visited class_profile
 -- Refer to map_reduce/py/coach_reduce.py and beginning of
---  this file for details
+-- this file for details
 INSERT OVERWRITE TABLE student_teacher_count
 SELECT t_nr.teacher_count, st_nr.student_count, c_nr.coach_count,
     cu_nr.coach_user_count, act_t.active_teachers,
     act_st.active_students, act_c.active_coaches,
     act_cu.active_coach_users, heng_t.highly_engaged_teachers,
     heng_st.highly_engaged_students, heng_c.highly_engaged_coaches,
-    heng_cu.highly_engaged_coach_users, v_t.visiting_teachers,
+    heng_cu.highly_engaged_coach_users, lng_t.long_term_active_teachers,
+    lng_st.long_term_active_students, lng_c.long_term_active_coaches,
+    lng_cu.long_term_active_coach_users, v_t.visiting_teachers,
     v_c.visiting_coaches, t_nr.dt
 FROM (
   FROM (
@@ -216,6 +222,60 @@ LEFT OUTER JOIN (
       highly_engaged_coach_users, dt
 ) heng_cu
 ON t_nr.dt = heng_cu.dt
+LEFT OUTER JOIN (
+    FROM (
+        SELECT student, teacher, dt
+        FROM active_student_on_date
+        WHERE DATE_ADD(active_student_on_date.joined_on, 28) <
+            active_student_on_date.dt
+        ORDER BY dt, teacher
+    ) long_term_teacher_active_count
+    REDUCE long_term_teacher_active_count.student,
+      long_term_teacher_active_count.teacher, long_term_teacher_active_count.dt
+    USING 'coach_reduce.py active-teacher "${end_dt}" 10' AS
+      long_term_active_teachers, dt
+) lng_t
+ON t_nr.dt = lng_t.dt
+LEFT OUTER JOIN (
+    FROM (
+        SELECT student, dt
+        FROM active_student_on_date
+        WHERE DATE_ADD(active_student_on_date.joined_on, 28) <
+            active_student_on_date.dt
+        ORDER BY dt
+    ) long_term_active_count
+    REDUCE long_term_active_count.student, long_term_active_count.dt
+    USING 'coach_reduce.py active-student "${end_dt}"' AS
+      long_term_active_students, dt
+) lng_st
+ON t_nr.dt = lng_st.dt
+LEFT OUTER JOIN (
+    FROM (
+        SELECT user, coach, dt
+        FROM active_user_on_date
+        WHERE DATE_ADD(active_user_on_date.joined_on, 28) <
+            active_user_on_date.dt
+        ORDER BY dt, coach
+    ) long_term_coach_active_count
+    REDUCE long_term_coach_active_count.user,
+      long_term_coach_active_count.coach, long_term_coach_active_count.dt
+    USING 'coach_reduce.py active-teacher "${end_dt}" 1' AS
+      long_term_active_coaches, dt
+) lng_c
+ON t_nr.dt = lng_c.dt
+LEFT OUTER JOIN (
+    FROM (
+        SELECT user, dt
+        FROM active_user_on_date
+        WHERE DATE_ADD(active_user_on_date.joined_on, 28) <
+            active_user_on_date.dt
+        ORDER BY dt
+    ) long_term_active_user_count
+    REDUCE long_term_active_user_count.user, long_term_active_user_count.dt
+    USING 'coach_reduce.py active-student "${end_dt}"' AS
+      long_term_active_coach_users, dt
+) lng_cu
+ON t_nr.dt = lng_cu.dt
 LEFT OUTER JOIN (
     FROM (
         SELECT teacher_on_date.teacher AS teacher,
