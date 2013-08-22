@@ -431,6 +431,10 @@ CREATE EXTERNAL TABLE IF NOT EXISTS student_teacher_count (
     active_student_count INT,
     active_coach_count INT,
     active_user_coach_count INT,
+    highly_engaged_teachers INT,
+    highly_engaged_students INT,
+    highly_engaged_coaches INT,
+    highly_engaged_coach_users INT,
     teacher_visits_count INT,
     coach_visits_count INT,
     dt STRING

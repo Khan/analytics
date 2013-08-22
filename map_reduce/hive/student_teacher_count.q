@@ -81,7 +81,9 @@ INSERT OVERWRITE TABLE student_teacher_count
 SELECT t_nr.teacher_count, st_nr.student_count, c_nr.coach_count,
     cu_nr.coach_user_count, act_t.active_teachers,
     act_st.active_students, act_c.active_coaches,
-    act_cu.active_coach_users, v_t.visiting_teachers,
+    act_cu.active_coach_users, heng_t.highly_engaged_teachers,
+    heng_st.highly_engaged_students, heng_c.highly_engaged_coaches,
+    heng_cu.highly_engaged_coach_users, v_t.visiting_teachers,
     v_c.visiting_coaches, t_nr.dt
 FROM (
   FROM (
@@ -134,7 +136,7 @@ LEFT OUTER JOIN (
     ) teacher_active_count
     REDUCE teacher_active_count.student,
       teacher_active_count.teacher, teacher_active_count.dt
-    USING 'coach_reduce.py active-teacher "${end_dt}" 10' AS active_teachers, dt
+    USING 'coach_reduce.py active-teacher "${end_dt}" 10 1' AS active_teachers, dt
 ) act_t
 ON t_nr.dt = act_t.dt
 LEFT OUTER JOIN (
@@ -144,7 +146,7 @@ LEFT OUTER JOIN (
         ORDER BY dt
     ) active_count
     REDUCE active_count.student, active_count.dt
-    USING 'coach_reduce.py active-student "${end_dt}"' AS active_students, dt
+    USING 'coach_reduce.py active-student "${end_dt}" 1' AS active_students, dt
 ) act_st
 ON t_nr.dt = act_st.dt
 LEFT OUTER JOIN (
@@ -155,7 +157,7 @@ LEFT OUTER JOIN (
     ) coach_active_count
     REDUCE coach_active_count.user,
       coach_active_count.coach, coach_active_count.dt
-    USING 'coach_reduce.py active-teacher "${end_dt}" 1' AS active_coaches, dt
+    USING 'coach_reduce.py active-teacher "${end_dt}" 1 1' AS active_coaches, dt
 ) act_c
 ON t_nr.dt = act_c.dt
 LEFT OUTER JOIN (
@@ -165,9 +167,55 @@ LEFT OUTER JOIN (
         ORDER BY dt
     ) active_user_count
     REDUCE active_user_count.user, active_user_count.dt
-    USING 'coach_reduce.py active-student "${end_dt}"' AS active_coach_users, dt
+    USING 'coach_reduce.py active-student "${end_dt}" 1' AS active_coach_users, dt
 ) act_cu
 ON t_nr.dt = act_cu.dt
+LEFT OUTER JOIN (
+    FROM (
+        SELECT student, teacher, dt
+        FROM active_student_on_date
+        ORDER BY dt, teacher
+    ) teacher_active_count
+    REDUCE teacher_active_count.student,
+      teacher_active_count.teacher, teacher_active_count.dt
+    USING 'coach_reduce.py active-teacher "${end_dt}" 10 4' AS
+      highly_engaged_teachers, dt
+) heng_t
+ON t_nr.dt = heng_t.dt
+LEFT OUTER JOIN (
+    FROM (
+        SELECT student, dt
+        FROM active_student_on_date
+        ORDER BY dt
+    ) active_count
+    REDUCE active_count.student, active_count.dt
+    USING 'coach_reduce.py active-student "${end_dt}" 4' AS
+      highly_engaged_students, dt
+) heng_st
+ON t_nr.dt = heng_st.dt
+LEFT OUTER JOIN (
+    FROM (
+        SELECT user, coach, dt
+        FROM active_user_on_date
+        ORDER BY dt, coach
+    ) coach_active_count
+    REDUCE coach_active_count.user,
+      coach_active_count.coach, coach_active_count.dt
+    USING 'coach_reduce.py active-teacher "${end_dt}" 1 4' AS
+     highly_engaged_coaches, dt
+) heng_c
+ON t_nr.dt = heng_c.dt
+LEFT OUTER JOIN (
+    FROM (
+        SELECT user, dt
+        FROM active_user_on_date
+        ORDER BY dt
+    ) active_user_count
+    REDUCE active_user_count.user, active_user_count.dt
+    USING 'coach_reduce.py active-student "${end_dt}" 4' AS
+      highly_engaged_coach_users, dt
+) heng_cu
+ON t_nr.dt = heng_cu.dt
 LEFT OUTER JOIN (
     FROM (
         SELECT teacher_on_date.teacher AS teacher,
@@ -182,7 +230,7 @@ LEFT OUTER JOIN (
         ORDER BY dt
     ) teacher_visit
     REDUCE teacher_visit.teacher, teacher_visit.dt
-    USING 'coach_reduce.py active-student "${end_dt}"' AS visiting_teachers, dt
+    USING 'coach_reduce.py active-student "${end_dt}" 1' AS visiting_teachers, dt
 ) v_t
 ON t_nr.dt = v_t.dt
 LEFT OUTER JOIN (
@@ -199,6 +247,6 @@ LEFT OUTER JOIN (
         ORDER BY dt
     ) coach_visit
     REDUCE coach_visit.coach, coach_visit.dt
-    USING 'coach_reduce.py active-student "${end_dt}"' AS visiting_coaches, dt
+    USING 'coach_reduce.py active-student "${end_dt}" 1' AS visiting_coaches, dt
 ) v_c
 ON t_nr.dt = v_c.dt;
