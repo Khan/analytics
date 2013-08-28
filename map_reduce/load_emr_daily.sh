@@ -114,9 +114,9 @@ ${current_dir}/../src/monitor_jobflow.py $jobid &
 
 # Daily reports
 echo "Generating daily reports"
-#${current_dir}/../src/report_generator.py \
-#  -c ${current_dir}/../cfg/daily_report.json \
-#  "<day>=${day}" "<day_before>=${day_before}" "<day_after>=${day_after}" \
-#  "<month_first_day>=${month_first_day}" "<month_last_day>=${month_last_day}" \
-#  "<month>=${month}" 2>&1
+${current_dir}/../src/report_generator.py \
+  -c ${current_dir}/../cfg/daily_report.json \
+  "<day>=${day}" "<day_before>=${day_before}" "<day_after>=${day_after}" \
+  "<month_first_day>=${month_first_day}" "<month_last_day>=${month_last_day}" \
+  "<month>=${month}" 2>&1
 
