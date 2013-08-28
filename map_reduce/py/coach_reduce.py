@@ -229,8 +229,9 @@ def main():
     prog_name = sys.argv[0]
     usage_parts = ["Usage: ",
         "  {0} teacher <threshold>".format(prog_name),
-        "  {0} active-teacher <end_date> <threshold>".format(prog_name),
-        "  {0} active-student <end_date>".format(prog_name),
+        "  {0} active-teacher <end_date> <threshold>".format(prog_name) +
+            "<different_days>",
+        "  {0} active-student <end_date> <different_days>".format(prog_name),
         "  {0} count <end_date>".format(prog_name)]
     usage_str = "\n".join(usage_parts)
     argc = len(sys.argv)

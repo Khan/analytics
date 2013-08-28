@@ -47,7 +47,7 @@ ON user_daily_activity.user = student_on_date.student
 WHERE user_daily_activity.dt < '${end_dt}' AND
   user_daily_activity.dt >= student_on_date.dt
 GROUP BY student_on_date.student, student_on_date.teacher,
-    user_daily_activity.dt;
+    student_on_date.dt, user_daily_activity.dt;
 
 -- Find all active users with coaches.
 -- Active user is a user who performed an action,
@@ -64,7 +64,7 @@ ON user_daily_activity.user = user_on_date.user
 WHERE user_daily_activity.dt < '${end_dt}' AND
   user_daily_activity.dt >= user_on_date.dt
 GROUP BY user_on_date.user, user_on_date.coach,
-    user_daily_activity.dt;
+    user_on_date.dt, user_daily_activity.dt;
 
 
 -- Merge all the results together
@@ -232,7 +232,7 @@ LEFT OUTER JOIN (
     ) long_term_teacher_active_count
     REDUCE long_term_teacher_active_count.student,
       long_term_teacher_active_count.teacher, long_term_teacher_active_count.dt
-    USING 'coach_reduce.py active-teacher "${end_dt}" 10' AS
+    USING 'coach_reduce.py active-teacher "${end_dt}" 10 1' AS
       long_term_active_teachers, dt
 ) lng_t
 ON t_nr.dt = lng_t.dt
@@ -245,7 +245,7 @@ LEFT OUTER JOIN (
         ORDER BY dt
     ) long_term_active_count
     REDUCE long_term_active_count.student, long_term_active_count.dt
-    USING 'coach_reduce.py active-student "${end_dt}"' AS
+    USING 'coach_reduce.py active-student "${end_dt}" 1' AS
       long_term_active_students, dt
 ) lng_st
 ON t_nr.dt = lng_st.dt
@@ -259,7 +259,7 @@ LEFT OUTER JOIN (
     ) long_term_coach_active_count
     REDUCE long_term_coach_active_count.user,
       long_term_coach_active_count.coach, long_term_coach_active_count.dt
-    USING 'coach_reduce.py active-teacher "${end_dt}" 1' AS
+    USING 'coach_reduce.py active-teacher "${end_dt}" 1 1' AS
       long_term_active_coaches, dt
 ) lng_c
 ON t_nr.dt = lng_c.dt
@@ -272,7 +272,7 @@ LEFT OUTER JOIN (
         ORDER BY dt
     ) long_term_active_user_count
     REDUCE long_term_active_user_count.user, long_term_active_user_count.dt
-    USING 'coach_reduce.py active-student "${end_dt}"' AS
+    USING 'coach_reduce.py active-student "${end_dt}" 1' AS
       long_term_active_coach_users, dt
 ) lng_cu
 ON t_nr.dt = lng_cu.dt
