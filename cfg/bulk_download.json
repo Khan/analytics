@@ -6,10 +6,9 @@
     "emails": ["analytics-team+cron@khanacademy.org"],
     "password": "/home/analytics/private_pw",
     "parallelism": 2,
-    "json" : 1, 
+    "json" : 1,
     "kinds": [
         "Exercise",
-        "ExerciseVideo",
         "Video",
         "Topic"
   ]

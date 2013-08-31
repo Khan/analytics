@@ -134,23 +134,6 @@
 
 
 {
-    "Name": "Loading <dt> ExerciseVideo into EMR",
-    "ActionOnFailure": "CONTINUE",
-    "HadoopJarStep": {
-      "Jar": "/home/hadoop/contrib/streaming/hadoop-streaming.jar",
-      "Args": [
-         "-D", "mapred.output.compress=true",
-         "-input",    "s3n://ka-mapreduce/rawdata/bulk/<dt>/ExerciseVideo.json.gz",
-         "-output",   "s3n://ka-mapreduce/entity_store/ExerciseVideoP/dt=<dt>/",
-         "-mapper",   "/bin/cat",
-         "-reducer",  "/bin/cat",
-         "-numReduceTasks", "4"
-      ]
-    }
-},
-
-
-{
     "Name": "Loading <dt> Topic into EMR",
     "ActionOnFailure": "CONTINUE",
     "HadoopJarStep": {

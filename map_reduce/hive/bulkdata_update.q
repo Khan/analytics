@@ -15,18 +15,6 @@ SELECT key, json FROM ExerciseP
 WHERE dt = '${dt}';
 
 
-CREATE EXTERNAL TABLE IF NOT EXISTS ExerciseVideoP (
-  key STRING, json STRING)
-PARTITIONED BY (dt string)
-ROW FORMAT DELIMITED FIELDS TERMINATED BY '\t'
-LOCATION '${INPATH}/ExerciseVideoP/';
-ALTER TABLE ExerciseVideoP RECOVER PARTITIONS;
-
-INSERT OVERWRITE TABLE ExerciseVideo
-SELECT key, json FROM ExerciseVideoP 
-WHERE dt = '${dt}';
-
-
 CREATE EXTERNAL TABLE IF NOT EXISTS TopicP (
   key STRING, json STRING)
 PARTITIONED BY (dt string)

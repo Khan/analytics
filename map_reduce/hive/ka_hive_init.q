@@ -21,6 +21,8 @@ CREATE EXTERNAL TABLE IF NOT EXISTS Exercise (
   ROW FORMAT DELIMITED FIELDS TERMINATED BY '\t'
   LOCATION '${INPATH}/Exercise';
 
+-- ExerciseVideo no longer exists in the production data store. This is kept
+-- here for posterity as the data still exists and was not purged from Hive.
 CREATE EXTERNAL TABLE IF NOT EXISTS ExerciseVideo (
     key string, json string)
 ROW FORMAT DELIMITED FIELDS TERMINATED BY '\t'

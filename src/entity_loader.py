@@ -19,7 +19,6 @@ The following entity types are supported:
     Video
 
 The following entity types are not supported:
-    ExerciseVideo
     UserMission
 
 Encodings:

@@ -30,7 +30,6 @@
             # changes from these models between days, this gae_download process
             # will track that.
             "Exercise": [1800, 1800, 1, 0, "key"],
-            "ExerciseVideo": [1800, 1800, 1, 0, "key"],
             "Topic": [1800, 1800, 1, 0, "key"],
             "Video" : [1800, 1800, 1, 0, "key"]
            },
