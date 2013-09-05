@@ -213,8 +213,19 @@ def main():
             appengine_versions.remove(None)
         except ValueError:
             pass
-        appengine_versions = [v + "-mapreducebackend"
-                              for v in appengine_versions]
+
+        # Grab logs using known backend versions. For now, we are interested in
+        # two different backend types, mapreducebackend and highmembackend.
+        # TODO(kamens): use either backends.yaml or App Engine's backends API
+        # to find a list of deployed backend types.
+        backend_suffixes = ["mapreducebackend", "highmembackend"]
+
+        backend_appengine_versions = []
+        for suffix in backend_suffixes:
+            backend_appengine_versions += ["%s-%s" % (v, suffix)
+                    for v in appengine_versions]
+
+        appengine_versions = backend_appengine_versions
 
     print >>sys.stderr, ('Looking at these appengine versions: %s'
                          % [v or '(default)' for v in appengine_versions])
