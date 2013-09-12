@@ -502,7 +502,7 @@ def main():
         # save state as a .npz
         np.savez("%s_epoch=%d.npz" % (options.output, epoch),
                  theta=theta,
-                 exercise_ind_dict=exercise_ind_dict, 
+                 exercise_ind_dict=exercise_ind_dict,
                  max_time_taken=options.max_time_taken)
 
         # save state as .csv - just for easy debugging inspection
