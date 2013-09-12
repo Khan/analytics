@@ -14,23 +14,27 @@ USAGE:
   this process.
 
 """
-
-import multiprocessing
-from multiprocessing import Pool
-import fileinput
-import numpy as np
+import affinity
 from collections import defaultdict
 import copy
+import fileinput
+import multiprocessing
+from multiprocessing import Pool
+import numpy as np
 import optparse
-import sys
-import time
 import scipy
 import scipy.optimize
+import sys
+import time
+
+# necessary to do this after importing numpy to take avantage of
+# multiple cores on unix
+affinity.set_process_affinity_mask(0, 2 ** multiprocessing.cpu_count() - 1)
 
 # the following is imported the Khan web application source
+import accuracy_model_util as acc_util
 from assessment import mirt_util
 
-import accuracy_model_util as acc_util
 
 # used to index the fields in with a line of text in the input data file
 linesplit = acc_util.linesplit
