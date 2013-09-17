@@ -18,6 +18,7 @@ of accuracy_model_train.py.
 
 import fileinput
 import itertools
+import re
 import warnings
 
 import matplotlib.pyplot as plt
@@ -25,10 +26,11 @@ import numpy as np
 
 lines = ["-+", "--D", "-.s", ":*", "-^", "--|", "-._", ":"]
 linecycler = itertools.cycle(lines)
+linesplit = re.compile('[ ,\s]')
 
 
 def get_correct_predicted(lines):
-    lines_split = [line.strip().split(',') for line in lines]
+    lines_split = [linesplit.split(line) for line in lines]
     try:
         lines = np.asarray(lines_split)
         correct = lines[:, 0].astype('float')
