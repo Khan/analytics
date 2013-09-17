@@ -93,7 +93,7 @@ def active_students(end_date, different_days):
     student, current_dt = sys.stdin.readline().rstrip('\n').split('\t')
     current_dt_obj = datetime.datetime.strptime(
         current_dt, date_format).date()
-    last_28days = [{student: set(current_dt)}]
+    last_28days = [{student: set([current_dt])}]
     last_28dates = [current_dt_obj]
 
     def get_active_students(dt):
@@ -134,7 +134,7 @@ def active_students(end_date, different_days):
         if student in last_28days[last_day_idx]:
             last_28days[last_day_idx][student].add(current_dt)
         else:
-            last_28days[last_day_idx][student] = set(current_dt)
+            last_28days[last_day_idx][student] = set([current_dt])
 
     # Fix for last date for which loop above will not do anything
     end_date_obj = datetime.datetime.strptime(end_date, date_format).date()
@@ -164,7 +164,7 @@ def active_teachers(end_date, threshold, different_days):
     current_dt_obj = datetime.datetime.strptime(
         current_dt, date_format).date()
     last_28dates = [current_dt_obj]
-    last_28days = {current_teacher: [{student: set(current_dt)}]}
+    last_28days = {current_teacher: [{student: set([current_dt])}]}
 
     def get_active_teachers(dt):
         """For given date find all active teachers.
@@ -217,7 +217,7 @@ def active_teachers(end_date, threshold, different_days):
         if student in last_28days[current_teacher][last_idx]:
             last_28days[current_teacher][last_idx][student].add(current_dt)
         else:
-            last_28days[current_teacher][last_idx][student] = set(current_dt)
+            last_28days[current_teacher][last_idx][student] = set([current_dt])
 
     # Fix for last date for which the loop above will not do anything
     end_date_obj = datetime.datetime.strptime(end_date, date_format).date()
