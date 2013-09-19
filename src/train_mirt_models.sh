@@ -60,10 +60,7 @@ echo "  $(dirname $0)/mirt_upload_to_gae.py --update \"${json_outfile}\""
 #			@api.auth.decorators.developer_required
 #		with the decorator
 #			@api.auth.decorators.open_access
-#		replace
-#			data = json.loads(request.request_string('data'))
-#		with
-#			data = json.loads(request.data)
+#
 #	use curl to upload the json file:
 #		curl -H "Content-Type: application/json" --data @fractions.json http://localhost:8080/api/v1/dev/assessment/params
 #		(where fractions.json is replaced with the appropriate json file name)
