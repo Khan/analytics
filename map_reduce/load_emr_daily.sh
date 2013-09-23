@@ -75,7 +75,7 @@ curl "http://www.khanacademy.org/stats/route_map?key=`cat ~/sleep_secret | tr -d
 # Convert pbuf to json + additional daily aggregation jobs
 echo "Convert pbuf to json and load into the datastore"
 status=$(elastic-mapreduce --create --name "${day} GAE Upload" \
-  --num-instances 3 --master-instance-type m1.small \
+  --num-instances 3 --master-instance-type m2.xlarge \
   --slave-instance-type m2.xlarge \
   --log-uri "$LOG_URI" \
   --json ${current_dir}/load_gae_to_hive.json \
@@ -88,7 +88,7 @@ ${current_dir}/../src/monitor_jobflow.py $jobid &
 # Update *Incr and *P tables, for example UserDataIncr and UserDataP
 echo "Updating the UserData"
 status=$(elastic-mapreduce --create --name "${day} UserDataP" \
-  --num-instances 3 --master-instance-type m1.small \
+  --num-instances 5 --master-instance-type m2.xlarge \
   --slave-instance-type m2.xlarge \
   --log-uri "$LOG_URI" \
   --json ${current_dir}/userdata.json \
@@ -101,7 +101,7 @@ ${current_dir}/../src/monitor_jobflow.py $jobid &
 
 echo "Convert raw logs to TSV request logs"
 status=$(elastic-mapreduce --create --name "${day} Request Logs Upload" \
-  --num-instance 3 --master-instance-type m1.small \
+  --num-instance 5 --master-instance-type m2.xlarge \
   --slave-instance-type m2.xlarge \
   --log-uri "$LOG_URI" \
   --json ${current_dir}/load_request_logs_to_hive.json \
