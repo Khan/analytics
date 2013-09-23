@@ -157,7 +157,7 @@ def run_hive_jobs(jobname, steps, num_instances):
             continue
         emr.add_hive_step(jobflow, {},
                           hive_script=step["hive_script"],
-                          script_args=step["hive_args"])
+                          script_args=step.get("hive_args", {}))
 
     status = emr.wait_for_completion(jobflow, logger=g_logger)
     listing = emr.list_steps(jobflow)
