@@ -54,13 +54,6 @@ echo "Generated JSON MIRT model ${json_outfile} for dt=${dt} in ${tmpdir}."
 echo "Next step is to verify your model then upload to production, i.e.,"
 echo "  ${EDITOR:=vi} \"${json_outfile}\""
 echo "  $(dirname $0)/mirt_upload_to_gae.py --update \"${json_outfile}\""
-# To upload to a local dev_appserver, do the following:
-#   edit the function insert_assessment_engine_params() in api/v1_misc.py:
-#		replace the decorator
-#			@api.auth.decorators.developer_required
-#		with the decorator
-#			@api.auth.decorators.open_access
-#
-#	use curl to upload the json file:
-#		curl -H "Content-Type: application/json" --data @fractions.json http://localhost:8080/api/v1/dev/assessment/params
+# To upload to a local dev_appserver, use curl to upload the json file:
+#		curl -H "Content-Type: application/json" --data @fractions.json http://localhost:8080/api/v1/dev/assessment/params?auth=off
 #		(where fractions.json is replaced with the appropriate json file name)
