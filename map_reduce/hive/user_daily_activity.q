@@ -111,6 +111,12 @@ GROUP BY a.dt, a.user;
 SET hive.exec.dynamic.partition.mode=nonstrict;
 SET hive.exec.dynamic.partition=true;
 SET mapred.reduce.tasks=128;
+
+# default is 1000.  apparently, you can hit this limit even if you
+# are not *writting* that many paritions, and it is merely the case 
+# that more paritions that the limit exist.
+SET hive.exec.max.dynamic.partitions=2000;
+
 INSERT OVERWRITE TABLE user_daily_activity PARTITION(dt)
 SELECT user, joined, feedback_items,
        videos_started, videos_completed, videos_seconds,
