@@ -1,7 +1,9 @@
 -- This script computes 3 of the 4 company-wide growth metrics for
 -- the ranges given by ${start_dt} and ${end_dt}.  This script outputs numbers
 -- on a month-level granularity, so ${start_dt} should always be the first day
--- of a month.  This script also overwrites the months for which it computes
+-- of a month.  Because the calling scripts use the last day of the same
+-- month for ${end_dt}, end end_dt is inclusive (which viloates our usual
+-- convention).  This script also overwrites the months for which it computes
 -- data, so be sure to always run this script for months that are completed
 -- (in addition to the current month).
 
@@ -12,6 +14,43 @@
 
 -- Note: Metric 1 (Unique visitors) is easily pulled from Google analytics
 -- (but not from Hive) and thus is not computed here.
+
+-- Sadly, user_daily_activity may be missing some registration
+-- activity.  (This happens because we use the 'joined' property
+-- as the registration date, when it is actually not.  See Jace
+-- for more details.) To make things happier, we supplement from 
+-- userdata_info and create a temp table here to use instead.
+-- TODO(jace) Stop using fixed paths for temp tables, because it creates
+-- nightmares when multiple instances of this script are run in parallel.
+-- For example, during backfills.
+
+DROP TABLE IF EXISTS active_user_days;
+CREATE EXTERNAL TABLE active_user_days (
+  user STRING, dt STRING)
+LOCATION 's3://ka-mapreduce/tmp/active_user_days';
+
+INSERT OVERWRITE TABLE active_user_days
+SELECT user, dt
+FROM (
+  SELECT 
+    userdata_info_p.user as user,
+    to_date(from_unixtime(floor(userdata_info_p.joined))) as dt
+  FROM userdata_info_p
+  WHERE to_date(from_unixtime(floor(userdata_info_p.joined))) >= '${start_dt}' AND
+        to_date(from_unixtime(floor(userdata_info_p.joined))) <= '${end_dt}' AND
+        registered = TRUE AND
+        userdata_info_p.dt = '2013-09-30'
+
+  UNION ALL 
+
+  SELECT user, dt
+  FROM user_daily_activity
+  WHERE
+    user_daily_activity.dt >= '${start_dt}' AND
+    user_daily_activity.dt <= '${end_dt}'
+) u
+GROUP BY user, dt;
+
 
 -- We must enable dynamic partitions
 set hive.exec.dynamic.partition=true;
@@ -68,19 +107,19 @@ FROM (
           userdata_info.user as user,
           from_unixtime(floor(userdata_info.joined)) as joined_dt,
           substr(from_unixtime(floor(userdata_info.joined)), 1, 7) as joined_month,
-          user_daily_activity.dt as activity_dt,
-          substr(user_daily_activity.dt, 1, 7) AS activity_month
+          active_user_days.dt as activity_dt,
+          substr(active_user_days.dt, 1, 7) AS activity_month
 
-        FROM user_daily_activity
+        FROM active_user_days
         JOIN userdata_info
-          ON user_daily_activity.user = userdata_info.user
+          ON active_user_days.user = userdata_info.user
         WHERE
               -- Note that we don't filter userdata_info.joined. We need to
               -- pick up all of the users, because they may need to be
               -- counted as long_term or highly_engaged
           userdata_info.registered
-          and user_daily_activity.dt >= '${start_dt}'
-          and user_daily_activity.dt < '${end_dt}'
+          and active_user_days.dt >= '${start_dt}'
+          and active_user_days.dt <= '${end_dt}'
 
         ) activity_by_user_day
 
