@@ -299,10 +299,11 @@ if __name__ == '__main__':
     parser.add_option('--status', '-s', dest='status', type=int,
                       help='Only output logs with this status code. By '
                      'default it does not filter by status')
-    parser.add_option('--timestamp', '-t', dest='timestamp', type=int,
-                  help=('UNIX timestamp for the end of the time range to look '
-                        'at. If none is provided and none is listed in '
-                        'the issue then it will look at the end of the '
+    parser.add_option('--timestamp', '-t', dest='timestamp', type=str,
+                  help=('UNIX timestamp (1381788405) or human timestamp '
+                        '(2013-10-14 22:06:44) for the end of the time range '
+                        'to look at. If none is provided and none is listed in'
+                        ' the issue then it will look at the end of the '
                         'most recent log that has been fully downloaded.'))
     parser.add_option('--timedelta', '-d', dest='time_delta', type=int,
                       default=DEFAULT_TIME_DELTA,
@@ -348,7 +349,20 @@ if __name__ == '__main__':
 
     # Overrides for what the issue lists
     if options.timestamp:
-        target_timestamp = options.timestamp
+        try:
+            # If the timestamp is given in UNIX epoch time, we're done
+            target_timestamp = int(options.timestamp)
+        except ValueError:
+            # If it's a string like 2013-10-14, or 2013-10-14 22:14:12, we
+            # need to convert it to UNIX epoc time
+            if (":" in options.timestamp):
+                human_date = datetime.datetime.strptime(options.timestamp,
+                    "%Y-%m-%d %H:%M:%S")
+            else:
+                human_date = datetime.datetime.strptime(options.timestamp,
+                    "%Y-%m-%d")
+            target_timestamp = int(human_date.strftime("%s"))
+
     if options.bingo_id:
         target_bingo_id = options.bingo_id
     if options.user_agent:
