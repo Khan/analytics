@@ -44,9 +44,17 @@ SOURCE /mnt/var/lib/hive_081/downloaded_resources/coach_summary.q;
 -- and other core identity values related mappings so that JOINs
 -- will be a lot faster.
 INSERT OVERWRITE TABLE userdata_info_p PARTITION(dt='${end_dt}')
-SELECT parsed.*, IF(parsed.user_id RLIKE 'nouserid', 0, 1) AS registered,
+SELECT parsed.user,
+  parsed.user_id,
+  parsed.user_email,
+  parsed.user_nickname,
+  parsed.bingo_id,
+  parsed.joined,
+  IF(parsed.user_id RLIKE 'nouserid', 0, 1) AS registered,
   (uc.num_coaches IS NOT NULL AND uc.max_coach_students >=1) AS is_coached,
-  (uc.num_coaches IS NOT NULL AND uc.max_coach_students >=10) AS is_student
+  (uc.num_coaches IS NOT NULL AND uc.max_coach_students >=10) AS is_student,
+  parsed.user_data_key,
+  parsed.auth_emails
 FROM (
   SELECT
     get_json_object(UserDataP.json, '$.user') AS user,
@@ -54,7 +62,13 @@ FROM (
     get_json_object(UserDataP.json, '$.user_email') AS user_email,
     get_json_object(UserDataP.json, '$.user_nickname') AS user_nickname,
     get_json_object(UserDataP.json, '$.gae_bingo_identity') AS bingo_id,
-    get_json_object(UserDataP.json, '$.joined') AS joined
+    get_json_object(UserDataP.json, '$.joined') AS joined,
+    -- This is the db.Key string, like ag5z...QWZDW822WwZkkDA
+    get_json_object(UserDataP.json, '$.key') AS user_data_key,
+    -- This returns a string that looks something like this:
+    -- '["norm:mattfaus@khanacademy.org", "raw:MattFaus@KhanAcademy.ORG"]'
+    -- TODO(mattfaus): Explode this to produce a row for each normal auth_email?
+    get_json_object(UserDataP.json, '$.auth_emails') AS auth_emails
   FROM UserDataP WHERE dt = '${end_dt}'
 ) parsed LEFT OUTER JOIN
 user_coach_summary uc on (parsed.user = uc.user);

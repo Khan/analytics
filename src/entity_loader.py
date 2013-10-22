@@ -55,7 +55,7 @@ class EntityLoader(object):
         'StackLog':               ['user', 'json'],
         'Topic':                  ['key', 'json'],
         'UserBadge':              ['user', 'json'],
-        'UserEvent':              ['user', 'json'],
+        'UserEvent':              ['key', 'json'],
         'VideoLog':               ['user', 'json'],
         'GAEBingoIdentityRecord': ['key', 'json'],
         'ProblemLog':             ['user', 'json'],

@@ -89,7 +89,10 @@ CREATE EXTERNAL TABLE IF NOT EXISTS ScratchpadRevision (
 ALTER TABLE ScratchpadRevision RECOVER PARTITIONS;
 
 CREATE EXTERNAL TABLE IF NOT EXISTS UserEvent (
-    user string, json string
+    -- To find the user associated with this UserEvent, you have to access
+    -- json.$.user_key, and that's the db.key() string like (ag5z...WwZkkDA)
+    -- of the UserData associated with this event.
+    key string, json string
   )
   PARTITIONED BY (dt string)
   ROW FORMAT DELIMITED FIELDS TERMINATED BY '\t'
@@ -397,7 +400,9 @@ CREATE EXTERNAL TABLE IF NOT EXISTS userdata_info_p(
   joined DOUBLE,
   registered BOOLEAN,
   is_coached BOOLEAN,
-  is_student BOOLEAN
+  is_student BOOLEAN,
+  user_data_key STRING,
+  auth_emails STRING
   )
 PARTITIONED BY (dt STRING)
 LOCATION 's3://ka-mapreduce/summary_tables/userdata_info_p';
