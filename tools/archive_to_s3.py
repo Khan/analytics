@@ -37,9 +37,9 @@ def archive_kalogs(date_string):
         return
 
     cmd = 's3cmd sync %s %s' % (local_path, s3_path)
-    run_shell_command(cmd, True)
+    run_shell_command(cmd)
 
-    cmd = 'rm -rf %s' % (local_path, True)
+    cmd = 'rm -rf %s' % (local_path)
     run_shell_command(cmd)
 
 
@@ -51,9 +51,9 @@ def archive_daily_new(date_string):
         return
 
     cmd = 's3cmd sync %s %s' % (local_path, s3_path)
-    run_shell_command(cmd, True)
+    run_shell_command(cmd)
 
-    cmd = 'rm -rf %s' % (local_path, True)
+    cmd = 'rm -rf %s' % (local_path)
     run_shell_command(cmd)
 
 
