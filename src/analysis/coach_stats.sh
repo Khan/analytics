@@ -1,6 +1,8 @@
 #!/bin/bash
 
 # This script executes BigQuery commands to compute Coach'n'class stats.
+# You need the 'bq' command line tool installed, which can we set up with
+# `pip install bigquery; bq init`
 
 # TODO(user) Update this variable to point to the latest UserData backup
 UserData='[jace.UserData_2013_10_23]'
