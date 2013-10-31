@@ -14,6 +14,7 @@ elastic-mapreduce --create \
         --name "Video Recommendation ${branch} ${start_dt} - ${end_dt}" \
         --num-instances 3 \
         --instance-type m1.large \
+        --hive-versions 0.11.0 \
         --hive-script \
         --arg s3://ka-mapreduce/code/dev/hive/video_recommendation.q \
         --args -i,s3://ka-mapreduce/code/hive/ka_hive_init.q \

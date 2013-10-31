@@ -74,6 +74,7 @@ def create_hive_cluster(job_name, options, hive_script=None, script_args={}):
     args = ['elastic-mapreduce', '--create',
         '--name', job_name,
         '--log-uri', options['log_uri'],
+        '--hive-versions', '0.11.0',
         '--num-instances', options['num_instances'],
         '--master-instance-type', options['master_instance_type'],
         '--slave-instance-type', options['slave_instance_type']

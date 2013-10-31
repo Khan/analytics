@@ -6,7 +6,9 @@
 ADD FILE s3://ka-mapreduce/code/py/stacklog_cards_mapper.py;
 ADD FILE s3://ka-mapreduce/code/hive/create_topic_attempts.q;
 
+-- Only one of these should work, depending on which version of Hive we're on
 SOURCE /mnt/var/lib/hive_081/downloaded_resources/create_topic_attempts.q;
+SOURCE /mnt/var/lib/hive_0110/downloaded_resources/create_topic_attempts.q;
 
 CREATE TABLE IF NOT EXISTS topic_attempts_temp LIKE topic_attempts;
 

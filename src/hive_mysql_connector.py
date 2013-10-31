@@ -28,7 +28,7 @@ _ssh_keyfile = None
 
 def configure(hive_hostname, ssh_keyfile=None):
     """Configures the connection to the Hive masternode for the MySQL queries.
-    
+
     Arguments:
         hive_hostname - the IP or hostname of the Hive masternode.
         ssh_keyfile - the location of the SSH key to use. If unspecified, will
@@ -39,7 +39,7 @@ def configure(hive_hostname, ssh_keyfile=None):
     _hive_hostname = hive_hostname
     _ssh_keyfile = ssh_keyfile
 
-    
+
 def is_configured():
     return bool(_hive_hostname)
 
@@ -56,7 +56,7 @@ def _run_mysql_query_over_ssh(query):
 
     if not is_configured():
         raise Exception("Connection to Hive master not configured yet.")
-    
+
     global _hive_hostname, _ssh_keyfile
 
     base_command = ['ssh', _hive_hostname]
@@ -64,15 +64,17 @@ def _run_mysql_query_over_ssh(query):
         base_command = base_command + ['-i', _ssh_keyfile]
 
     # Encase the query in quotes.
+    # TODO(mattfaus): Select the correct Hive Database by connecting straight
+    # to mysql without specifying a database, and then running `show databases`
     query = "'%s'" % query
-    raw_results = _popen_results(base_command + ['sudo', 'mysql', 'hive_081',
+    raw_results = _popen_results(base_command + ['sudo', 'mysql', 'hive_0110',
                                                  '-e', query])
     if not raw_results:
         return []
-    
+
     raw_results = raw_results.split("\n")
     if len(raw_results) < 1:
-        # Bad results? The top header should always be the column names of 
+        # Bad results? The top header should always be the column names of
         # the result set.
         return []
     return [tuple(row.strip().split("\t")) for row in raw_results[1:] if row]
@@ -115,19 +117,19 @@ def get_table_columns(table_name):
 
 
 def run_hive_init(remote_command=None):
-    """Issues a command over ssh on the hive cluster.  Can be used to 
+    """Issues a command over ssh on the hive cluster.  Can be used to
     ensure that the metadata on the cluster is up to date.
     """
     if not remote_command:
         remote_command = (
-            'hive '
+            'hive-0.11.0 '
             '-d INPATH=s3://ka-mapreduce/entity_store '
             '-f s3://ka-mapreduce/code/hive/ka_hive_init.q')
 
     base_command = ['ssh', _hive_hostname]
     if _ssh_keyfile:
         base_command += ['-i', _ssh_keyfile]
-    
+
     subprocess.call(base_command + [remote_command])
 
 
@@ -165,4 +167,4 @@ if __name__ == '__main__':
 
     configure(args[0], options.ssh_keyfile)
     run_command(args[1], args[2:])
-    
+

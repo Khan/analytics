@@ -1,8 +1,8 @@
 """One-off analysis of results in experiments to study learning gains.
 
 Overview: this script reads from stdin a data set of "topic_attempts" that
-are annotated with what alternative that user was in. It constructs a 
-"learning curve" per (topic, alternative).  To generate the needed data that 
+are annotated with what alternative that user was in. It constructs a
+"learning curve" per (topic, alternative).  To generate the needed data that
 is input to this script, the following steps provide a working example.
 
 Steps to generate input data:
@@ -10,6 +10,7 @@ Steps to generate input data:
    and their alternatives.  Here's an example command:
 
    elastic-mapreduce --create --alive --name "topic mode difficulty data" \
+      --hive-versions 0.11.0 \
       --num-instances 8 \
       --master-instance-type m2.xlarge \
       --slave-instance-type m2.xlarge \
@@ -21,8 +22,8 @@ Steps to generate input data:
       --args -d,dt=2013-06-09
 
    Note: I had some problems with this job failing because of the spaces in
-   the value for EXPERIMENT, so I ended up running the hive code in 
-   user_experiment_info.q directly in an interactive hive cluster just to be 
+   the value for EXPERIMENT, so I ended up running the hive code in
+   user_experiment_info.q directly in an interactive hive cluster just to be
    safe. Also make sure that dt is set to a recent date lest the partition
    fail to be created.
 
@@ -39,7 +40,7 @@ WHERE
   t.dt>='2012-04-10' AND t.dt <= '2013-06-27' AND
   t.topic != 'any';
 
-  Note: Again be sure to tweak the range of acceptable dt's as needed. 
+  Note: Again be sure to tweak the range of acceptable dt's as needed.
 
 3) Download the data from the output directory of step 2, sort it by
    user-topic, and pipe it to this script.  E.g.,
@@ -52,7 +53,7 @@ WHERE
     --output=learning_data.sorted learning_data.csv &> sort.log &
   cat learning_data.sorted | python learning_analysis.py [options]
 
-4) Open up the ipython notebook called Learning in the Early Proficiency 
+4) Open up the ipython notebook called Learning in the Early Proficiency
    Experiment.ipynb in this directory to do any high-level analysis/plotting.
 
 NOTE: khan/webapp should be in the path
@@ -130,7 +131,7 @@ class Attempt:
         self.exercise = exercise
         self.time_done = float(time_done)
         # NOTE: capping time_taken at 10 minutes to remove outliers
-        self.time_taken = min(int(time_taken), 600)  
+        self.time_taken = min(int(time_taken), 600)
         self.problem_number = int(problem_number)
         self.correct = correct == "true"
         self.scheduler_info = json.loads(scheduler_info)
@@ -140,7 +141,7 @@ class Attempt:
 
 options, args = get_cmd_line_options()
 
-topic_curves = defaultdict(lambda: 
+topic_curves = defaultdict(lambda:
         defaultdict(lambda: defaultdict(LearningCurvePoint)))
 
 # each exercise should have a difficulty, measured by percentage correct
@@ -232,7 +233,7 @@ def parse_input(callback, options):
     def process_user_topic(attempts):
         attempts.sort(key=lambda attempt: attempt.time_done)
         if not should_skip(attempts) and not bad_user:
-            callback(attempts, prev_user_topic[0], prev_user_topic[1], 
+            callback(attempts, prev_user_topic[0], prev_user_topic[1],
                      prev_alternative, options)
 
     for line in sys.stdin:
@@ -290,11 +291,11 @@ def update_topic_curves(attempts, user, topic, alternative, options):
     # first, increment count of all cards-- both assessment and regular
     for i in range(len(attempts)):
         topic_curves[alternative][topic][i].num_all_cards += 1
-    
+
     # further filter test_cards to only keep ones with exercises known by
     # our MIRT model...
     known_exs = mirt_model.exercise_ind_dict.keys()
-    test_cards = [(i, a) for (i, a) in test_cards  
+    test_cards = [(i, a) for (i, a) in test_cards
                   if a.exercise in known_exs]
 
     # Option 2: filter by exercises above or below a given difficulty
@@ -303,10 +304,10 @@ def update_topic_curves(attempts, user, topic, alternative, options):
             ind = mirt_model.exercise_ind_dict[ex]
             #print ex, mirt_model.couplings[ind, -1]
             return mirt_model.couplings[ind, -1] < options.difficulty_cutoff
-        test_cards = [(i, a) for (i, a) in test_cards 
+        test_cards = [(i, a) for (i, a) in test_cards
                       if keep_difficulty(a.exercise)]
 
-    # Option 3: trim off the last 'truncate' test_cards, 
+    # Option 3: trim off the last 'truncate' test_cards,
     # in case there is a bailout effect
     if options.truncate:
         if len(test_cards) > options.truncate:
@@ -343,7 +344,7 @@ def update_topic_curves(attempts, user, topic, alternative, options):
         prev_card, curr_card = test_cards[i - 1], test_cards[i]
         prev_index, prev_attempt = prev_card
         curr_index, curr_attempt = curr_card
-        curr_ex, curr_crct = curr_attempt.exercise, curr_attempt.correct 
+        curr_ex, curr_crct = curr_attempt.exercise, curr_attempt.correct
         prev_ex, prev_crct = prev_attempt.exercise, prev_attempt.correct
 
         total_gain = float(curr_crct) - float(prev_crct)
@@ -381,13 +382,13 @@ def print_curve(curve, topic, alternative):
             lines[1] += "%d, " % curve[c].num_all_cards
             lines[2] += "%d, " % curve[c].num_analytics_cards
             lines[3] += "%d, " % curve[c].num_correct
-            lines[4] += "%.3f, " % (float(curve[c].num_correct) / 
+            lines[4] += "%.3f, " % (float(curve[c].num_correct) /
                                     float(curve[c].num_analytics_cards))
-            lines[5] += "%.3f, " % (float(curve[c].sum_abilities) / 
+            lines[5] += "%.3f, " % (float(curve[c].sum_abilities) /
                                     float(curve[c].num_analytics_cards))
-            lines[6] += "%.3f, " % (float(curve[c].sum_abilities_weighted) / 
+            lines[6] += "%.3f, " % (float(curve[c].sum_abilities_weighted) /
                                     float(curve[c].sum_abilities_weights))
-            lines[7] += "%.3f, " % (float(curve[c].sum_difficulty) / 
+            lines[7] += "%.3f, " % (float(curve[c].sum_difficulty) /
                                     float(curve[c].num_analytics_cards))
             lines[8] += "%d, " % curve[c].time_taken
     print "\n".join(lines)
@@ -432,14 +433,14 @@ if __name__ == '__main__':
         agg_curve[alternative] = defaultdict(LearningCurvePoint)
 
     for topic in topic_curves[alternatives[0]].keys():
-        for i in range(1, len(alternatives)):        
+        for i in range(1, len(alternatives)):
             if topic not in topic_curves[alternatives[i]]:
                 print "Weird.. Topic %s found in only one alternative." % topic
                 continue
         for alternative in alternatives:
             print_curve(topic_curves[alternative][topic], topic, alternative)
             # add this topic's data to the aggregate curve
-            aggregate_curve(topic_curves[alternative][topic], 
+            aggregate_curve(topic_curves[alternative][topic],
                             agg_curve[alternative])
 
     for alternative in alternatives:

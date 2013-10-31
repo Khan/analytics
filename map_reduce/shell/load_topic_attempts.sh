@@ -26,6 +26,7 @@ elastic-mapreduce --create \
   --num-instances 3 \
   --master-instance-type m1.small \
   --slave-instance-type c1.medium \
+  --hive-versions 0.11.0 \
   --hive-script --arg "s3://ka-mapreduce/code/hive/insert_topic_attempts.q" \
   --args -i,"s3://ka-mapreduce/code/hive/ka_hive_init.q" \
   --args -d,dt="$day" \
