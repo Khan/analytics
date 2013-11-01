@@ -37,9 +37,6 @@ AS key, json;
 
 -- Generating coach_summary
 ADD FILE s3://ka-mapreduce/code/hive/coach_summary.q;
-
--- Only one of these should work, depending on which version of Hive we're on
-SOURCE /mnt/var/lib/hive_081/downloaded_resources/coach_summary.q;
 SOURCE /mnt/var/lib/hive_0110/downloaded_resources/coach_summary.q;
 
 
@@ -162,7 +159,4 @@ SELECT TRANSFORM(json) USING 'find_latest_record.py'
 AS key, json;
 
 ADD FILE s3://ka-mapreduce/code/shell/set_userdata_partition.sh;
-
--- Only one of these should work, depending on which version of Hive we're on
-!/mnt/var/lib/hive_081/downloaded_resources/set_userdata_partition.sh;
 !/mnt/var/lib/hive_0110/downloaded_resources/set_userdata_partition.sh;

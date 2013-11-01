@@ -108,9 +108,6 @@ ALTER TABLE UserEvent RECOVER PARTITIONS;
 -- snapshot version is defined in the following file:
 -- (see userdata_update.q for generation of these partitions)
 ADD FILE s3://ka-mapreduce/conf/userdata_ver.q;
-
--- Only one of these should work, depending on which version of Hive we're on
-SOURCE /mnt/var/lib/hive_081/downloaded_resources/userdata_ver.q;
 SOURCE /mnt/var/lib/hive_0110/downloaded_resources/userdata_ver.q;
 
 -- A snapshot of updated UserData info, built by collecting UserDataIncr data
@@ -508,9 +505,6 @@ CREATE EXTERNAL TABLE IF NOT EXISTS video_topic_category(
 --    a better solution for this, or specify the Hive version so that this
 --    path is stable.
 ADD FILE s3://ka-mapreduce/code/hive/create_topic_attempts.q;
-
--- Only one of these should work, depending on which version of Hive we're on
-SOURCE /mnt/var/lib/hive_081/downloaded_resources/create_topic_attempts.q;
 SOURCE /mnt/var/lib/hive_0110/downloaded_resources/create_topic_attempts.q;
 ALTER TABLE topic_attempts RECOVER PARTITIONS;
 

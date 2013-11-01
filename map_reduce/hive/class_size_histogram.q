@@ -11,9 +11,6 @@ CREATE EXTERNAL TABLE IF NOT EXISTS coach_class_size (
 
 -- Only local files can be sourced as scripts
 ADD FILE s3://ka-mapreduce/code/hive/student_teacher_current.q;
-
--- Only one of these should work, depending on which version of Hive we're on
-SOURCE /mnt/var/lib/hive_081/downloaded_resources/student_teacher_current.q;
 SOURCE /mnt/var/lib/hive_0110/downloaded_resources/student_teacher_current.q;
 
 INSERT OVERWRITE TABLE coach_class_size
