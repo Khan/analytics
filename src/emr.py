@@ -74,7 +74,6 @@ def create_hive_cluster(job_name, options, hive_script=None, script_args={}):
     args = ['elastic-mapreduce', '--create',
         '--name', job_name,
         '--log-uri', options['log_uri'],
-        '--hive-versions', '0.11.0',
         '--num-instances', options['num_instances'],
         '--master-instance-type', options['master_instance_type'],
         '--slave-instance-type', options['slave_instance_type']
@@ -82,7 +81,9 @@ def create_hive_cluster(job_name, options, hive_script=None, script_args={}):
 
     if hive_script:
         args.extend([
-            '--hive-script', '--arg', hive_script,
+            '--hive-script',
+            '--hive-versions', '0.11.0',
+            '--arg', hive_script,
             '--args', '-i,"s3://ka-mapreduce/code/hive/ka_hive_init.q"',
             ])
 
