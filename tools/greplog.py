@@ -330,6 +330,11 @@ if __name__ == '__main__':
                         'is setting is False and frontend logs are searched.'),
                         default=False)
 
+    # TODO(mattfaus): With http://phabricator.khanacademy.org/D4887 we will
+    # begin download log files for all versions.  It would be nice to offer an
+    # option to only grep against a certain version (for example to only search
+    # live deployed versions, or znd- versions)
+
     options, args = parser.parse_args()
 
     search_string = None

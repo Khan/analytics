@@ -30,23 +30,6 @@ import oauth_util.fetch_url
 LOGS_URL = '/api/v1/fetch_logs/%(start_time_t)s/%(end_time_t)s'
 
 
-def _read_versions(filename):
-    """Look for lines 'appengine_versions: v1,v2,...'; return set(v1,v2,...)"""
-    prefix = 'appengine_versions: '
-    versions = set()
-    try:
-        f = open(filename)
-        for line in f:
-            if line.startswith(prefix):
-                versions.update(line[len(prefix):].strip().split(','))
-    except (IOError, OSError), why:
-        # Errors reading f?  We log, but otherwise just silently continue.
-        print >>sys.stderr, ('Could not open alternate-versions file %s: %s'
-                             % (filename, why))
-
-    return versions
-
-
 def _split_into_headers_and_body(loglines_string):
     """Split the fetch_logs output into header lines and log lines.
 
@@ -123,46 +106,37 @@ def get_cmd_line_args():
     parser.add_option("-v", "--appengine_version", default=None,
                       help=("If set, the appengine-version (e.g. "
                             "0515-ae96fc55243b) to request the logs from. "
-                            "If None, will use the current active version."))
-    parser.add_option("--file_for_alternate_appengine_versions", default=None,
-                      help=("If set, whenever fetching logs returns 0 "
-                            "loglines, look through this file to find "
-                            "alternate appengine_versions, and retry "
-                            "fetching the logs against those versions "
-                            "until one returns non-zero results.  The "
-                            "file should have text like "
-                            "appengine_versions: v1,v2,..."))
-    #TODO: Figure out a better way to get the backend versions that were active
-    #during the time period.
+                            "If None, will fetch from all versions (but "
+                            "only from one 'class' of versions, like frontend "
+                            "vs. backends)."))
     parser.add_option("-b", "--backend", action="store_true", default=False,
-                      help=("If set will try and read the logs from the "
-                            "versions in the file designated by "
-                            "--file_for_alternate_appengine_versions with "
-                            "'-mapreducebackend' appended to them. If "
-                            "there is no file, then no versions will be "
-                            "searched"))
+                      help=("If set will try and read the logs from all of "
+                        "the currently deployed logical backends (those "
+                        "that end with 'backend')."))
 
     options, extra_args = parser.parse_args()
+
+    if options.appengine_version and options.backend:
+        parser.error("options --appengine_version and --backend are "
+            "mutually exclusive")
+
     if extra_args:
         sys.exit('Unknown arguments %s. See --help.' % extra_args)
 
     return options
 
 
-def fetch_appengine_logs(start_time, end_time, appengine_versions):
+def fetch_appengine_logs(start_time, end_time, server_class,
+    appengine_version):
     """Return the output from /api/v1/fetch_logs.
 
     Arguments:
       start_time: a datetime object saying when to start fetching from.
       end_time: a datetime object saying when to stop fetching.
-      appengine_versions: an ordered list (or tuple).  First, we tell
-        appengine to retrieve the logs from the first
-        appengine-version in the list.  If appengine can't find any
-        logs in that time period corresponding to that version, we'll
-        try the next version in the list.  If none of them ever give
-        any output, we return the empty string.  If appengine_versions
-        is the empty list, we just try once, telling appengine to use
-        the current default (live) appengine version.
+      server_class: class to download from, valid options are "frontend" or
+        "backend".  Ignored if appengine_version is specified.
+      appengine_version: Optional. If passed, the version to download logs
+        from.  If missing, will download all logs from the specified class.
 
     Returns:
       A string, the output of the /api/v1/fetch_logs/x/x?... command.
@@ -172,25 +146,18 @@ def fetch_appengine_logs(start_time, end_time, appengine_versions):
     url_base = LOGS_URL % {'start_time_t': start_time_t,
                            'end_time_t': end_time_t}
 
-    if not appengine_versions:
-        return oauth_util.fetch_url.fetch_url(url_base)
+    if appengine_version:
+        url = url_base + '?appengine_version=%s' % appengine_version
+    else:
+        url = url_base + '?server_class=%s' % server_class
 
-    for (i, appengine_version) in enumerate(appengine_versions):
-        if appengine_version is None:    # None means 'use the default'
-            url = url_base
-        else:
-            url = url_base + '?appengine_version=%s' % appengine_version
-        compressed_retval = oauth_util.fetch_url.fetch_url(url)
-        retval = zlib.decompress(compressed_retval)
-        (_, loglines_as_string) = _split_into_headers_and_body(retval)
-        if loglines_as_string:
-            return retval
-
-        print >>sys.stderr, ('No logs for version %s, trying version %s'
-                             % (appengine_version or '[default]',
-                                (appengine_versions + ['<giving up>'])[i + 1]))
-
-    return ''      # We never found a non-empty body, so just bail.
+    compressed_retval = oauth_util.fetch_url.fetch_url(url)
+    retval = zlib.decompress(compressed_retval)
+    (_, loglines_as_string) = _split_into_headers_and_body(retval)
+    if loglines_as_string:
+        return retval
+    else:
+        return ''
 
 
 def main():
@@ -201,34 +168,6 @@ def main():
     end_dt = date_util.from_date_iso(options.end_date)
     interval = int(options.interval)
     max_retries = int(options.max_retries)
-    appengine_versions = [options.appengine_version]
-    if options.file_for_alternate_appengine_versions:
-        appengine_versions.extend(
-            _read_versions(options.file_for_alternate_appengine_versions))
-
-    if options.backend:
-        try:
-            # if the 'default' version is in the list, it isn't valid
-            # for backends
-            appengine_versions.remove(None)
-        except ValueError:
-            pass
-
-        # Grab logs using known backend versions. For now, we are interested in
-        # two different backend types, mapreducebackend and highmembackend.
-        # TODO(kamens): use either backends.yaml or App Engine's backends API
-        # to find a list of deployed backend types.
-        backend_suffixes = ["mapreducebackend", "highmembackend"]
-
-        backend_appengine_versions = []
-        for suffix in backend_suffixes:
-            backend_appengine_versions += ["%s-%s" % (v, suffix)
-                    for v in appengine_versions]
-
-        appengine_versions = backend_appengine_versions
-
-    print >>sys.stderr, ('Looking at these appengine versions: %s'
-                         % [v or '(default)' for v in appengine_versions])
 
     num_errors = 0
     while start_dt < end_dt:
@@ -239,8 +178,15 @@ def main():
 
         for tries in xrange(max_retries):
             try:
-                response = fetch_appengine_logs(start_dt, next_dt,
-                                                appengine_versions)
+                if options.backend:
+                    response = fetch_appengine_logs(start_dt, next_dt,
+                        "backend", None)
+                elif options.appengine_version:
+                    response = fetch_appengine_logs(start_dt, next_dt,
+                        None, options.appengine_version)
+                else:
+                    response = fetch_appengine_logs(start_dt, next_dt,
+                        "frontend", None)
             except Exception, why:
                 sleep_secs = 2 ** tries
                 print >>sys.stderr, ('ERROR: %s.\n'
