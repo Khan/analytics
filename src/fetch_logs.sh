@@ -60,14 +60,27 @@ prev_statusfile="$log_dir/`echo $hour_prev | tr T- //`-status.log"
 tmppipe="/tmp/`basename $0`-$$"
 mkfifo "$tmppipe"
 
-"$ROOT/fetch_logs.py" -s "$hour" -e "$hour_next" \
+# During peak hours (8am - 4pm Pacific), we generate about 50,000 log lines
+# every 30 seconds. When compressed these log lines represent about 4.5 MB of
+# data, which we download from GAE. The limit on response size is currently
+# 10MB, which we need to stay below.  We want to download larger chunks of
+# data to hopefully allow this script to finish well within the 1 hour it has
+# before the next cron job fires.
+# It currently takes about 43 minutes to download 1 hour's worth of log files.
+# Measured 11/5/2013
+# TODO(mattfaus): Make fetch_logs.py self-monitoring so that it will increase
+# this interval during non-peak, and decrease during peak times.
+"$ROOT/fetch_logs.py" -s "$hour" -e "$hour_next" -i 30 \
     2> "${outfile_prefix}-status.log" \
     > "$tmppipe" &
 # Store the PID to later determine the exit-code of fetch_logs.
 pid_frontends=$!
 gzip -c < "$tmppipe" > "${outfile_prefix}.log.gz" &
 
-"$ROOT/fetch_logs.py" --backend -s "$hour" -e "$hour_next" \
+# Backends do not generate too much log data, so we can set the interval
+# fairly high. It currently takes about 8 minutes to download 1 hour's worth
+# of log files.
+"$ROOT/fetch_logs.py" --backend -s "$hour" -e "$hour_next" -i 600 \
     2> "${backend_outfile_prefix}-status.log" \
     | gzip -c > "${backend_outfile_prefix}.log.gz"
 # Use a bash-ism to return the exit-code of fetch_logs (not gzip).
