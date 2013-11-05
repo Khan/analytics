@@ -61,7 +61,6 @@ tmppipe="/tmp/`basename $0`-$$"
 mkfifo "$tmppipe"
 
 "$ROOT/fetch_logs.py" -s "$hour" -e "$hour_next" \
-    --file_for_alternate_appengine_versions="$prev_statusfile" \
     2> "${outfile_prefix}-status.log" \
     > "$tmppipe" &
 # Store the PID to later determine the exit-code of fetch_logs.
@@ -69,7 +68,6 @@ pid_frontends=$!
 gzip -c < "$tmppipe" > "${outfile_prefix}.log.gz" &
 
 "$ROOT/fetch_logs.py" --backend -s "$hour" -e "$hour_next" \
-    --file_for_alternate_appengine_versions="$prev_statusfile" \
     2> "${backend_outfile_prefix}-status.log" \
     | gzip -c > "${backend_outfile_prefix}.log.gz"
 # Use a bash-ism to return the exit-code of fetch_logs (not gzip).
