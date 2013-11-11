@@ -16,21 +16,21 @@ logs in the following format:
 
 A user-facing request:
 
-91.174.232.10 - chris [24/Jul/2012:17:00:09 -0700] "GET /assets/images/thumbnails/Rothko-13.jpg HTTP/1.1" 200 572 "http://smarthistory.khanacademy.org/" "Mozilla/5.0" "smarthistory.khanacademy.org" ms=65 cpu_ms=35 cpm_usd=0.000001 pending_ms=0 instance=00c61b117c5f1f26699563074cdd44e841096e
+91.174.232.10 - chris [24/Jul/2012:17:00:09 -0700] "GET /assets/images/thumbnails/Rothko-13.jpg HTTP/1.1" 200 572 "http://smarthistory.khanacademy.org/" "Mozilla/5.0" "smarthistory.khanacademy.org" ms=65 cpu_ms=35 cpm_usd=0.000001 pending_ms=0 instance=00c61b117c5f1f26699563074cdd44e841096e version=1108-a63aecf373cb request_id=00c61b117c5f1f26699563074cdd44e841096e
 
 A homagepage request, with no referer:
-68.202.49.17 - - [29/Oct/2012:17:00:09 -0700] "GET / HTTP/1.1" 200 11377 - "Mozilla/5.0 (Windows NT 6.0; WOW64) AppleWebKit/537.4 (KHTML, like Gecko) Chrome/22.0.1229.94 Safari/537.4" "www.khanacademy.org" ms=200 cpu_ms=103 cpm_usd=0.000001 pending_ms=0 instance=00c61b117c4811eae292cd1ee62739468526  @Nolint
+68.202.49.17 - - [29/Oct/2012:17:00:09 -0700] "GET / HTTP/1.1" 200 11377 - "Mozilla/5.0 (Windows NT 6.0; WOW64) AppleWebKit/537.4 (KHTML, like Gecko) Chrome/22.0.1229.94 Safari/537.4" "www.khanacademy.org" ms=200 cpu_ms=103 cpm_usd=0.000001 pending_ms=0 instance=00c61b117c4811eae292cd1ee62739468526 version=1108-a63aecf373cb request_id=00c61b117c5f1f26699563074cdd44e841096e  @Nolint
 
 A task queue request, initiated by App Engine:
 
-0.1.0.2 - - [31/Jul/2012:17:00:09 -0700] "POST /_ah/queue/deferred_problemlog HTTP/1.1" 200 84 "http://www.khanacademy.org/api/v1/user/exercises/converting_between_point_slope_and_slope_intercept/problems/1/attempt" "AppEngine-Google; (+http://code.google.com/appengine)" "www.khanacademy.org" ms=88 cpu_ms=300 cpm_usd=0.000007 queue_name=problem-log-queue task_name=10459794276075119660 pending_ms=0 instance=00c61b117cca420ac067602b717789e7aec8ca
+0.1.0.2 - - [31/Jul/2012:17:00:09 -0700] "POST /_ah/queue/deferred_problemlog HTTP/1.1" 200 84 "http://www.khanacademy.org/api/v1/user/exercises/converting_between_point_slope_and_slope_intercept/problems/1/attempt" "AppEngine-Google; (+http://code.google.com/appengine)" "www.khanacademy.org" ms=88 cpu_ms=300 cpm_usd=0.000007 queue_name=problem-log-queue task_name=10459794276075119660 pending_ms=0 instance=00c61b117cca420ac067602b717789e7aec8ca version=1108-a63aecf373cb request_id=00c61b117c5f1f26699563074cdd44e841096e
 
 Additional logs for testing. Note that instance may be "None",
 and cpm_usd is occasionally, unexpectedly, 0.000000:
 
-122.11.36.130 - - [06/Oct/2012:16:00:09 -0700] "GET /api/v1/user/topic/precache/addition-subtraction/e/addition_1?casing=camel HTTP/1.1" 200 2421 "http://www.khanacademy.org/math/arithmetic/addition-subtraction/v/basic-addition" "Mozilla/5.0 (iPad; CPU OS 5_1_1 like Mac OS X) AppleWebKit/534.46 (KHTML, like Gecko) Version/5.1 Mobile/9B206 Safari/7534.48.3" "www.khanacademy.org" ms=263 cpu_ms=415 cpm_usd=0.000000 pending_ms=0 instance=00c61b117c29add96b8c86824f3be8d9b22d5537
+122.11.36.130 - - [06/Oct/2012:16:00:09 -0700] "GET /api/v1/user/topic/precache/addition-subtraction/e/addition_1?casing=camel HTTP/1.1" 200 2421 "http://www.khanacademy.org/math/arithmetic/addition-subtraction/v/basic-addition" "Mozilla/5.0 (iPad; CPU OS 5_1_1 like Mac OS X) AppleWebKit/534.46 (KHTML, like Gecko) Version/5.1 Mobile/9B206 Safari/7534.48.3" "www.khanacademy.org" ms=263 cpu_ms=415 cpm_usd=0.000000 pending_ms=0 instance=00c61b117c29add96b8c86824f3be8d9b22d5537 version=1108-a63aecf373cb request_id=00c61b117c5f1f26699563074cdd44e841096e
 
-174.211.15.119 - - [06/Oct/2012:16:00:09 -0700] "GET /images/featured-actions/campbells-soup.png HTTP/1.1" 204 154518 "http://www.khanacademy.org/" "Mozilla/5.0 (iPhone; CPU iPhone OS 5_0_1 like Mac OS X) AppleWebKit/534.46 (KHTML, like Gecko) Version/5.1 Mobile/9A405 Safari/7534.48.3" "www.khanacademy.org" ms=19 cpu_ms=0 cpm_usd=0.000017 pending_ms=0 instance=None
+174.211.15.119 - - [06/Oct/2012:16:00:09 -0700] "GET /images/featured-actions/campbells-soup.png HTTP/1.1" 204 154518 "http://www.khanacademy.org/" "Mozilla/5.0 (iPhone; CPU iPhone OS 5_0_1 like Mac OS X) AppleWebKit/534.46 (KHTML, like Gecko) Version/5.1 Mobile/9A405 Safari/7534.48.3" "www.khanacademy.org" ms=19 cpu_ms=0 cpm_usd=0.000017 pending_ms=0 instance=None version=1108-a63aecf373cb request_id=00c61b117c5f1f26699563074cdd44e841096e
 
 Other lines in stdin hold the application logs, of which a maximum of one may
 be a KALOG in the format KALOG;(key(:value)?;)*
@@ -46,7 +46,7 @@ values whose fields are, in order with examples from the above logs:
   ip              # 91.174.232.10
   user            # chris
   timestamp       # 24/Jul/2012:17:00:09 -0700
-  method          # GET 
+  method          # GET
   url             # /assets/images/thumbnails/Rothko-13.jpg
   protocol        # HTTPS/1.1
   status code     # 200
@@ -73,6 +73,19 @@ table definition to contain them:
   host            # smarthistory.khanacademy.org
   task_name       # 131477025630677193 (or the empty string if n/a)
   instance        # 00c61b117c5f1f26699563074cdd44e841096e
+  version         # 1108-a63aecf373cb
+  request_id      # 00c61b117c5f1f26699563074cdd44e841096e1b117c5f1f26699563074
+
+To test this file locally:
+1. Download an example route_map_file.json with something like:
+    s3cmd get s3://ka-mapreduce/rawdata/route_maps/route_map.2013-11-09.json \
+    route_map_file.json
+2. Download an example log file with something like:
+    s3cmd get s3://ka-mapreduce/rawdata/server_logs/website/2013-11-01 \
+    /backends-00:00:00Z.log.gz
+3. Pipe the uncompressed output of the file into this pything file with:
+    cat backends-00\:00\:00Z.log.gz | gzip -d |
+    python raw_log_to_request_log_mapper.py | head
 """
 
 import json
@@ -108,7 +121,9 @@ _LOG_MATCHER = re.compile(r"""
     (?:queue_name=(?P<queue_name>\S+)\s)?
     (?:task_name=(?P<task_name>\S+)\s)?
     pending_ms=(?P<pending_ms>\d+)\s
-    instance=(?P<instance>\S+)$
+    instance=(?P<instance>\S+)\s
+    version=(?P<version_id>\S+)\s
+    request_id=(?P<request_id>\S+)$
 """, re.X)
 
 # We emit just these fields, and in this order.
@@ -121,7 +136,7 @@ _KA_LOG_MATCHER = re.compile(r"""
     ^\s*[\d.\:]*\s*
     KALOG;(?P<keyvalues>(?:[^\:;]+(?:\:[^;]*)?;)*)
     id.bingo:(?P<bingo_id>[^;]+);$
-""", re.X) 
+""", re.X)
 
 
 def route_for_url(route_map, url, method):
@@ -213,7 +228,7 @@ class RequestLogIterator:
     def __init__(self, input_file):
         self._iter = iter(input_file)
         self._set_next_line()
-        
+
     def __iter__(self):
         return self
 
@@ -232,7 +247,7 @@ class RequestLogIterator:
             raise StopIteration
 
         app_log_lines = []
-        while True: 
+        while True:
             self._set_next_line()
             if (self.next_line == self.sentinel or self.next_match):
                 return (request_log_line, request_log_match, app_log_lines)
@@ -268,7 +283,7 @@ def main(input_file, route_map):
                 'The output to Hive is tab-separated. Field values must not '
                 'contain tabs, but this log does: %s' % request_log_line)
 
-        sorted_fields = [(f, request_log_match.group(f) or '') 
+        sorted_fields = [(f, request_log_match.group(f) or '')
                          for f in _FIELDS_TO_KEEP]
         # -- Now we add derived fields.
 
@@ -282,18 +297,18 @@ def main(input_file, route_map):
         for line in app_log_lines:
             kalog_match = _KA_LOG_MATCHER.match(line)
             if kalog_match:
-                
-                # We extract out the bingo_id and unquote it now for ease of 
+
+                # We extract out the bingo_id and unquote it now for ease of
                 # searching the lines by bingo_id (note bingo_ids will still
                 # be put into hive urllib quoted.
-                sorted_fields.append(('bingo_id', 
+                sorted_fields.append(('bingo_id',
                                       kalog_match.group("bingo_id")))
-                sorted_fields.append(('kalog', 
+                sorted_fields.append(('kalog',
                                       kalog_match.group("keyvalues")))
 
                 # There seems to be a bug that very occassionally the kalog
                 # line gets duplicated such as on  07/Jan/2013:18:06:09
-                # There could also be second kalog in app_log_lines if the 
+                # There could also be second kalog in app_log_lines if the
                 # request_log_matcher fails to match a true request log in
                 # which case we will ignore the second one
                 break
