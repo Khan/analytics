@@ -19,9 +19,7 @@ STALE_THRESHOLD = datetime.timedelta(weeks=10)
 
 def run_shell_command(command_string, dry_run=True):
     print command_string
-    if dry_run:
-        print command_string
-    else:
+    if not dry_run:
         command_output = subprocess.check_output(command_string, shell=True)
 
 
