@@ -14,14 +14,15 @@ import os
 import subprocess
 
 # How old the data needs to be before we archive it
-STALE_THRESHOLD = datetime.timedelta(weeks=30)
+STALE_THRESHOLD = datetime.timedelta(weeks=10)
 
 
 def run_shell_command(command_string, dry_run=True):
     print command_string
-    if not dry_run:
+    if dry_run:
+        print command_string
+    else:
         command_output = subprocess.check_output(command_string, shell=True)
-        print command_output
 
 
 def date_as_path(date_string):
@@ -65,7 +66,7 @@ def main():
     date = archive_start
     while date < archive_end:
         date_string = date.strftime('%Y-%m-%d')
-        archive_kalogs(date_string)
+        archive_daily_new(date_string)
         date += datetime.timedelta(days=1)
 
 
