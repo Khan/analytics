@@ -14,11 +14,11 @@ All log lines are printed to stdout and you can redirect them to a temporary
 file for analysis such as: greplog -i 19618 > /tmp/issue_19618.log
 """
 
+import argparse
 import contextlib
 import csv
 import datetime
 import json
-import optparse
 import os
 import re
 import subprocess
@@ -40,6 +40,10 @@ BASE_DIR = "/home/analytics/kalogs/"
 # Summary includes both the issue title and a concatentation of all labels
 ISSUES_URL = "http://code.google.com/p/khanacademy/issues/csv?can=1&q=id%%3D%i&colspec=Opened+Summary"
 DEFAULT_TIME_DELTA = 20  # minutes
+DEFAULT_CONTEXT_TO_SEARCH = 60  # number of lines before and after matched text
+                                # that we think is sufficient for including
+                                # both the request log line and the rest of the
+                                # app logs included with it.
 USAGE = """[options] ('<search query string>')
 
 Grep the request logs and return the results together with their context (ie.
@@ -129,7 +133,8 @@ def parse_log_file(input_file_name,
                    target_status=None,
                    target_bingo_id=None,
                    target_url=None,
-                   target_user_agent=None):
+                   target_user_agent=None,
+                   num_surrounding_lines_to_search=DEFAULT_CONTEXT_TO_SEARCH):
     """ Searches the log file near the timestamp for a users entries
 
         Iterates over the log and finds all entries within timedelta of the
@@ -158,7 +163,8 @@ def parse_log_file(input_file_name,
     # what we have to search for. We will grab the 60 lines before and
     # after the bingo_id to make sure that we get any tracebacks in the
     # app logs.
-    process = subprocess.Popen(['zgrep', '-A', '60', '-B', '60',
+    process = subprocess.Popen(['zgrep', '-C',
+                                '%i' % num_surrounding_lines_to_search,
                                 grep_search_string, input_file_name],
                                stdout=subprocess.PIPE,
                                stderr=subprocess.STDOUT)
@@ -170,6 +176,16 @@ def parse_log_file(input_file_name,
 
             if request_log_match is None:
                 # RequestLogIterator encountered the 'sentinel'
+                if search_string and any(search_string in l for l in
+                                         app_log_lines):
+                    raise Exception("String found in app logs without a "
+                                    "corresponding request log line. Try "
+                                    "again with -C set to something larger "
+                                    "(default is searching for the "
+                                    "request log line that is within %i lines "
+                                    "of the string searched for)" %
+                                    DEFAULT_CONTEXT_TO_SEARCH)
+
                 continue
 
             datetimestamp_string = request_log_match.group("time_stamp")
@@ -188,12 +204,12 @@ def parse_log_file(input_file_name,
 
             # TODO(james): binary search the log file to get to the target
             # start time quickly
-            if (timestamp < target_timestamp - timedelta):
+            if target_timestamp and timestamp < target_timestamp - timedelta:
                 continue
 
             # TODO(james): sometimes the log file seems out of order by a
             # couple of seconds.  Determine if we want a buffer here.
-            if timestamp > target_timestamp:
+            if target_timestamp and timestamp > target_timestamp:
                 break
 
             if target_status:
@@ -285,113 +301,143 @@ def find_log_files_for(backends, timestamp, time_delta=DEFAULT_TIME_DELTA):
 
 
 if __name__ == '__main__':
-    parser = optparse.OptionParser(USAGE)
-    parser.add_option('--issue-id', '-i', dest='issue_id', type=int,
-                      help=('A google issue id on which to filter the logs '
-                            'by. The script will search the minutes preceding '
-                            'when the issue was filed and will use either the '
-                            'bingo_id if it exists in the issue labels or the '
-                            'user agent to further filter the logs by.'))
-    parser.add_option('--bingo-id', '-b', dest='bingo_id', type=str,
-                      help=('Filter the logs for this bingo-id. It will '
-                            'override any bingo_id retrieved from the issue. '
-                            'Default is None.'))
-    parser.add_option('--status', '-s', dest='status', type=int,
-                      help='Only output logs with this status code. By '
-                     'default it does not filter by status')
-    parser.add_option('--timestamp', '-t', dest='timestamp', type=str,
-                  help=('UNIX timestamp (1381788405) or human timestamp '
-                        '(2013-10-14 22:06:44) for the end of the time range '
-                        'to look at. If none is provided and none is listed in'
-                        ' the issue then it will look at the end of the '
-                        'most recent log that has been fully downloaded.'))
-    parser.add_option('--timedelta', '-d', dest='time_delta', type=int,
-                      default=DEFAULT_TIME_DELTA,
-                      help=('How long before the timestamp you want to search '
-                            '(in minutes).  Defaulit is %i minutes' %
-                            DEFAULT_TIME_DELTA))
-    parser.add_option('--use-url', '-u', dest='use_url', action='store_true',
-                      help=('Whether to filter the logs by the url/referer '
-                            'url found in the referrer referenced in the '
-                            'issue.  By default it won\'t'))
-    parser.add_option('--url', '-l', type=str, dest='url',
-                      help='Url to filter by. Default is None.')
-    parser.add_option('--user-agent', '-a', dest='user_agent', type=str,
-                      help=('Filter the log using this user-agent string. '
-                            'This will only be used if the bingo_id is not '
-                            'set either in the issue or manually with -b. '
-                            'Default is None'))
-    parser.add_option('--quiet', '-q', dest='quiet', action='store_true',
-                      help=('Whether to supress header and footer information '
-                            'about the search and the results found. By '
-                            'default the header is shown.'))
-    parser.add_option('--backends', '-n', dest='backends', action='store_true',
-                      help=('Whether to to search backend logs. By default, th'
-                        'is setting is False and frontend logs are searched.'),
+    parser = argparse.ArgumentParser(description=USAGE)
+    parser.add_argument('--issue-id', '-i', dest='issue_id', type=int,
+                        help=('A google issue id on which to filter the logs '
+                              'by. The script will search the minutes '
+                              'preceding when the issue was filed and will '
+                              'use either the bingo_id if it exists in the '
+                              'issue labels or the user agent to further '
+                              'filter the logs by.'))
+    parser.add_argument('--bingo-id', '-b', dest='bingo_id', type=str,
+                        help=('Filter the logs for this bingo-id. It will '
+                              'override any bingo_id retrieved from the '
+                              'issue. Default is None.'))
+    parser.add_argument('--status', '-s', dest='status', type=int,
+                        help=('Only output logs with this status code. By '
+                              'default it does not filter by status'))
+    parser.add_argument('--timestamp', '-t', dest='timestamp', type=str,
+                        help=('UNIX timestamp (1381788405) or human timestamp '
+                              '(2013-10-14 22:06:44) for the end of the time '
+                              'range to look at. If none is provided and none '
+                              'is listed in the issue then it will look at '
+                              'the end of the most recent log that has been '
+                              'fully downloaded.'))
+    parser.add_argument('--timedelta', '-d', dest='time_delta', type=int,
+                        default=DEFAULT_TIME_DELTA,
+                        help=('How long before the timestamp you want to '
+                              'search (in minutes).  Defaulit is %i minutes' %
+                              DEFAULT_TIME_DELTA))
+    parser.add_argument('--use-url', '-u', dest='use_url', action='store_true',
+                        help=('Whether to filter the logs by the url/referer '
+                              'url found in the referrer referenced in the '
+                              'issue.  By default it won\'t'))
+    parser.add_argument('--url', '-l', type=str, dest='url',
+                        help='Url to filter by. Default is None.')
+    parser.add_argument('--user-agent', '-a', dest='user_agent', type=str,
+                        help=('Filter the log using this user-agent string. '
+                              'This will only be used if the bingo_id is not '
+                              'set either in the issue or manually with -b. '
+                              'Default is None'))
+    parser.add_argument('--quiet', '-q', dest='quiet', action='store_true',
+                        help=('Whether to supress header and footer '
+                              'information about the search and the results '
+                              'found. By default the header is shown.'))
+    parser.add_argument('--backends', '-n', dest='backends',
+                        action='store_true',
+                        help=('Whether to to search backend logs. By default, '
+                              'this setting is False and frontend logs are '
+                              'searched.'),
                         default=False)
+    parser.add_argument('--num_surrounding_lines_to_search', '-C', type=int,
+                        help=('The number of lines of leading and trailing '
+                              'context surrounding each match, in which we '
+                              'hope to  find the request log line and all app '
+                              'logs. The default is 60. A bigger number can '
+                              'lead to slower run times, but can lead to more '
+                              'accurate results when entries have over 60 app '
+                              'log lines.'),
+                      default=DEFAULT_CONTEXT_TO_SEARCH)
+    parser.add_argument('search_string', nargs='?',
+                        help=('(optional) Filter the log files for records '
+                              'that contain this search thing in either the '
+                              'request log line or its app logs.'))
+    parser.add_argument('filenames', nargs='*',
+                        help=('(optional) Search these filenames rather than '
+                              'the most recent log files.'))
 
     # TODO(mattfaus): With http://phabricator.khanacademy.org/D4887 we will
     # begin download log files for all versions.  It would be nice to offer an
     # option to only grep against a certain version (for example to only search
     # live deployed versions, or znd- versions)
+    args = parser.parse_args()
 
-    options, args = parser.parse_args()
-
-    search_string = None
-    if args:
-        search_string = args[0]
+    search_string = args.search_string
+    if search_string and os.path.exists(search_string):
+        # The first filename argument can be incorrectly interpreted as a
+        # search string for requests such as: greplog -s 500 filename.gz
+        # This will assume the search string was meant to be a filename if the
+        # file exists.
+        args.filenames = [search_string] + args.filenames
+        search_string = None
 
     target_url = None
     target_timestamp = None
     target_bingo_id = None
     target_url = None
     target_user_agent = None
-    if options.issue_id:
+    if args.issue_id:
         (target_timestamp, target_bingo_id, referer, target_user_agent) = (
-            get_issue_details(options.issue_id))
-        if options.use_url and referer:
+            get_issue_details(args.issue_id))
+        if args.use_url and referer:
             target_url = referer
 
     # Overrides for what the issue lists
-    if options.timestamp:
+    if args.timestamp:
         try:
             # If the timestamp is given in UNIX epoch time, we're done
-            target_timestamp = int(options.timestamp)
+            target_timestamp = int(args.timestamp)
         except ValueError:
             # If it's a string like 2013-10-14, or 2013-10-14 22:14:12, we
             # need to convert it to UNIX epoc time
-            if (":" in options.timestamp):
-                human_date = datetime.datetime.strptime(options.timestamp,
+            if (":" in args.timestamp):
+                human_date = datetime.datetime.strptime(args.timestamp,
                     "%Y-%m-%d %H:%M:%S")
             else:
-                human_date = datetime.datetime.strptime(options.timestamp,
+                human_date = datetime.datetime.strptime(args.timestamp,
                     "%Y-%m-%d")
             target_timestamp = int(human_date.strftime("%s"))
 
-    if options.bingo_id:
-        target_bingo_id = options.bingo_id
-    if options.user_agent:
-        target_user_agent = options.user_agent
-    if options.url:
-        target_url = options.url
+    if args.bingo_id:
+        target_bingo_id = args.bingo_id
+    if args.user_agent:
+        target_user_agent = args.user_agent
+    if args.url:
+        target_url = args.url
 
     if target_bingo_id:
         # Don't bother also filtering for user_agent if we have a bingo_id
         target_user_agent = None
 
-    time_delta = options.time_delta * 60
+    if args.filenames:
+        file_names = args.filenames
+        target_timestamp = None
+        time_delta = None
+    else:
+        time_delta = args.time_delta * 60
 
-    if not target_timestamp:
-        # As the last hour full hour's log might not be fully written we will
-        # have our stop time be the start of the previous hour.
-        now = int(datetime.datetime.strftime(datetime.datetime.now(), "%s"))
-        current_hour = now - now % 3600
-        target_timestamp = current_hour - 3600
+        if not target_timestamp:
+            # As the last hour full hour's log might not be fully written we
+            # will have our stop time be the start of the previous hour.
+            now = int(datetime.datetime.strftime(datetime.datetime.now(),
+                                                 "%s"))
+            current_hour = now - now % 3600
+            target_timestamp = current_hour - 3600
 
-    file_names = find_log_files_for(
-        options.backends, int(target_timestamp), time_delta)
+        file_names = find_log_files_for(args.backends,
+                                        int(target_timestamp), time_delta)
 
-    if not options.quiet:
+    if not args.quiet:
         start_time = time.time()
         conditions = []
         if search_string:
@@ -400,34 +446,40 @@ if __name__ == '__main__':
             conditions.append("where the bingo_id = '%s'" % target_bingo_id)
         if target_url:
             conditions.append("where the url or referer = '%s'" % target_url)
-        if options.status:
-            conditions.append("where the status code = %i" % options.status)
+        if args.status:
+            conditions.append("where the status code = %i" % args.status)
         if target_user_agent:
             conditions.append("where the user_agent = '%s'" %
                               target_user_agent)
 
-        target_datetime = datetime.datetime.fromtimestamp(float(
-            target_timestamp))
+        if not target_timestamp:
+            print "Searching %s\nfor all requests %s" % (file_names,
+                "\nand ".join(conditions))
+        else:
+            target_datetime = datetime.datetime.fromtimestamp(float(
+                target_timestamp)) if target_timestamp else None
 
-        print ("Searching %s\nfor all requests in the %i minutes before "
-               "%s\n%s\n" % (
-                   file_names,
-                    options.time_delta,
-                    datetime.datetime.strftime(target_datetime,
-                                               "%d/%b/%Y:%H:%M:%S"),
-                    "\nand ".join(conditions)))
+            print ("Searching %s\nfor all requests in the %i minutes before "
+                   "%s\n%s\n" % (
+                       file_names,
+                       args.time_delta,
+                       datetime.datetime.strftime(target_datetime,
+                                                  "%d/%b/%Y:%H:%M:%S"),
+                       "\nand ".join(conditions)))
 
+    num_surrounding_lines_to_search = args.num_surrounding_lines_to_search
     requests_found = 0
     for file_name in file_names:
         requests_found += parse_log_file(file_name,
                                          target_timestamp,
                                          search_string,
                                          time_delta,
-                                         options.status,
+                                         args.status,
                                          target_bingo_id,
                                          target_url,
-                                         target_user_agent)
-    if not options.quiet:
+                                         target_user_agent,
+                                         num_surrounding_lines_to_search)
+    if not args.quiet:
         end_time = time.time()
         print "Found %i requests matching your conditions in %i seconds" % (
             requests_found, end_time - start_time)
