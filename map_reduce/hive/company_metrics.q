@@ -39,7 +39,7 @@ FROM (
   WHERE to_date(from_unixtime(floor(userdata_info_p.joined))) >= '${start_dt}' AND
         to_date(from_unixtime(floor(userdata_info_p.joined))) <= '${end_dt}' AND
         registered = TRUE AND
-        userdata_info_p.dt = '2013-09-30'
+        userdata_info_p.dt = '${end_dt}'
 
   UNION ALL 
 
