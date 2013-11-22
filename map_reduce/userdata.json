@@ -92,22 +92,6 @@
 },
 
 {
-    "Name": "Loading <end_dt> Incr UserMission into EMR",
-    "ActionOnFailure": "CONTINUE",
-    "HadoopJarStep": {
-      "Jar": "/home/hadoop/contrib/streaming/hadoop-streaming.jar",
-      "Args": [
-         "-D", "mapred.output.compress=true",
-         "-input",    "s3n://ka-mapreduce/rawdata/<end_dt>/UserMission/*.json.gz",
-         "-output",   "s3n://ka-mapreduce/entity_store_incr/UserMission/dt=<end_dt>/",
-         "-mapper",   "/bin/cat",
-         "-reducer",  "/bin/cat",
-         "-numReduceTasks", "16"
-      ]
-   }
-},
-
-{
     "Name": "Setup Hive",
     "ActionOnFailure": "TERMINATE_JOB_FLOW",
     "HadoopJarStep": {
