@@ -1,6 +1,7 @@
 """Loads entities from the daily backups.
 
 The following entity types are supported:
+    BaseUserMission
     Exercise
     Feedback
     LearningTask
@@ -17,9 +18,6 @@ The following entity types are supported:
     UserAssessment
     UserData
     Video
-
-The following entity types are not supported:
-    UserMission
 
 Encodings:
     json is supported
@@ -68,6 +66,7 @@ class EntityLoader(object):
         'Feedback':               ['key', 'json'],
         'LearningTask':           ['key', 'json'],
         'UserVideo':              ['user', 'json'],
+        'BaseUserMission':        ['key', 'json'],
     }
 
     def __init__(self,
