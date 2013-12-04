@@ -1,6 +1,6 @@
 """Script to check disk space usage and send alerts if too high.
 
-Intended to be added to a crontab, e.g., 
+Intended to be added to a crontab, e.g.,
 0 1,13 0 0 0 python monitor_disk_space.py analytics 90
 """
 
@@ -38,9 +38,10 @@ for line in lines:
         break
 
 if warn:
-    message = "WARNING: disk space low on machine '%s'" % hostname
+    message = ("WARNING: disk space low on machine '%s'. "
+        "Try running archive_to_s3.py" % hostname)
     print >> sys.stderr, message
     print >> sys.stderr, df_output
-    
+
     notify.send_hipchat(message)
     notify.send_email("WARNING: low disk space", message + "\n\n" + df_output)
