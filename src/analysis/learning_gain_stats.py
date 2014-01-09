@@ -156,8 +156,25 @@ def normalize_zero(a, b):
     return c
 
 
+def graph_analytics_efficiency(eff, eff_max, suffix):
+    plt.title('Analytics Cards: Efficiency Curves' + suffix)
+    plt.plot(eff, label='Efficiency')
+    plt.plot(eff_max, label='Efficiency Max')
+    plt.xlabel('Problem Number')
+    plt.ylabel('Delta Efficiency')
+    plt.legend()
+    plt.show()
+
+    plt.title('Analytics Cards: Normalized Efficiency Curve' + suffix)
+    plt.plot(normalize_zero(eff, eff_max))
+    plt.xlabel('Problem Number')
+    plt.ylabel('Delta Efficiency')
+    plt.show()
+
+
 def graph_analytics(n, data):
     counts = []
+    first_counts = []
     dist_counts = []
 
     eff = np.zeros(n)
@@ -168,11 +185,14 @@ def graph_analytics(n, data):
 
     for problems in data:
         count = 0
+        first_index = None
         prev = None
         for i in range(min(n, len(problems))):
             task_type = str(problems[i][0])
             if task_type == 'mastery.analytics':
                 count += 1
+                if first_index is None:
+                    first_index = i
                 if prev is not None:
                     dist_counts.append(i - prev)
 
@@ -185,6 +205,8 @@ def graph_analytics(n, data):
                     eff_all_max[prev:i] += 1
                 prev = i
         counts.append(count)
+        if first_index is not None:
+            first_counts.append(first_index)
 
     # TODO(tony): make multiple figures
     plt.title('Analytics Cards: Count Distribution')
@@ -193,39 +215,21 @@ def graph_analytics(n, data):
     plt.ylabel('Number of Users (with x cards)')
     plt.show()
 
+    plt.title('Analytics Cards: Index of First Card')
+    plt.hist(first_counts, n)
+    plt.xlabel('Index of First Analytics Card')
+    plt.ylabel('Number of Users')
+    plt.show()
+
     plt.title('Analytics Cards: Distance to Next Card')
     plt.hist(dist_counts, n)
     plt.xlabel('Number of Problems Between Analytics Cards')
     plt.ylabel('Number of Instances')
     plt.show()
 
-    plt.title('Analytics Cards: Efficiency Curves')
-    plt.plot(eff, label='Efficiency')
-    plt.plot(eff_max, label='Efficiency Max')
-    plt.xlabel('Problem Number')
-    plt.ylabel('Delta Efficiency')
-    plt.legend()
-    plt.show()
+    graph_analytics_efficiency(eff, eff_max, '')
 
-    plt.title('Analytics Cards: Normalized Efficiency Curve')
-    plt.plot(normalize_zero(eff, eff_max))
-    plt.xlabel('Problem Number')
-    plt.ylabel('Delta Efficiency')
-    plt.show()
-
-    plt.title('Analytics Cards: Efficiency Curves (Whole Range)')
-    plt.plot(eff_all, label='Efficiency')
-    plt.plot(eff_all_max, label='Efficiency Max')
-    plt.xlabel('Problem Number')
-    plt.ylabel('Delta Efficiency')
-    plt.legend()
-    plt.show()
-
-    plt.title('Analytics Cards: Normalized Efficiency Curve (Whole Range)')
-    plt.plot(normalize_zero(eff_all, eff_all_max))
-    plt.xlabel('Problem Number')
-    plt.ylabel('Delta Efficiency')
-    plt.show()
+    graph_analytics_efficiency(eff_all, eff_all_max, ' (Whole Range)')
 
 
 def graph_and_save_all(n, data):
