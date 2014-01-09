@@ -19,6 +19,19 @@ import time
 import matplotlib.pyplot as plt
 import numpy as np
 
+# TODO(tony): add command-line args for these?
+
+# folder to store the figures
+# TODO(tony): automatically save the figures
+FIG_PATH = '~/khan/data/'
+
+# whether or not the computation should be done online
+# TODO(tony): compute online for large datasets
+ONLINE = False
+
+# whether or not to display the figures
+DISPLAY = True
+
 
 def read_data(filename=None):
     if filename is None:
@@ -130,21 +143,51 @@ def graph_engagement_by_task_type(n, data):
     plt.show()
 
 
+def graph_analytics(n, data):
+    counts = []
+    for problems in data:
+        count = 0
+        for i in range(min(n, len(problems))):
+            # labels don't like unicode
+            task_type = str(problems[i][0])
+            if task_type == 'mastery.analytics':
+                count += 1
+        counts.append(count)
+    plt.title('Analytics Cards: Count Distribution')
+    plt.hist(counts, n)
+    plt.xlabel('Number of Analytics Cards')
+    plt.ylabel('Number of Users (with x cards)')
+    plt.show()
+
+
+def graph_and_save_all(n, data):
+    # TODO(tony): implement; add prefix/suffix for figure names?
+    pass
+
+
 def main():
+
     start = time.time()
     n = 100
     data = read_data()
     print 'Done reading input, elapsed: %f\n' % (time.time() - start)
 
+    """
+    print 'Generating efficiency'
     graph_efficiency(n, data)
+    print 'Generating efficiency by task type'
     graph_efficiency_by_task_type(n, data)
     print 'Done graphing efficiency, elapsed: %f\n' % (time.time() - start)
 
-    """
+    print 'Generating engagement'
     graph_engagement(n, data)
+    print 'Generating engagement by task type'
     graph_engagement_by_task_type(n, data)
     print 'Done graphing engagement, elapsed: %f\n' % (time.time() - start)
     """
+
+    print 'Generating analytics cards stats'
+    graph_analytics(n, data)
 
 if __name__ == '__main__':
     main()
