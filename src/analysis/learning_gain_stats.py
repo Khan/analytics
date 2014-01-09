@@ -38,6 +38,29 @@ def read_data(filename=None):
 
 
 def graph_efficiency(n, data):
+    correct = np.zeros(n)
+    total = np.zeros(n)
+    for problems in data:
+        for i in range(min(n, len(problems))):
+            if problems[i][1]:
+                correct[i] += 1
+            total[i] += 1
+
+    plt.title('Efficiency Curve')
+    plt.xlabel('Problem Number')
+    plt.ylabel('Percent Correct')
+
+    eff = np.zeros(n)
+    for i in range(n):
+        if total[i] > 0:
+            eff[i] = 1.0 * correct[i] / total[i]
+        else:
+            eff[i] = 0.0
+    plt.plot(eff)
+    plt.show()
+
+
+def graph_efficiency_by_task_type(n, data):
     correct_by_type = {}
     total_by_type = {}
     for problems in data:
@@ -71,7 +94,19 @@ def graph_efficiency(n, data):
     plt.show()
 
 
-def graph_task_type(n, data):
+def graph_engagement(n, data):
+    eng = np.zeros(n)
+    for l in data:
+        eng[:len(l)] += 1
+
+    plt.title('Engagement Curve')
+    plt.xlabel('Problem Number')
+    plt.ylabel('Number of Users (doing at least x problems)')
+    plt.plot(eng)
+    plt.show()
+
+
+def graph_engagement_by_task_type(n, data):
     map_by_type = {}
     for problems in data:
         for i in range(min(n, len(problems))):
@@ -95,17 +130,6 @@ def graph_task_type(n, data):
     plt.show()
 
 
-def graph_engagement(n, data):
-    eng = np.zeros(n)
-    for l in data:
-        eng[:len(l)] += 1
-    plt.title('Engagement Curve')
-    plt.xlabel('Problem Number')
-    plt.ylabel('Number of Users (doing at least x problems)')
-    plt.plot(eng)
-    plt.show()
-
-
 def main():
     start = time.time()
     n = 100
@@ -113,13 +137,12 @@ def main():
     print 'Done reading input, elapsed: %f\n' % (time.time() - start)
 
     graph_efficiency(n, data)
+    graph_efficiency_by_task_type(n, data)
     print 'Done graphing efficiency, elapsed: %f\n' % (time.time() - start)
 
     """
-    graph_task_type(n, data)
-    print 'Done graphing task type, elapsed: %f\n' % (time.time() - start)
-
     graph_engagement(n, data)
+    graph_engagement_by_task_type(n, data)
     print 'Done graphing engagement, elapsed: %f\n' % (time.time() - start)
     """
 
