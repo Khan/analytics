@@ -30,6 +30,7 @@ FIG_PATH = '~/khan/data/'
 ONLINE = False
 
 # whether or not to display the figures
+# TODO(tony): implement this
 DISPLAY = True
 
 
@@ -46,7 +47,7 @@ def read_data(filename=None):
             continue
         problems = ast.literal_eval(row)
         data.append(problems)
-
+    print 'Users: %d\n' % len(data)
     return data
 
 
@@ -145,18 +146,46 @@ def graph_engagement_by_task_type(n, data):
 
 def graph_analytics(n, data):
     counts = []
+    eff = np.zeros(n)
+    eff_max = np.zeros(n)
     for problems in data:
         count = 0
+        prev = None
         for i in range(min(n, len(problems))):
-            # labels don't like unicode
             task_type = str(problems[i][0])
             if task_type == 'mastery.analytics':
                 count += 1
+                if prev is not None:
+                    delta = problems[i][1] - problems[prev][1]
+                    inv_norm = 1.0 / (i - prev)
+                    eff[prev:i] += delta * inv_norm
+                    eff_max[prev:i] += inv_norm
+                prev = i
         counts.append(count)
+
+    # TODO(tony): make multiple figures
     plt.title('Analytics Cards: Count Distribution')
     plt.hist(counts, n)
     plt.xlabel('Number of Analytics Cards')
     plt.ylabel('Number of Users (with x cards)')
+    plt.show()
+
+    plt.title('Analytics Cards: Efficiency Curves')
+    plt.plot(eff, label='Efficiency')
+    plt.plot(eff_max, label='Efficiency Max')
+    plt.xlabel('Problem Number')
+    plt.ylabel('Delta Efficiency')
+    plt.legend()
+    plt.show()
+
+    plt.title('Analytics Cards: Normalized Efficiency Curve')
+    eff_norm = eff
+    for i in range(n):
+        if eff_max[i] > 0:
+            eff_norm[i] /= eff_max[i]
+    plt.plot(eff_norm)
+    plt.xlabel('Problem Number')
+    plt.ylabel('Delta Efficiency')
     plt.show()
 
 
@@ -188,6 +217,7 @@ def main():
 
     print 'Generating analytics cards stats'
     graph_analytics(n, data)
+    print 'Done graphing analytics, elapsed: %f\n' % (time.time() - start)
 
 if __name__ == '__main__':
     main()
