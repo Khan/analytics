@@ -47,14 +47,18 @@ def read_data(filename=None):
             continue
         problems = ast.literal_eval(row)
         data.append(problems)
-    print 'Users: %d\n' % len(data)
+        if len(data) % 100000 == 0:
+            print '%d processed...' % len(data)
+    print 'Users: %d' % len(data)
     return data
 
 
-def graph_efficiency(n, data):
+def graph_efficiency(n, data, min_problems=0):
     correct = np.zeros(n)
     total = np.zeros(n)
     for problems in data:
+        if len(problems) < min_problems:
+            continue
         for i in range(min(n, len(problems))):
             if problems[i][1]:
                 correct[i] += 1
@@ -74,10 +78,12 @@ def graph_efficiency(n, data):
     plt.show()
 
 
-def graph_efficiency_by_task_type(n, data):
+def graph_efficiency_by_task_type(n, data, min_problems=0):
     correct_by_type = {}
     total_by_type = {}
     for problems in data:
+        if len(problems) < min_problems:
+            continue
         for i in range(min(n, len(problems))):
             # labels don't like unicode
             task_type = str(problems[i][0])
@@ -104,6 +110,9 @@ def graph_efficiency_by_task_type(n, data):
             else:
                 eff[i] = 0.0
         plt.plot(eff, label=task_type)
+
+    x1, x2, y1, y2 = plt.axis()
+    plt.axis((x1, x2 , 0.25, 1.0))
     plt.legend(loc='lower center', ncol=2)
     plt.show()
 
@@ -242,25 +251,26 @@ def main():
     start = time.time()
     n = 100
     data = read_data()
-    print 'Done reading input, elapsed: %f\n' % (time.time() - start)
+    print 'Done reading input, elapsed: %f' % (time.time() - start)
+
+    min_problems = 100
+    print 'Generating efficiency'
+    graph_efficiency(n, data, min_problems)
+    print 'Generating efficiency by task type'
+    graph_efficiency_by_task_type(n, data, min_problems)
+    print 'Done graphing efficiency, elapsed: %f' % (time.time() - start)
 
     """
-    print 'Generating efficiency'
-    graph_efficiency(n, data)
-    print 'Generating efficiency by task type'
-    graph_efficiency_by_task_type(n, data)
-    print 'Done graphing efficiency, elapsed: %f\n' % (time.time() - start)
-
     print 'Generating engagement'
     graph_engagement(n, data)
     print 'Generating engagement by task type'
     graph_engagement_by_task_type(n, data)
-    print 'Done graphing engagement, elapsed: %f\n' % (time.time() - start)
-    """
+    print 'Done graphing engagement, elapsed: %f' % (time.time() - start)
 
     print 'Generating analytics cards stats'
     graph_analytics(n, data)
-    print 'Done graphing analytics, elapsed: %f\n' % (time.time() - start)
+    print 'Done graphing analytics, elapsed: %f' % (time.time() - start)
+    """
 
 if __name__ == '__main__':
     main()
