@@ -5,7 +5,7 @@
 [(u'mastery.review', False), (u'mastery.mastery', True)]
 ...
 
-where each column is a list of tuples (task_type, correct) for ProblemLogs
+where each row is a list of tuples (task_type, correct) for ProblemLogs
 ordered by time_done. This format is subject to change.
 
 We compute a few statistics on the distribution of analytics cards (among
@@ -13,6 +13,7 @@ other things).
 """
 
 import ast
+import csv
 import sys
 import time
 
@@ -34,7 +35,29 @@ ONLINE = False
 DISPLAY = True
 
 
-def read_data(filename=None):
+def csv_to_array(row):
+    return np.array(row, dtype=int)
+
+
+def read_data_csv(filename=None):
+    data = []
+    with (sys.stdin if filename is None else open(filename, 'r')) as f:
+        reader = csv.reader(f)
+        prev = None
+        for row in reader:
+            if prev is None:
+                prev = np.array(row, dtype=np.uint8)
+            else:
+                row = np.array(row, dtype=np.uint8)
+                data.append(zip(prev, row))
+                prev = None
+                if len(data) % 100000 == 0:
+                    print '%d processed...' % len(data)
+    print 'Users: %d' % len(data)
+    return data
+
+
+def read_data_list(filename=None):
     if filename is None:
         f = sys.stdin
     else:
@@ -112,7 +135,7 @@ def graph_efficiency_by_task_type(n, data, min_problems=0):
         plt.plot(eff, label=task_type)
 
     x1, x2, y1, y2 = plt.axis()
-    plt.axis((x1, x2 , 0.25, 1.0))
+    plt.axis((x1, x2, 0.25, 1.0))
     plt.legend(loc='lower center', ncol=2)
     plt.show()
 
@@ -250,10 +273,10 @@ def main():
 
     start = time.time()
     n = 100
-    data = read_data()
+    data = read_data_csv()
     print 'Done reading input, elapsed: %f' % (time.time() - start)
 
-    min_problems = 100
+    min_problems = 0  # 100
     print 'Generating efficiency'
     graph_efficiency(n, data, min_problems)
     print 'Generating efficiency by task type'
