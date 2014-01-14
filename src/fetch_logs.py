@@ -146,10 +146,13 @@ def fetch_appengine_logs(start_time, end_time, server_class,
     url_base = LOGS_URL % {'start_time_t': start_time_t,
                            'end_time_t': end_time_t}
 
-    if appengine_version:
-        url = url_base + '?appengine_version=%s' % appengine_version
+    if appengine_version or server_class != 'frontend':
+        raise NotImplementedError(
+                "fetch_logs tempoarily does not support fetching of "
+                "backend logs or a specific version's logs. If you're "
+                "seeing this error, contact Jace.  It's his fault.")
     else:
-        url = url_base + '?server_class=%s' % server_class
+        url = url_base + '?module=%s' % 'default'
 
     compressed_retval = oauth_util.fetch_url.fetch_url(url)
     retval = zlib.decompress(compressed_retval)
