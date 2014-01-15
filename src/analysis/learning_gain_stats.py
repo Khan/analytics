@@ -1,12 +1,13 @@
 """ This reads in a csv file of ProblemLog data, e.g.:
 
-[(u'practice', False)]
-[]
-[(u'mastery.review', False), (u'mastery.mastery', True)]
+5,5,0
+0,0,1
+1,2
+1,0
 ...
 
-where each row is a list of tuples (task_type, correct) for ProblemLogs
-ordered by time_done. This format is subject to change.
+where each pair of rows is a list of task_type followed by a list of correct
+for ProblemLogs ordered by time_done. This format is subject to change.
 
 We compute a few statistics on the distribution of analytics cards (among
 other things).
@@ -35,6 +36,20 @@ ONLINE = False
 DISPLAY = True
 
 
+# task types in alphabetical order
+TASK_TYPES = (
+    'mastery.analytics',
+    'mastery.challenge',
+    'mastery.coach',
+    'mastery.mastery',
+    'mastery.review',
+    'practice',
+)
+
+# number of types (including None)
+NUM_TYPES = len(TASK_TYPES) + 1
+
+
 def csv_to_array(row):
     return np.array(row, dtype=int)
 
@@ -46,12 +61,12 @@ def read_data_csv(filename=None):
         prev = None
         for row in reader:
             if prev is None:
-                prev = np.array(row, dtype=np.uint8)
+                prev = csv_to_array(row)
             else:
-                row = np.array(row, dtype=np.uint8)
-                data.append(zip(prev, row))
+                row = csv_to_array(row)
+                data.append((prev, row))
                 prev = None
-                if len(data) % 100000 == 0:
+                if len(data) % 10000 == 0:
                     print '%d processed...' % len(data)
     print 'Users: %d' % len(data)
     return data
@@ -70,7 +85,7 @@ def read_data_list(filename=None):
             continue
         problems = ast.literal_eval(row)
         data.append(problems)
-        if len(data) % 100000 == 0:
+        if len(data) % 10000 == 0:
             print '%d processed...' % len(data)
     print 'Users: %d' % len(data)
     return data
@@ -79,13 +94,19 @@ def read_data_list(filename=None):
 def graph_efficiency(n, data, min_problems=0):
     correct = np.zeros(n)
     total = np.zeros(n)
-    for problems in data:
-        if len(problems) < min_problems:
+    for task_types, corrects in data:
+        m = len(task_types)
+        if m < min_problems:
             continue
+        assert m <= n
+        correct[:m] += corrects
+        total[:m] += np.ones(m, dtype=int)
+        """
         for i in range(min(n, len(problems))):
             if problems[i][1]:
                 correct[i] += 1
             total[i] += 1
+        """
 
     plt.title('Efficiency Curve')
     plt.xlabel('Problem Number')
@@ -102,37 +123,34 @@ def graph_efficiency(n, data, min_problems=0):
 
 
 def graph_efficiency_by_task_type(n, data, min_problems=0):
-    correct_by_type = {}
-    total_by_type = {}
-    for problems in data:
-        if len(problems) < min_problems:
+    correct_by_type = np.zeros((NUM_TYPES, n))
+    total_by_type = np.zeros((NUM_TYPES, n))
+    for task_types, corrects in data:
+        m = len(task_types)
+        if m < min_problems:
             continue
-        for i in range(min(n, len(problems))):
-            # labels don't like unicode
-            task_type = str(problems[i][0])
-            if task_type not in correct_by_type:
-                correct_by_type[task_type] = np.zeros(n)
-                total_by_type[task_type] = np.zeros(n)
-            if problems[i][1]:
-                correct_by_type[task_type][i] += 1
+        assert m <= n
+        for i in xrange(m):
+            task_type = task_types[i]
+            correct_by_type[task_type][i] += corrects[i]
             total_by_type[task_type][i] += 1
 
     plt.title('Efficiency Curve: By Task Type')
     plt.xlabel('Problem Number')
     plt.ylabel('Percent Correct')
 
-    for task_type in sorted(correct_by_type):
-        if task_type == 'None':
+    for j in xrange(NUM_TYPES):
+        if j == NUM_TYPES - 1:
             continue
-        correct = correct_by_type[task_type]
-        total = total_by_type[task_type]
+        correct = correct_by_type[j]
+        total = total_by_type[j]
         eff = np.zeros(n)
-        for i in range(n):
+        for i in xrange(n):
             if total[i] > 0:
                 eff[i] = 1.0 * correct[i] / total[i]
             else:
                 eff[i] = 0.0
-        plt.plot(eff, label=task_type)
+        plt.plot(eff, label=TASK_TYPES[j])
 
     x1, x2, y1, y2 = plt.axis()
     plt.axis((x1, x2, 0.25, 1.0))
