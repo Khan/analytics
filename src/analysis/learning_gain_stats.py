@@ -122,7 +122,7 @@ def graph_accuracy(n, data, min_problems=0):
     plt.show()
 
 
-def graph_accuracy_by_task_type(n, data, min_problems=0):
+def graph_accuracy_by_task_type(n, data, min_problems=0, print_data=False):
     correct_by_type = np.zeros((NUM_TYPES, n))
     total_by_type = np.zeros((NUM_TYPES, n))
     for task_types, corrects in data:
@@ -145,6 +145,8 @@ def graph_accuracy_by_task_type(n, data, min_problems=0):
         total = total_by_type[j]
         acc = normalize_zero(correct, total)
         plt.plot(acc, label=TASK_TYPES[j])
+        if print_data:
+            print "Accuracy for %s:\n%s\n" % (TASK_TYPES[j], acc)
 
     x1, x2, y1, y2 = plt.axis()
     plt.axis((x1, x2, 0.25, 1.0))
@@ -262,6 +264,30 @@ def graph_analytics(n, data):
     graph_analytics_efficiency(eff_all, eff_all_max, ' (Whole Range)')
 
 
+def graph_analytics_accuracy(n, data, min_problems=0):
+    correct = np.zeros(n)
+    total = np.zeros(n)
+    for task_types, corrects in data:
+        m = min(len(task_types), n)
+        if m < min_problems:
+            continue
+        for i in xrange(m):
+            task_type = task_types[i]
+            if task_type == 0:  # mastery.analytics
+                correct[i] += corrects[i]
+                total[i] += 1
+
+    plt.title('Analytics Cards Accuracy '
+              '(users with at least %d problems)' % min_problems)
+    plt.xlabel('Problem Number')
+    plt.ylabel('Percent Correct')
+
+    acc = normalize_zero(correct, total)
+    print "Accuracy for %s:\n%s\n" % (TASK_TYPES[0], acc)
+    plt.plot(acc)
+    plt.show()
+
+
 def graph_and_save_all(n, data):
     # TODO(tony): implement; add prefix/suffix for figure names?
     pass
@@ -274,11 +300,13 @@ def main():
     data = read_data_csv()
     print 'Done reading input, elapsed: %f' % (time.time() - start)
 
-    min_problems = 0  # 100
+    min_problems = 100  # 100
+
+    """
     print 'Generating accuracy'
     graph_accuracy(n, data, min_problems)
     print 'Generating accuracy by task type'
-    graph_accuracy_by_task_type(n, data, min_problems)
+    graph_accuracy_by_task_type(n, data, min_problems, True)
     print 'Done graphing accuracy, elapsed: %f' % (time.time() - start)
 
     print 'Generating engagement'
@@ -289,6 +317,8 @@ def main():
 
     print 'Generating analytics cards stats'
     graph_analytics(n, data)
+    """
+    graph_analytics_accuracy(n, data, min_problems)
     print 'Done graphing analytics, elapsed: %f' % (time.time() - start)
 
 if __name__ == '__main__':
