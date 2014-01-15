@@ -162,8 +162,8 @@ def graph_efficiency_by_task_type(n, data, min_problems=0):
 
 def graph_engagement(n, data):
     eng = np.zeros(n)
-    for l in data:
-        eng[:len(l)] += 1
+    for t, c in data:
+        eng[:len(t)] += 1
 
     plt.title('Engagement Curve')
     plt.xlabel('Problem Number')
