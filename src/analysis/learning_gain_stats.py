@@ -103,46 +103,38 @@ def normalize_zero(a, b):
     return c
 
 
-def graph_efficiency(n, data, min_problems=0):
+def graph_accuracy(n, data, min_problems=0):
     correct = np.zeros(n)
     total = np.zeros(n)
     for task_types, corrects in data:
-        m = len(task_types)
+        m = min(len(task_types), n)
         if m < min_problems:
             continue
-        assert m <= n
         correct[:m] += corrects
         total[:m] += np.ones(m, dtype=int)
-        """
-        for i in range(min(n, len(problems))):
-            if problems[i][1]:
-                correct[i] += 1
-            total[i] += 1
-        """
 
-    plt.title('Efficiency Curve')
+    plt.title('Accuracy Curve')
     plt.xlabel('Problem Number')
     plt.ylabel('Percent Correct')
 
-    eff = normalize_zero(correct, total)
-    plt.plot(eff)
+    acc = normalize_zero(correct, total)
+    plt.plot(acc)
     plt.show()
 
 
-def graph_efficiency_by_task_type(n, data, min_problems=0):
+def graph_accuracy_by_task_type(n, data, min_problems=0):
     correct_by_type = np.zeros((NUM_TYPES, n))
     total_by_type = np.zeros((NUM_TYPES, n))
     for task_types, corrects in data:
-        m = len(task_types)
+        m = min(len(task_types), n)
         if m < min_problems:
             continue
-        assert m <= n
         for i in xrange(m):
             task_type = task_types[i]
             correct_by_type[task_type][i] += corrects[i]
             total_by_type[task_type][i] += 1
 
-    plt.title('Efficiency Curve: By Task Type')
+    plt.title('Accuracy Curve: By Task Type')
     plt.xlabel('Problem Number')
     plt.ylabel('Percent Correct')
 
@@ -151,8 +143,8 @@ def graph_efficiency_by_task_type(n, data, min_problems=0):
             continue
         correct = correct_by_type[j]
         total = total_by_type[j]
-        eff = normalize_zero(correct, total)
-        plt.plot(eff, label=TASK_TYPES[j])
+        acc = normalize_zero(correct, total)
+        plt.plot(acc, label=TASK_TYPES[j])
 
     x1, x2, y1, y2 = plt.axis()
     plt.axis((x1, x2, 0.25, 1.0))
@@ -163,7 +155,7 @@ def graph_efficiency_by_task_type(n, data, min_problems=0):
 def graph_engagement(n, data):
     eng = np.zeros(n)
     for t, c in data:
-        eng[:len(t)] += 1
+        eng[:min(len(t), n)] += 1
 
     plt.title('Engagement Curve')
     plt.xlabel('Problem Number')
@@ -175,8 +167,7 @@ def graph_engagement(n, data):
 def graph_engagement_by_task_type(n, data):
     eng_by_type = [[] for i in xrange(NUM_TYPES)]
     for task_types, corrects in data:
-        m = len(task_types)
-        assert m <= n
+        m = min(len(task_types), n)
         for i in xrange(m):
             task_type = task_types[i]
             eng_by_type[task_type].append(i)
@@ -226,8 +217,7 @@ def graph_analytics(n, data):
         count = 0
         first_index = None
         prev = None
-        m = len(task_types)
-        assert m <= n
+        m = min(len(task_types), n)
         for i in xrange(m):
             if task_types[i] == 0:  # corresponds to mastery.analytics
                 count += 1
@@ -284,14 +274,12 @@ def main():
     data = read_data_csv()
     print 'Done reading input, elapsed: %f' % (time.time() - start)
 
-    """
     min_problems = 0  # 100
-    print 'Generating efficiency'
-    graph_efficiency(n, data, min_problems)
-    print 'Generating efficiency by task type'
-    graph_efficiency_by_task_type(n, data, min_problems)
-    print 'Done graphing efficiency, elapsed: %f' % (time.time() - start)
-    """
+    print 'Generating accuracy'
+    graph_accuracy(n, data, min_problems)
+    print 'Generating accuracy by task type'
+    graph_accuracy_by_task_type(n, data, min_problems)
+    print 'Done graphing accuracy, elapsed: %f' % (time.time() - start)
 
     print 'Generating engagement'
     graph_engagement(n, data)
