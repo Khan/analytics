@@ -91,6 +91,18 @@ def read_data_list(filename=None):
     return data
 
 
+def normalize_zero(a, b):
+    assert len(a) == len(b)
+    n = len(a)
+    c = np.zeros(n)
+    for i in range(n):
+        if b[i] > 0:
+            c[i] = a[i] / b[i]
+        else:
+            c[i] = 0
+    return c
+
+
 def graph_efficiency(n, data, min_problems=0):
     correct = np.zeros(n)
     total = np.zeros(n)
@@ -112,12 +124,7 @@ def graph_efficiency(n, data, min_problems=0):
     plt.xlabel('Problem Number')
     plt.ylabel('Percent Correct')
 
-    eff = np.zeros(n)
-    for i in range(n):
-        if total[i] > 0:
-            eff[i] = 1.0 * correct[i] / total[i]
-        else:
-            eff[i] = 0.0
+    eff = normalize_zero(correct, total)
     plt.plot(eff)
     plt.show()
 
@@ -144,12 +151,7 @@ def graph_efficiency_by_task_type(n, data, min_problems=0):
             continue
         correct = correct_by_type[j]
         total = total_by_type[j]
-        eff = np.zeros(n)
-        for i in xrange(n):
-            if total[i] > 0:
-                eff[i] = 1.0 * correct[i] / total[i]
-            else:
-                eff[i] = 0.0
+        eff = normalize_zero(correct, total)
         plt.plot(eff, label=TASK_TYPES[j])
 
     x1, x2, y1, y2 = plt.axis()
@@ -171,20 +173,19 @@ def graph_engagement(n, data):
 
 
 def graph_engagement_by_task_type(n, data):
-    map_by_type = {}
-    for problems in data:
-        for i in range(min(n, len(problems))):
-            # labels don't like unicode
-            task_type = str(problems[i][0])
-            if task_type not in map_by_type:
-                map_by_type[task_type] = []
-            map_by_type[task_type].append(i)
+    eng_by_type = [[] for i in xrange(NUM_TYPES)]
+    for task_types, corrects in data:
+        m = len(task_types)
+        assert m <= n
+        for i in xrange(m):
+            task_type = task_types[i]
+            eng_by_type[task_type].append(i)
 
     x = []
     label = []
-    for task_type in sorted(map_by_type):
-        x.append(map_by_type[task_type])
-        label.append(task_type)
+    for i in xrange(NUM_TYPES):
+        x.append(eng_by_type[i])
+        label.append('None' if i + 1 == NUM_TYPES else TASK_TYPES[i])
 
     plt.title('Engagement Curve: By Task Type')
     plt.xlabel('Problem Number')
@@ -192,18 +193,6 @@ def graph_engagement_by_task_type(n, data):
     plt.hist(x, n, normed=0, histtype='bar', stacked=True, label=label)
     plt.legend()
     plt.show()
-
-
-def normalize_zero(a, b):
-    assert len(a) == len(b)
-    n = len(a)
-    c = np.zeros(n)
-    for i in range(n):
-        if b[i] > 0:
-            c[i] = a[i] / b[i]
-        else:
-            c[i] = 0
-    return c
 
 
 def graph_analytics_efficiency(eff, eff_max, suffix):
@@ -294,14 +283,15 @@ def main():
     data = read_data_csv()
     print 'Done reading input, elapsed: %f' % (time.time() - start)
 
+    """
     min_problems = 0  # 100
     print 'Generating efficiency'
     graph_efficiency(n, data, min_problems)
     print 'Generating efficiency by task type'
     graph_efficiency_by_task_type(n, data, min_problems)
     print 'Done graphing efficiency, elapsed: %f' % (time.time() - start)
-
     """
+
     print 'Generating engagement'
     graph_engagement(n, data)
     print 'Generating engagement by task type'
@@ -311,7 +301,6 @@ def main():
     print 'Generating analytics cards stats'
     graph_analytics(n, data)
     print 'Done graphing analytics, elapsed: %f' % (time.time() - start)
-    """
 
 if __name__ == '__main__':
     main()
