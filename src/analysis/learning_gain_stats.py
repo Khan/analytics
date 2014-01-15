@@ -222,20 +222,21 @@ def graph_analytics(n, data):
     eff_all = np.zeros(n)
     eff_all_max = np.zeros(n)
 
-    for problems in data:
+    for task_types, corrects in data:
         count = 0
         first_index = None
         prev = None
-        for i in range(min(n, len(problems))):
-            task_type = str(problems[i][0])
-            if task_type == 'mastery.analytics':
+        m = len(task_types)
+        assert m <= n
+        for i in xrange(m):
+            if task_types[i] == 0:  # corresponds to mastery.analytics
                 count += 1
                 if first_index is None:
                     first_index = i
                 if prev is not None:
                     dist_counts.append(i - prev)
 
-                    delta = problems[i][1] - problems[prev][1]
+                    delta = corrects[i] - corrects[prev]
                     inv_norm = 1.0 / (i - prev)
                     eff[prev:i] += delta * inv_norm
                     eff_max[prev:i] += inv_norm
