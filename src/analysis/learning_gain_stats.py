@@ -16,6 +16,8 @@ other things).
 import argparse
 import ast
 import csv
+import os
+import re
 import sys
 import time
 
@@ -25,6 +27,7 @@ import numpy as np
 # folder to store the figures
 # TODO(tony): automatically save the figures
 FIG_PATH = '~/khan/data/'
+FOLDER_NAME = 'tmp'
 
 # whether or not the computation should be done online
 # TODO(tony): compute online for large datasets
@@ -85,7 +88,6 @@ def read_data_list(filename=None):
         data.append(problems)
         if len(data) % 10000 == 0:
             print '%d processed...' % len(data)
-    print 'Users: %d' % len(data)
     return data
 
 
@@ -101,7 +103,14 @@ def normalize_zero(a, b):
     return c
 
 
-def graph_accuracy(n, data, min_problems=0):
+def graph_and_save(plot_name, n, min_problems):
+    plt.savefig('%s%s/%s_%d_%d.png' % (FIG_PATH, FOLDER_NAME,
+        plot_name, n, min_problems))
+    if DISPLAY:
+        plt.show()
+
+
+def graph_accuracy(data, n, min_problems=0):
     correct = np.zeros(n)
     total = np.zeros(n)
     for task_types, corrects in data:
@@ -120,7 +129,7 @@ def graph_accuracy(n, data, min_problems=0):
     plt.show()
 
 
-def graph_accuracy_by_task_type(n, data, min_problems=0, print_data=False):
+def graph_accuracy_by_task_type(data, n, min_problems=0, print_data=False):
     correct_by_type = np.zeros((NUM_TYPES, n))
     total_by_type = np.zeros((NUM_TYPES, n))
     for task_types, corrects in data:
@@ -152,7 +161,7 @@ def graph_accuracy_by_task_type(n, data, min_problems=0, print_data=False):
     plt.show()
 
 
-def graph_engagement(n, data):
+def graph_engagement(data, n):
     eng = np.zeros(n)
     for t, c in data:
         eng[:min(len(t), n)] += 1
@@ -164,7 +173,7 @@ def graph_engagement(n, data):
     plt.show()
 
 
-def graph_engagement_by_task_type(n, data, min_problems=0):
+def graph_engagement_by_task_type(data, n, min_problems=0):
     eng_by_type = [[] for i in xrange(NUM_TYPES)]
     for task_types, corrects in data:
         m = min(len(task_types), n)
@@ -186,10 +195,10 @@ def graph_engagement_by_task_type(n, data, min_problems=0):
     plt.ylabel('Number of Users (doing at least x problems)')
     plt.hist(x, n, normed=0, histtype='bar', stacked=True, label=label)
     plt.legend()
-    plt.show()
+    graph_and_save('engagement', n, min_problems)
 
 
-def graph_engagement_fraction(n, data, min_problems=0):
+def graph_engagement_ratio(data, n, min_problems=0):
     eng = np.zeros((NUM_TYPES, n))
     for task_types, corrects in data:
         m = min(len(task_types), n)
@@ -210,7 +219,7 @@ def graph_engagement_fraction(n, data, min_problems=0):
     plt.plot(cnt_analytics / cnt_total, label='analytics/all')
     plt.plot(cnt_mastery / cnt_total, label='mastery/all')
     plt.legend()
-    plt.show()
+    graph_and_save('engagement_ratio', n, min_problems)
 
 
 def graph_analytics_efficiency(eff, eff_max, suffix):
@@ -229,7 +238,7 @@ def graph_analytics_efficiency(eff, eff_max, suffix):
     plt.show()
 
 
-def graph_analytics(n, data):
+def graph_analytics(data, n):
     counts = []
     first_counts = []
     dist_counts = []
@@ -289,7 +298,7 @@ def graph_analytics(n, data):
     graph_analytics_efficiency(eff_all, eff_all_max, ' (Whole Range)')
 
 
-def graph_analytics_accuracy(n, data, min_problems=0):
+def graph_analytics_accuracy(data, n, min_problems=0):
     correct = np.zeros(n)
     total = np.zeros(n)
     for task_types, corrects in data:
@@ -312,18 +321,34 @@ def graph_analytics_accuracy(n, data, min_problems=0):
     print "Totals for %s:\n%s\n" % (TASK_TYPES[0], total)
     # TODO(tony): add trendline, R^2, etc?
     plt.plot(acc)
-    plt.show()
+    graph_and_save('analytics_accuracy', n, min_problems)
 
 
-def graph_and_save_all(n, data):
+def graph_and_save_all(data, n, min_problems=0):
     # TODO(tony): implement; add prefix/suffix for figure names?
     pass
 
 
+def parse_filename(filename):
+    if filename is None:
+        return 'stdin'
+    # try to match start-date_end-date_num-points
+    date_pattern = r'(\d+\-\d+\-\d+)'
+    num_pattern = r'(\d+)'
+    pattern = (r'\D*' + date_pattern
+            + r'\_' + date_pattern
+            + r'\_' + num_pattern
+            + r'\D*')
+    match = re.match(pattern, filename)
+    return '_'.join([match.group(i) for i in range(1, 4)])
+
+
 def main():
-    # get arguments
+    global FOLDER_NAME
+
     parser = argparse.ArgumentParser()
 
+    # note: dashes are converted to underscores in property names
     parser.add_argument('-f', '--file',
         help='input file (default is stdin)')
     parser.add_argument('-n', '--num-problems',
@@ -333,15 +358,18 @@ def main():
         help='minimum number of problems for filtering users',
         type=int, default=0)
 
+    # get arguments
     args = parser.parse_args()
 
     filename = args.file
-    # foldername = 'stdin' if filename is None else filename
     n = args.num_problems
     min_problems = args.min_problems
 
-    # TODO(tony): command-line args, if none -> stdin, else file!
-    # create folder with images there... that's much more organized!
+    # store output in FIG_PATH/FOLDER_NAME
+    FOLDER_NAME = parse_filename(filename)
+    directory = FIG_PATH + FOLDER_NAME
+    if not os.path.exists(directory):
+        os.makedirs(directory)
 
     # run!
     start = time.time()
@@ -351,26 +379,28 @@ def main():
     print 'Users (min_problems=%d): %d' % (min_problems,
         sum([len(t) >= min_problems for t, c in data]))
 
+    # TODO(tony): make the graph choice a command-line arg (or args?)
+
     """
     print 'Generating accuracy'
-    graph_accuracy(n, data, min_problems)
+    graph_accuracy(data, n, min_problems)
     print 'Generating accuracy by task type'
-    graph_accuracy_by_task_type(n, data, min_problems, True)
+    graph_accuracy_by_task_type(data, n, 0, True)
     print 'Done graphing accuracy, elapsed: %f' % (time.time() - start)
 
     print 'Generating engagement'
-    graph_engagement(n, data)
+    graph_engagement(data, n)
     """
     print 'Generating engagement by task type'
-    graph_engagement_by_task_type(n, data)
-    graph_engagement_by_task_type(n, data, min_problems)
-    graph_engagement_fraction(n, data, min_problems)
+    graph_engagement_by_task_type(data, n)
+    graph_engagement_by_task_type(data, n, min_problems)
+    graph_engagement_ratio(data, n, min_problems)
     print 'Done graphing engagement, elapsed: %f' % (time.time() - start)
 
     """
     print 'Generating analytics cards stats'
-    # graph_analytics(n, data)
-    graph_analytics_accuracy(n, data, min_problems)
+    # graph_analytics(data, n)
+    graph_analytics_accuracy(data, n, min_problems)
     print 'Done graphing analytics, elapsed: %f' % (time.time() - start)
     """
 
