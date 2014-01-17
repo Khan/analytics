@@ -34,8 +34,7 @@ FOLDER_NAME = 'tmp'
 ONLINE = False
 
 # whether or not to display the figures
-# TODO(tony): implement this
-DISPLAY = True
+DISPLAY = False
 
 
 # task types in alphabetical order
@@ -104,10 +103,14 @@ def normalize_zero(a, b):
 
 
 def graph_and_save(plot_name, n, min_problems):
-    plt.savefig('%s%s/%s_%d_%d.png' % (FIG_PATH, FOLDER_NAME,
-        plot_name, n, min_problems))
+    filename = '%s%s/%s_%d_%d.png' % (FIG_PATH, FOLDER_NAME,
+        plot_name, n, min_problems)
+    filename = os.path.expanduser(filename)
+    print 'Saving... %s' % filename
+    plt.savefig(filename)
     if DISPLAY:
         plt.show()
+    plt.clf()
 
 
 def graph_accuracy(data, n, min_problems=0):
@@ -189,6 +192,7 @@ def graph_engagement_by_task_type(data, n, min_problems=0):
         x.append(eng_by_type[i])
         label.append('None' if i + 1 == NUM_TYPES else TASK_TYPES[i])
 
+    plt.figure()
     plt.title('Engagement Curve (Min Problems: %d): '
               'By Task Type' % min_problems)
     plt.xlabel('Problem Number')
@@ -212,6 +216,7 @@ def graph_engagement_ratio(data, n, min_problems=0):
     cnt_mastery = np.sum(eng[:-2], axis=0)
     cnt_total = np.sum(eng[:-1], axis=0)
 
+    plt.figure()
     plt.title('Engagement Ratios (Min Problems: %d)' % min_problems)
     plt.xlabel('Problem Number')
     plt.ylabel('Ratio Between Problem Types')
@@ -340,6 +345,9 @@ def parse_filename(filename):
             + r'\_' + num_pattern
             + r'\D*')
     match = re.match(pattern, filename)
+    # if we do not match, just return the full name
+    if not match or sum([g is None for g in match.groups()]):
+        return 'output'  # filename
     return '_'.join([match.group(i) for i in range(1, 4)])
 
 
@@ -367,9 +375,12 @@ def main():
 
     # store output in FIG_PATH/FOLDER_NAME
     FOLDER_NAME = parse_filename(filename)
-    directory = FIG_PATH + FOLDER_NAME
+    directory = os.path.expanduser(FIG_PATH + FOLDER_NAME)
     if not os.path.exists(directory):
         os.makedirs(directory)
+        print 'Created directory: %s' % directory
+    else:
+        print 'Directory exists: %s' % directory
 
     # run!
     start = time.time()
