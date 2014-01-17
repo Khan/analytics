@@ -13,6 +13,7 @@ We compute a few statistics on the distribution of analytics cards (among
 other things).
 """
 
+import argparse
 import ast
 import csv
 import sys
@@ -20,8 +21,6 @@ import time
 
 import matplotlib.pyplot as plt
 import numpy as np
-
-# TODO(tony): add command-line args for these?
 
 # folder to store the figures
 # TODO(tony): automatically save the figures
@@ -293,12 +292,10 @@ def graph_analytics(n, data):
 def graph_analytics_accuracy(n, data, min_problems=0):
     correct = np.zeros(n)
     total = np.zeros(n)
-    num_users = 0
     for task_types, corrects in data:
         m = min(len(task_types), n)
         if m < min_problems:
             continue
-        num_users += 1
         for i in xrange(m):
             task_type = task_types[i]
             if task_type == 0:  # mastery.analytics
@@ -324,13 +321,31 @@ def graph_and_save_all(n, data):
 
 
 def main():
+    # get arguments
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument('-f', '--file',
+        help='input file (default is stdin)')
+    parser.add_argument('-n', '--num-problems',
+        help='number of problems per user to analyze',
+        type=int, default=100)
+    parser.add_argument('-m', '--min-problems',
+        help='minimum number of problems for filtering users',
+        type=int, default=0)
+
+    args = parser.parse_args()
+
+    filename = args.file
+    # foldername = 'stdin' if filename is None else filename
+    n = args.num_problems
+    min_problems = args.min_problems
+
     # TODO(tony): command-line args, if none -> stdin, else file!
     # create folder with images there... that's much more organized!
 
+    # run!
     start = time.time()
-    n = 100
-    min_problems = n  # 100
-    data = read_data_csv()
+    data = read_data_csv(filename)
     print 'Done reading input, elapsed: %f' % (time.time() - start)
     print 'Users: %d' % len(data)
     print 'Users (min_problems=%d): %d' % (min_problems,
@@ -349,13 +364,15 @@ def main():
     print 'Generating engagement by task type'
     graph_engagement_by_task_type(n, data)
     graph_engagement_by_task_type(n, data, min_problems)
-    graph_engagement_fraction(n, data)
+    graph_engagement_fraction(n, data, min_problems)
     print 'Done graphing engagement, elapsed: %f' % (time.time() - start)
 
+    """
     print 'Generating analytics cards stats'
     # graph_analytics(n, data)
     graph_analytics_accuracy(n, data, min_problems)
     print 'Done graphing analytics, elapsed: %f' % (time.time() - start)
+    """
 
 if __name__ == '__main__':
     main()
