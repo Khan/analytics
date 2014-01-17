@@ -228,20 +228,22 @@ def graph_engagement_ratio(data, n, min_problems=0):
     graph_and_save('engagement_ratio', n, min_problems)
 
 
-def graph_analytics_efficiency(eff, eff_max, suffix):
+def graph_analytics_efficiency(eff, eff_max, suffix='', file_suffix=''):
+    plt.figure()
     plt.title('Analytics Cards: Efficiency Curves' + suffix)
     plt.plot(eff, label='Efficiency')
     plt.plot(eff_max, label='Efficiency Max')
     plt.xlabel('Problem Number')
     plt.ylabel('Delta Efficiency')
     plt.legend()
-    plt.show()
+    graph_and_save('analytics-eff' + file_suffix, len(eff), 0)
 
+    plt.figure()
     plt.title('Analytics Cards: Normalized Efficiency Curve' + suffix)
     plt.plot(normalize_zero(eff, eff_max))
     plt.xlabel('Problem Number')
     plt.ylabel('Delta Efficiency')
-    plt.show()
+    graph_and_save('analytics-eff' + file_suffix + '-norm', len(eff), 0)
 
 
 def graph_analytics(data, n):
@@ -281,27 +283,31 @@ def graph_analytics(data, n):
             first_counts.append(first_index)
 
     # TODO(tony): make multiple figures
+    plt.figure()
     plt.title('Analytics Cards: Count Distribution')
     plt.hist(counts, n)
     plt.xlabel('Number of Analytics Cards')
     plt.ylabel('Number of Users (with x cards)')
-    plt.show()
+    graph_and_save('analytics-count', n, 0)
 
+    plt.figure()
     plt.title('Analytics Cards: Index of First Card')
     plt.hist(first_counts, n)
     plt.xlabel('Index of First Analytics Card')
     plt.ylabel('Number of Users')
-    plt.show()
+    graph_and_save('analytics-first', n, 0)
 
+    plt.figure()
     plt.title('Analytics Cards: Distance to Next Card')
     plt.hist(dist_counts, n)
     plt.xlabel('Number of Problems Between Analytics Cards')
     plt.ylabel('Number of Instances')
-    plt.show()
+    graph_and_save('analytics-dist-next', n, 0)
 
-    graph_analytics_efficiency(eff, eff_max, '')
+    graph_analytics_efficiency(eff, eff_max)
 
-    graph_analytics_efficiency(eff_all, eff_all_max, ' (Whole Range)')
+    graph_analytics_efficiency(eff_all, eff_all_max,
+                               ' (Whole Range)', '-whole')
 
 
 def graph_analytics_accuracy(data, n, min_problems=0):
@@ -402,19 +408,17 @@ def main():
 
     print 'Generating engagement'
     graph_engagement(data, n)
-    """
     print 'Generating engagement by task type'
     graph_engagement_by_task_type(data, n)
     graph_engagement_by_task_type(data, n, min_problems)
     graph_engagement_ratio(data, n, min_problems)
     print 'Done graphing engagement, elapsed: %f' % (time.time() - start)
-
     """
+
     print 'Generating analytics cards stats'
-    # graph_analytics(data, n)
+    graph_analytics(data, n)
     graph_analytics_accuracy(data, n, min_problems)
     print 'Done graphing analytics, elapsed: %f' % (time.time() - start)
-    """
 
 if __name__ == '__main__':
     main()
