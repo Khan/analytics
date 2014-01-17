@@ -223,6 +223,7 @@ def graph_engagement_ratio(data, n, min_problems=0):
     plt.plot(cnt_analytics / cnt_mastery, label='analytics/mastery')
     plt.plot(cnt_analytics / cnt_total, label='analytics/all')
     plt.plot(cnt_mastery / cnt_total, label='mastery/all')
+    plt.legend(loc='center right', ncol=1)
     plt.legend()
     graph_and_save('engagement_ratio', n, min_problems)
 
@@ -373,6 +374,14 @@ def main():
     n = args.num_problems
     min_problems = args.min_problems
 
+    # run!
+    start = time.time()
+    data = read_data_csv(filename)
+    print 'Done reading input, elapsed: %f' % (time.time() - start)
+    print 'Users: %d' % len(data)
+    print 'Users (min_problems=%d): %d' % (min_problems,
+        sum([len(t) >= min_problems for t, c in data]))
+
     # store output in FIG_PATH/FOLDER_NAME
     FOLDER_NAME = parse_filename(filename)
     directory = os.path.expanduser(FIG_PATH + FOLDER_NAME)
@@ -381,14 +390,6 @@ def main():
         print 'Created directory: %s' % directory
     else:
         print 'Directory exists: %s' % directory
-
-    # run!
-    start = time.time()
-    data = read_data_csv(filename)
-    print 'Done reading input, elapsed: %f' % (time.time() - start)
-    print 'Users: %d' % len(data)
-    print 'Users (min_problems=%d): %d' % (min_problems,
-        sum([len(t) >= min_problems for t, c in data]))
 
     # TODO(tony): make the graph choice a command-line arg (or args?)
 
