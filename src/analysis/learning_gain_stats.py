@@ -68,7 +68,6 @@ def read_data_csv(filename=None):
                 prev = None
                 if len(data) % 10000 == 0:
                     print '%d processed...' % len(data)
-    print 'Users: %d' % len(data)
     return data
 
 
@@ -166,10 +165,12 @@ def graph_engagement(n, data):
     plt.show()
 
 
-def graph_engagement_by_task_type(n, data):
+def graph_engagement_by_task_type(n, data, min_problems=0):
     eng_by_type = [[] for i in xrange(NUM_TYPES)]
     for task_types, corrects in data:
         m = min(len(task_types), n)
+        if m < min_problems:
+            continue
         for i in xrange(m):
             task_type = task_types[i]
             eng_by_type[task_type].append(i)
@@ -180,10 +181,35 @@ def graph_engagement_by_task_type(n, data):
         x.append(eng_by_type[i])
         label.append('None' if i + 1 == NUM_TYPES else TASK_TYPES[i])
 
-    plt.title('Engagement Curve: By Task Type')
+    plt.title('Engagement Curve (Min Problems: %d): '
+              'By Task Type' % min_problems)
     plt.xlabel('Problem Number')
     plt.ylabel('Number of Users (doing at least x problems)')
     plt.hist(x, n, normed=0, histtype='bar', stacked=True, label=label)
+    plt.legend()
+    plt.show()
+
+
+def graph_engagement_fraction(n, data, min_problems=0):
+    eng = np.zeros((NUM_TYPES, n))
+    for task_types, corrects in data:
+        m = min(len(task_types), n)
+        if m < min_problems:
+            continue
+        for i in xrange(m):
+            eng[task_types[i]][i] += 1
+
+    # exclude None types here
+    cnt_analytics = eng[0]
+    cnt_mastery = np.sum(eng[:-2], axis=0)
+    cnt_total = np.sum(eng[:-1], axis=0)
+
+    plt.title('Engagement Ratios (Min Problems: %d)' % min_problems)
+    plt.xlabel('Problem Number')
+    plt.ylabel('Ratio Between Problem Types')
+    plt.plot(cnt_analytics / cnt_mastery, label='analytics/mastery')
+    plt.plot(cnt_analytics / cnt_total, label='analytics/all')
+    plt.plot(cnt_mastery / cnt_total, label='mastery/all')
     plt.legend()
     plt.show()
 
@@ -267,10 +293,12 @@ def graph_analytics(n, data):
 def graph_analytics_accuracy(n, data, min_problems=0):
     correct = np.zeros(n)
     total = np.zeros(n)
+    num_users = 0
     for task_types, corrects in data:
         m = min(len(task_types), n)
         if m < min_problems:
             continue
+        num_users += 1
         for i in xrange(m):
             task_type = task_types[i]
             if task_type == 0:  # mastery.analytics
@@ -278,12 +306,14 @@ def graph_analytics_accuracy(n, data, min_problems=0):
                 total[i] += 1
 
     plt.title('Analytics Cards Accuracy '
-              '(users with at least %d problems)' % min_problems)
+              '(Min Problems: %d)' % min_problems)
     plt.xlabel('Problem Number')
     plt.ylabel('Percent Correct')
 
     acc = normalize_zero(correct, total)
     print "Accuracy for %s:\n%s\n" % (TASK_TYPES[0], acc)
+    print "Totals for %s:\n%s\n" % (TASK_TYPES[0], total)
+    # TODO(tony): add trendline, R^2, etc?
     plt.plot(acc)
     plt.show()
 
@@ -294,13 +324,17 @@ def graph_and_save_all(n, data):
 
 
 def main():
+    # TODO(tony): command-line args, if none -> stdin, else file!
+    # create folder with images there... that's much more organized!
 
     start = time.time()
     n = 100
+    min_problems = n  # 100
     data = read_data_csv()
     print 'Done reading input, elapsed: %f' % (time.time() - start)
-
-    min_problems = 100  # 100
+    print 'Users: %d' % len(data)
+    print 'Users (min_problems=%d): %d' % (min_problems,
+        sum([len(t) >= min_problems for t, c in data]))
 
     """
     print 'Generating accuracy'
@@ -311,13 +345,15 @@ def main():
 
     print 'Generating engagement'
     graph_engagement(n, data)
+    """
     print 'Generating engagement by task type'
     graph_engagement_by_task_type(n, data)
+    graph_engagement_by_task_type(n, data, min_problems)
+    graph_engagement_fraction(n, data)
     print 'Done graphing engagement, elapsed: %f' % (time.time() - start)
 
     print 'Generating analytics cards stats'
-    graph_analytics(n, data)
-    """
+    # graph_analytics(n, data)
     graph_analytics_accuracy(n, data, min_problems)
     print 'Done graphing analytics, elapsed: %f' % (time.time() - start)
 
