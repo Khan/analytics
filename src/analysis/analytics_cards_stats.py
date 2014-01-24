@@ -115,6 +115,8 @@ def graph_analytics_by_time(data, n, min_problems=0):
                     correct[date] = corrects[i]
                     total[date] = 1
 
+    # accuracy over time
+    plt.figure()
     plt.title('Analytics Cards Accuracy '
               '(Min Problems: %d)' % min_problems)
     plt.xlabel('Date')
@@ -122,13 +124,22 @@ def graph_analytics_by_time(data, n, min_problems=0):
 
     x = np.array(sorted(correct.keys()))
     y = np.array([1.0 * correct[d] / total[d] for d in x])
+    y_total = np.array([total[d] for d in x])
     print "Dates:\n%s\n" % x
     print "Accuracy for %s:\n%s\n" % (TASK_TYPES[0], y)
-    print "Totals for %s:\n%s\n" % (TASK_TYPES[0],
-                                    np.array([total[d] for d in x]))
+    print "Totals for %s:\n%s\n" % (TASK_TYPES[0], y_total)
 
     plt.plot(x, y)
     graph_and_save('analytics_accuracy', n, min_problems)
+
+    # counts over time
+    plt.figure()
+    plt.title('Analytics Cards Counts '
+              '(Min Problems: %d)' % min_problems)
+    plt.xlabel('Date')
+    plt.ylabel('Number of Analytics Cards Answered')
+    plt.plot(x, y_total)
+    graph_and_save('analytics_count', n, min_problems)
 
 
 # TODO(tony): refactor and move into a common I/O file?
