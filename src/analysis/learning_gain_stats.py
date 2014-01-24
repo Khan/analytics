@@ -246,6 +246,22 @@ def graph_analytics_efficiency(eff, eff_max, suffix='', file_suffix=''):
     graph_and_save('analytics-eff' + file_suffix + '-norm', len(eff), 0)
 
 
+def graph_learning_gain(eff, eff_max, eng, suffix='', file_suffix=''):
+    plt.figure()
+    plt.title('Cumulative Learning Gain Curve' + suffix)
+    plt.plot(np.cumsum(eng * normalize_zero(eff, eff_max)))
+    plt.xlabel('Problem Number')
+    plt.ylabel('Learning Gain')
+    graph_and_save('learning-gain' + file_suffix, len(eff), 0)
+
+    plt.figure()
+    plt.title('Cumulative Learning Gain Curve (No Norm)' + suffix)
+    plt.plot(np.cumsum(eng * eff))
+    plt.xlabel('Problem Number')
+    plt.ylabel('Learning Gain')
+    graph_and_save('learning-gain-no-norm' + file_suffix, len(eff), 0)
+
+
 def graph_analytics(data, n):
     counts = []
     first_counts = []
@@ -253,6 +269,7 @@ def graph_analytics(data, n):
 
     eff = np.zeros(n)
     eff_max = np.zeros(n)
+    eng = np.zeros(n)
 
     eff_all = np.zeros(n)
     eff_all_max = np.zeros(n)
@@ -262,6 +279,7 @@ def graph_analytics(data, n):
         first_index = None
         prev = None
         m = min(len(task_types), n)
+        eng[:m] += 1
         for i in xrange(m):
             if task_types[i] == 0:  # corresponds to mastery.analytics
                 count += 1
@@ -305,8 +323,10 @@ def graph_analytics(data, n):
     graph_and_save('analytics-dist-next', n, 0)
 
     graph_analytics_efficiency(eff, eff_max)
-
     graph_analytics_efficiency(eff_all, eff_all_max,
+                               ' (Whole Range)', '-whole')
+    graph_learning_gain(eff, eff_max, eng)
+    graph_learning_gain(eff_all, eff_all_max, eng,
                                ' (Whole Range)', '-whole')
 
 
