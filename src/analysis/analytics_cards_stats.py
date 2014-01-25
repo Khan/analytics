@@ -172,7 +172,7 @@ def graph_analytics_by_time(data, n, min_problems=0):
     plt.legend()
     graph_and_save('analytics_accuracy', n, min_problems)
 
-    # counts over time
+    # card counts over time
     plt.figure()
     plt.title('Analytics Cards Counts '
               '(Min Problems: %d)' % min_problems)
@@ -183,7 +183,20 @@ def graph_analytics_by_time(data, n, min_problems=0):
     plt.legend()
     graph_and_save('analytics_count', n, min_problems)
 
-    # TODO(tony): add a graph of exercise count over time?
+    # exercise counts over time
+    y_exercises = np.array([len(exercises_by_date[d]) for d in x])
+    y_exercises_filtered = np.array([
+        len(exercises_by_date[d] & exercises_by_date[first_date]) for d in x])
+
+    plt.figure()
+    plt.title('Exercise Counts '
+              '(Min Problems: %d)' % min_problems)
+    plt.xlabel('Date')
+    plt.ylabel('Distinct Exercises (Analytics Cards Only)')
+    plt.plot(x, y_exercises, label='All Exercises')
+    plt.plot(x, y_exercises_filtered, label='First Day Exercises')
+    plt.legend()
+    graph_and_save('exercises_count', n, min_problems)
 
 
 # TODO(tony): refactor and move into a common I/O file?
