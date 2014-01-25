@@ -70,6 +70,11 @@ def read_data_csv(filename=None):
     return data
 
 
+def filter_for_min_problems(data, min_problems):
+    f = lambda (user_problems): len(user_problems[0]) >= min_problems
+    return filter(f, data)
+
+
 def normalize_zero(a, b):
     assert len(a) == len(b)
     n = len(a)
@@ -98,12 +103,14 @@ def unix_time_to_date(ts):
 
 
 def graph_analytics_by_time(data, n, min_problems=0):
+    if min_problems > 0:
+        data = filter_for_min_problems(data, min_problems)
+
     correct = {}
     total = {}
+    exercises_by_date = {}
     for task_types, corrects, exercises, times in data:
         m = min(len(task_types), n)
-        if m < min_problems:
-            continue
         for i in xrange(m):
             task_type = task_types[i]
             if task_type == 0:  # mastery.analytics
@@ -111,9 +118,47 @@ def graph_analytics_by_time(data, n, min_problems=0):
                 if date in correct:
                     correct[date] += corrects[i]
                     total[date] += 1
+                    exercises_by_date[date].add(exercises[i])
                 else:
                     correct[date] = corrects[i]
                     total[date] = 1
+                    exercises_by_date[date] = set([exercises[i]])
+
+    # second pass for filtered results (use exercises on the first day)
+    first_date = sorted(exercises_by_date.keys())[0]
+    print 'First Day Exercises: %d\n' % len(exercises_by_date[first_date])
+    correct_filtered = {}
+    total_filtered = {}
+    for task_types, corrects, exercises, times in data:
+        m = min(len(task_types), n)
+        for i in xrange(m):
+            task_type = task_types[i]
+            if task_type == 0:  # mastery.analytics
+                exercise = exercises[i]
+                if exercise not in exercises_by_date[first_date]:
+                    continue
+                date = unix_time_to_date(times[i])
+                if date in correct_filtered:
+                    correct_filtered[date] += corrects[i]
+                    total_filtered[date] += 1
+                else:
+                    correct_filtered[date] = corrects[i]
+                    total_filtered[date] = 1
+
+    # calculations
+    x = np.array(sorted(correct.keys()))
+    y = np.array([1.0 * correct[d] / total[d] for d in x])
+    y_total = np.array([total[d] for d in x])
+    print "Dates:\n%s\n" % x
+    print "Accuracy for %s:\n%s\n" % (TASK_TYPES[0], y)
+    print "Totals for %s:\n%s\n" % (TASK_TYPES[0], y_total)
+
+    # filtered versions
+    x_filtered = np.array(sorted(correct_filtered.keys()))
+    y_filtered = np.array([1.0 * correct_filtered[d] / total_filtered[d]
+                           for d in x_filtered])
+    y_total_filtered = np.array([total_filtered[d] for d in x_filtered])
+    # TODO(tony): print this info too
 
     # accuracy over time
     plt.figure()
@@ -122,14 +167,9 @@ def graph_analytics_by_time(data, n, min_problems=0):
     plt.xlabel('Date')
     plt.ylabel('Percent Correct')
 
-    x = np.array(sorted(correct.keys()))
-    y = np.array([1.0 * correct[d] / total[d] for d in x])
-    y_total = np.array([total[d] for d in x])
-    print "Dates:\n%s\n" % x
-    print "Accuracy for %s:\n%s\n" % (TASK_TYPES[0], y)
-    print "Totals for %s:\n%s\n" % (TASK_TYPES[0], y_total)
-
-    plt.plot(x, y)
+    plt.plot(x, y, label='All Exercises')
+    plt.plot(x_filtered, y_filtered, label='First Day Exercises')
+    plt.legend()
     graph_and_save('analytics_accuracy', n, min_problems)
 
     # counts over time
@@ -138,8 +178,12 @@ def graph_analytics_by_time(data, n, min_problems=0):
               '(Min Problems: %d)' % min_problems)
     plt.xlabel('Date')
     plt.ylabel('Number of Analytics Cards Answered')
-    plt.plot(x, y_total)
+    plt.plot(x, y_total, label='All Exercises')
+    plt.plot(x_filtered, y_total_filtered, label='First Day Exercises')
+    plt.legend()
     graph_and_save('analytics_count', n, min_problems)
+
+    # TODO(tony): add a graph of exercise count over time?
 
 
 # TODO(tony): refactor and move into a common I/O file?
