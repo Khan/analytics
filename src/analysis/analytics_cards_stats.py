@@ -158,7 +158,12 @@ def graph_analytics_by_time(data, n, min_problems=0):
     y_filtered = np.array([1.0 * correct_filtered[d] / total_filtered[d]
                            for d in x_filtered])
     y_total_filtered = np.array([total_filtered[d] for d in x_filtered])
-    # TODO(tony): print this info too
+    print "Accuracy (filtered) for %s:\n%s\n" % (TASK_TYPES[0], y_filtered)
+    if len(y) == len(y_filtered):
+        print "Diff (all - filtered) for %s:\n%s\n" % (TASK_TYPES[0],
+                                                       y - y_filtered)
+    else:
+        print "Skipping differences"
 
     # accuracy over time
     plt.figure()
@@ -197,6 +202,16 @@ def graph_analytics_by_time(data, n, min_problems=0):
     plt.plot(x, y_exercises_filtered, label='First Day Exercises')
     plt.legend()
     graph_and_save('exercises_count', n, min_problems)
+
+    # accuracy diff over time
+    if len(y) == len(y_filtered):
+        plt.figure()
+        plt.title('Analytics Cards Accuracy Difference'
+                  '(Min Problems: %d)' % min_problems)
+        plt.xlabel('Date')
+        plt.ylabel('Accuracy Diff (First Day - All)')
+        plt.plot(x, y_filtered - y)
+        graph_and_save('accuracy_diff', n, min_problems)
 
 
 # TODO(tony): refactor and move into a common I/O file?
