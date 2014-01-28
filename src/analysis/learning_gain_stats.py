@@ -55,20 +55,20 @@ def csv_to_array(row):
     return np.array(row, dtype=int)
 
 
-def read_data_csv(filename=None):
+def read_data_csv(filename=None, num_rows=2):
     data = []
     with (sys.stdin if filename is None else open(filename, 'r')) as f:
         reader = csv.reader(f)
-        prev = None
+        i = 0
         for row in reader:
-            if prev is None:
+            if i % num_rows == 0:
                 prev = csv_to_array(row)
-            else:
+            elif i % num_rows == 1:
                 row = csv_to_array(row)
                 data.append((prev, row))
-                prev = None
                 if len(data) % 10000 == 0:
                     print '%d processed...' % len(data)
+            i = (i + 1) % num_rows
     return data
 
 
@@ -402,7 +402,7 @@ def main():
 
     # run!
     start = time.time()
-    data = read_data_csv(filename)
+    data = read_data_csv(filename, 4)
     print 'Done reading input, elapsed: %f' % (time.time() - start)
     print 'Users: %d' % len(data)
     print 'Users (min_problems=%d): %d' % (min_problems,
