@@ -90,6 +90,11 @@ def read_data_list(filename=None):
     return data
 
 
+def filter_for_min_problems(data, min_problems):
+    f = lambda (user_problems): len(user_problems[0]) >= min_problems
+    return filter(f, data)
+
+
 def normalize_zero(a, b):
     assert len(a) == len(b)
     n = len(a)
@@ -262,7 +267,10 @@ def graph_learning_gain(eff, eff_max, eng, suffix='', file_suffix=''):
     graph_and_save('learning-gain-no-norm' + file_suffix, len(eff), 0)
 
 
-def graph_analytics(data, n):
+def graph_analytics(data, n, min_problems=0):
+    if min_problems > 0:
+        data = filter_for_min_problems(data, min_problems)
+
     counts = []
     first_counts = []
     dist_counts = []
@@ -331,12 +339,13 @@ def graph_analytics(data, n):
 
 
 def graph_analytics_accuracy(data, n, min_problems=0):
+    if min_problems > 0:
+        data = filter_for_min_problems(data, min_problems)
+
     correct = np.zeros(n)
     total = np.zeros(n)
     for task_types, corrects in data:
         m = min(len(task_types), n)
-        if m < min_problems:
-            continue
         for i in xrange(m):
             task_type = task_types[i]
             if task_type == 0:  # mastery.analytics
@@ -402,7 +411,7 @@ def main():
 
     # run!
     start = time.time()
-    data = read_data_csv(filename, 4)
+    data = read_data_csv(filename, 2)
     print 'Done reading input, elapsed: %f' % (time.time() - start)
     print 'Users: %d' % len(data)
     print 'Users (min_problems=%d): %d' % (min_problems,
