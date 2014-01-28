@@ -233,7 +233,8 @@ def graph_engagement_ratio(data, n, min_problems=0):
     graph_and_save('engagement_ratio', n, min_problems)
 
 
-def graph_analytics_efficiency(eff, eff_max, suffix='', file_suffix=''):
+def graph_analytics_efficiency(eff, eff_max, suffix='', file_suffix='',
+                               min_problems=0):
     plt.figure()
     plt.title('Analytics Cards: Efficiency Curves' + suffix)
     plt.plot(eff, label='Efficiency')
@@ -241,30 +242,33 @@ def graph_analytics_efficiency(eff, eff_max, suffix='', file_suffix=''):
     plt.xlabel('Problem Number')
     plt.ylabel('Delta Efficiency')
     plt.legend()
-    graph_and_save('analytics-eff' + file_suffix, len(eff), 0)
+    graph_and_save('analytics-eff' + file_suffix, len(eff), min_problems)
 
     plt.figure()
     plt.title('Analytics Cards: Normalized Efficiency Curve' + suffix)
     plt.plot(normalize_zero(eff, eff_max))
     plt.xlabel('Problem Number')
     plt.ylabel('Delta Efficiency')
-    graph_and_save('analytics-eff' + file_suffix + '-norm', len(eff), 0)
+    graph_and_save('analytics-eff' + file_suffix + '-norm', len(eff),
+                   min_problems)
 
 
-def graph_learning_gain(eff, eff_max, eng, suffix='', file_suffix=''):
+def graph_learning_gain(eff, eff_max, eng, suffix='', file_suffix='',
+                        min_problems=0):
     plt.figure()
     plt.title('Cumulative Learning Gain Curve' + suffix)
     plt.plot(np.cumsum(eng * normalize_zero(eff, eff_max)))
     plt.xlabel('Problem Number')
     plt.ylabel('Learning Gain')
-    graph_and_save('learning-gain' + file_suffix, len(eff), 0)
+    graph_and_save('learning-gain' + file_suffix, len(eff), min_problems)
 
     plt.figure()
     plt.title('Cumulative Learning Gain Curve (No Norm)' + suffix)
     plt.plot(np.cumsum(eng * eff))
     plt.xlabel('Problem Number')
     plt.ylabel('Learning Gain')
-    graph_and_save('learning-gain-no-norm' + file_suffix, len(eff), 0)
+    graph_and_save('learning-gain-no-norm' + file_suffix, len(eff),
+                   min_problems)
 
 
 def graph_analytics(data, n, min_problems=0):
@@ -274,6 +278,8 @@ def graph_analytics(data, n, min_problems=0):
     counts = []
     first_counts = []
     dist_counts = []
+    dist_by_delta = [[] for i in xrange(3)]
+    delta_by_dist = np.zeros((3, n))
 
     eff = np.zeros(n)
     eff_max = np.zeros(n)
@@ -303,39 +309,68 @@ def graph_analytics(data, n, min_problems=0):
 
                     eff_all[prev:i] += delta
                     eff_all_max[prev:i] += 1
+
+                    dist_by_delta[delta + 1].append(i - prev)
+                    delta_by_dist[delta + 1][i - prev] += 1
                 prev = i
         counts.append(count)
         if first_index is not None:
             first_counts.append(first_index)
 
-    # TODO(tony): make multiple figures
+    """
     plt.figure()
     plt.title('Analytics Cards: Count Distribution')
     plt.hist(counts, n)
     plt.xlabel('Number of Analytics Cards')
     plt.ylabel('Number of Users (with x cards)')
-    graph_and_save('analytics-count', n, 0)
+    graph_and_save('analytics-count', n, min_problems)
 
     plt.figure()
     plt.title('Analytics Cards: Index of First Card')
     plt.hist(first_counts, n)
     plt.xlabel('Index of First Analytics Card')
     plt.ylabel('Number of Users')
-    graph_and_save('analytics-first', n, 0)
+    graph_and_save('analytics-first', n, min_problems)
 
     plt.figure()
     plt.title('Analytics Cards: Distance to Next Card')
     plt.hist(dist_counts, n)
     plt.xlabel('Number of Problems Between Analytics Cards')
     plt.ylabel('Number of Instances')
-    graph_and_save('analytics-dist-next', n, 0)
+    graph_and_save('analytics-dist-next', n, min_problems)
+    """
 
-    graph_analytics_efficiency(eff, eff_max)
+    # delta and dist distributions
+    delta_labels = ('-1', '0', '+1')
+    plt.figure()
+    plt.title('Analytics Cards: Delta by Distance (Counts)')
+    plt.xlabel('Number of Problems Between Analytics Cards')
+    plt.ylabel('Instances With Given Delta')
+    plt.hist(dist_by_delta, n, normed=0, histtype='bar', stacked=True,
+             label=delta_labels)
+    plt.legend()
+    graph_and_save('analytics-delta-by-dist-cnt', n, min_problems)
+
+    plt.figure()
+    plt.title('Analytics Cards: Delta by Distance (Percentage)')
+    plt.xlabel('Number of Problems Between Analytics Cards')
+    plt.ylabel('Percentage with Given Delta')
+    for delta in xrange(-1, 2):
+        plt.plot(normalize_zero(delta_by_dist[delta + 1],
+                                np.sum(delta_by_dist, axis=0)),
+                 label=delta_labels[delta + 1])
+    plt.legend()
+    graph_and_save('analytics-delta-by-dist-pct', n, min_problems)
+
+    # efficiency and learning gain
+    graph_analytics_efficiency(eff, eff_max, min_problems=min_problems)
     graph_analytics_efficiency(eff_all, eff_all_max,
-                               ' (Whole Range)', '-whole')
-    graph_learning_gain(eff, eff_max, eng)
+                               ' (Whole Range)', '-whole',
+                               min_problems=min_problems)
+    graph_learning_gain(eff, eff_max, eng, min_problems=min_problems)
     graph_learning_gain(eff_all, eff_all_max, eng,
-                               ' (Whole Range)', '-whole')
+                        ' (Whole Range)', '-whole',
+                        min_problems=min_problems)
 
 
 def graph_analytics_accuracy(data, n, min_problems=0):
@@ -445,7 +480,7 @@ def main():
     """
 
     print 'Generating analytics cards stats'
-    graph_analytics(data, n)
+    graph_analytics(data, n, min_problems)
     graph_analytics_accuracy(data, n, min_problems)
     print 'Done graphing analytics, elapsed: %f' % (time.time() - start)
 
