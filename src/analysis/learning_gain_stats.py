@@ -278,8 +278,8 @@ def graph_analytics(data, n, min_problems=0):
     counts = []
     first_counts = []
     dist_counts = []
-    dist_by_delta = [[] for i in xrange(3)]
-    delta_by_dist = np.zeros((3, n))
+    dist_by_delta = [[] for i in xrange(4)]
+    delta_by_dist = np.zeros((4, n))
 
     eff = np.zeros(n)
     eff_max = np.zeros(n)
@@ -310,8 +310,9 @@ def graph_analytics(data, n, min_problems=0):
                     eff_all[prev:i] += delta
                     eff_all_max[prev:i] += 1
 
-                    dist_by_delta[delta + 1].append(i - prev)
-                    delta_by_dist[delta + 1][i - prev] += 1
+                    mask = 2 * corrects[i] + corrects[prev]
+                    dist_by_delta[mask].append(i - prev)
+                    delta_by_dist[mask][i - prev] += 1
                 prev = i
         counts.append(count)
         if first_index is not None:
@@ -341,7 +342,7 @@ def graph_analytics(data, n, min_problems=0):
     """
 
     # delta and dist distributions
-    delta_labels = ('-1', '0', '+1')
+    delta_labels = ('0-0', '0-1', '1-0', '1-1')
     plt.figure()
     plt.title('Analytics Cards: Delta by Distance (Counts)')
     plt.xlabel('Number of Problems Between Analytics Cards')
@@ -355,10 +356,10 @@ def graph_analytics(data, n, min_problems=0):
     plt.title('Analytics Cards: Delta by Distance (Percentage)')
     plt.xlabel('Number of Problems Between Analytics Cards')
     plt.ylabel('Percentage with Given Delta')
-    for delta in xrange(-1, 2):
-        plt.plot(normalize_zero(delta_by_dist[delta + 1],
+    for mask in xrange(4):
+        plt.plot(normalize_zero(delta_by_dist[mask],
                                 np.sum(delta_by_dist, axis=0)),
-                 label=delta_labels[delta + 1])
+                 label=delta_labels[mask])
     plt.legend()
     graph_and_save('analytics-delta-by-dist-pct', n, min_problems)
 
