@@ -18,6 +18,7 @@ import ast
 import csv
 import os
 import re
+import random
 import sys
 import time
 
@@ -416,6 +417,47 @@ def graph_analytics_accuracy(data, n, min_problems=0):
     graph_and_save('analytics_accuracy', n, min_problems)
 
 
+def graph_analytics_multi_sample(data, n, min_problems=0, num_samples=5,
+                                 sample_ratio=.5):
+    analytics_data = []
+    for task_types, corrects in data:
+        m = min(len(task_types), n)
+        cards = []
+        for i in xrange(m):
+            if task_types[i] == 0:  # mastery.analytics
+                cards.append((i, corrects[i]))
+        if len(cards) >= 2:
+            analytics_data.append(cards)
+    print 'Users with at least 2 analytics cards: %d' % len(analytics_data)
+
+    random.seed(0)
+    sample_size = int(sample_ratio * len(analytics_data))
+
+    plt.figure()
+    for j in xrange(num_samples):
+        eff = np.zeros(n)
+        eff_max = np.zeros(n)
+        if j == 0:  # use the first sample as all data
+            sample = analytics_data
+        else:
+            sample = random.sample(analytics_data, sample_size)
+        for cards in sample:
+            for i in xrange(1, len(cards)):
+                prev = cards[i - 1][0]
+                cur = cards[i][0]
+                delta = cards[i][1] - cards[i - 1][1]
+                inv_norm = 1.0 / (cur - prev)
+                eff[prev:cur] += delta * inv_norm
+                eff_max[prev:cur] += 1
+        plt.plot(np.cumsum(normalize_zero(eff, eff_max)), label=str(j))
+    plt.title('Cumulative Normalized Efficiency\n'
+              'Sample Ratio: %.2f' % sample_ratio)
+    plt.xlabel('Problem Number')
+    plt.ylabel('Cumulative Delta Efficiency')
+    plt.legend()
+    graph_and_save('eff-total', n, min_problems)
+
+
 def graph_and_save_all(data, n, min_problems=0):
     # TODO(tony): implement; add prefix/suffix for figure names?
     pass
@@ -496,8 +538,9 @@ def main():
     """
 
     print 'Generating analytics cards stats'
-    graph_analytics(data, n, min_problems)
-    graph_analytics_accuracy(data, n, min_problems)
+    # graph_analytics(data, n, min_problems)
+    # graph_analytics_accuracy(data, n, min_problems)
+    graph_analytics_multi_sample(data, n, min_problems, 5, 0.5)
     print 'Done graphing analytics, elapsed: %f' % (time.time() - start)
 
 if __name__ == '__main__':
