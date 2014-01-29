@@ -252,6 +252,15 @@ def graph_analytics_efficiency(eff, eff_max, suffix='', file_suffix='',
     graph_and_save('analytics-eff' + file_suffix + '-norm', len(eff),
                    min_problems)
 
+    plt.figure()
+    plt.title('Analytics Cards: Cumulative Normalized Efficiency Curve'
+              + suffix)
+    plt.plot(np.cumsum(normalize_zero(eff, eff_max)))
+    plt.xlabel('Problem Number')
+    plt.ylabel('Cumulative Efficiency')
+    graph_and_save('analytics-eff' + file_suffix + '-norm-total', len(eff),
+                   min_problems)
+
 
 def graph_learning_gain(eff, eff_max, eng, suffix='', file_suffix='',
                         min_problems=0):
@@ -368,9 +377,15 @@ def graph_analytics(data, n, min_problems=0):
     graph_analytics_efficiency(eff_all, eff_all_max,
                                ' (Whole Range)', '-whole',
                                min_problems=min_problems)
+    graph_analytics_efficiency(eff, eff_all_max,
+                               ' (Mixed)', '-mixed',
+                               min_problems=min_problems)
     graph_learning_gain(eff, eff_max, eng, min_problems=min_problems)
     graph_learning_gain(eff_all, eff_all_max, eng,
                         ' (Whole Range)', '-whole',
+                        min_problems=min_problems)
+    graph_learning_gain(eff, eff_all_max, eng,
+                        ' (Mixed)', '-mixed',
                         min_problems=min_problems)
 
 
