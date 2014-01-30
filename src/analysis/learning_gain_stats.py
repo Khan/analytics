@@ -404,6 +404,7 @@ def graph_analytics_accuracy(data, n, min_problems=0):
                 correct[i] += corrects[i]
                 total[i] += 1
 
+    plt.figure()
     plt.title('Analytics Cards Accuracy '
               '(Min Problems: %d)' % min_problems)
     plt.xlabel('Problem Number')
@@ -415,6 +416,32 @@ def graph_analytics_accuracy(data, n, min_problems=0):
     # TODO(tony): add trendline, R^2, etc?
     plt.plot(acc)
     graph_and_save('analytics_accuracy', n, min_problems)
+
+    correct = np.zeros(n)
+    total = np.zeros(n)
+    for task_types, corrects in data:
+        m = min(len(task_types), n)
+        j = 0
+        for i in xrange(m):
+            task_type = task_types[i]
+            if task_type >= 5:  # practice (reset)
+                j = 0
+                continue
+            if task_type == 0:  # mastery.analytics
+                correct[j] += corrects[i]
+                total[j] += 1
+            j += 1
+
+    plt.figure()
+    plt.title('Analytics Cards Accuracy '
+              '(Min Problems: %d)' % min_problems)
+    plt.xlabel('Problem Number (Within Mastery Challenge)')
+    plt.ylabel('Percent Correct')
+    acc = normalize_zero(correct, total)
+    print "Accuracy for %s:\n%s\n" % (TASK_TYPES[0], acc)
+    print "Totals for %s:\n%s\n" % (TASK_TYPES[0], total)
+    plt.plot(acc)
+    graph_and_save('analytics_accuracy_mastery', n, min_problems)
 
 
 def graph_analytics_multi_sample(data, n, min_problems=0, num_samples=5,
@@ -554,9 +581,9 @@ def main():
 
     print 'Generating analytics cards stats'
     # graph_analytics(data, n, min_problems)
-    # graph_analytics_accuracy(data, n, min_problems)
-    graph_analytics_multi_sample(data, n, min_problems, 5, 0.5, True)
-    graph_analytics_multi_sample(data, n, min_problems, 11, 0.5, True)
+    graph_analytics_accuracy(data, n, min_problems)
+    # graph_analytics_multi_sample(data, n, min_problems, 5, 0.5, True)
+    # graph_analytics_multi_sample(data, n, min_problems, 11, 0.5, True)
     print 'Done graphing analytics, elapsed: %f' % (time.time() - start)
 
 if __name__ == '__main__':
