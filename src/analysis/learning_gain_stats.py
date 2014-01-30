@@ -418,7 +418,7 @@ def graph_analytics_accuracy(data, n, min_problems=0):
 
 
 def graph_analytics_multi_sample(data, n, min_problems=0, num_samples=5,
-                                 sample_ratio=.5):
+                                 sample_ratio=.5, disjoint=False):
     if min_problems > 0:
         data = filter_for_min_problems(data, n)
 
@@ -434,16 +434,25 @@ def graph_analytics_multi_sample(data, n, min_problems=0, num_samples=5,
     print 'Users with at least 2 analytics cards: %d' % len(analytics_data)
 
     random.seed(0)
+    if disjoint:
+        sample_ratio = 1.0 / (num_samples - 1)
+        remaining = set(range(len(analytics_data)))
     sample_size = int(sample_ratio * len(analytics_data))
 
     plt.figure()
+    f = open('results.txt', 'w')
     for j in xrange(num_samples):
         eff = np.zeros(n)
         eff_max = np.zeros(n)
         if j == 0:  # use the first sample as all data
             sample = analytics_data
         else:
-            sample = random.sample(analytics_data, sample_size)
+            if disjoint:
+                sample = random.sample(remaining, sample_size)
+                remaining = remaining - set(sample)
+                sample = [analytics_data[i] for i in sample]
+            else:
+                sample = random.sample(analytics_data, sample_size)
         for cards in sample:
             for i in xrange(1, len(cards)):
                 prev = cards[i - 1][0]
@@ -453,8 +462,11 @@ def graph_analytics_multi_sample(data, n, min_problems=0, num_samples=5,
                 eff[prev:cur] += delta * inv_norm
                 eff_max[prev:cur] += 1
         plt.plot(np.cumsum(normalize_zero(eff, eff_max)), label=str(j))
+        f.write('Sample %d\nEff:\n%s\nEff Max:\n%s\n\n' % (j, eff, eff_max))
+    f.close()
     plt.title('Cumulative Normalized Efficiency\n'
-              'Sample Ratio: %.2f' % sample_ratio)
+              'Sample Ratio: %.2f%s' % (sample_ratio,
+                                        ' (Disjoint)' if disjoint else ''))
     plt.xlabel('Problem Number')
     plt.ylabel('Efficiency')
     plt.legend()
@@ -543,7 +555,7 @@ def main():
     print 'Generating analytics cards stats'
     # graph_analytics(data, n, min_problems)
     # graph_analytics_accuracy(data, n, min_problems)
-    graph_analytics_multi_sample(data, n, min_problems, 5, 0.75)
+    graph_analytics_multi_sample(data, n, min_problems, 5, 0.75, True)
     print 'Done graphing analytics, elapsed: %f' % (time.time() - start)
 
 if __name__ == '__main__':
