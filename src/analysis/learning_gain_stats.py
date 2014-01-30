@@ -440,7 +440,7 @@ def graph_analytics_multi_sample(data, n, min_problems=0, num_samples=5,
     sample_size = int(sample_ratio * len(analytics_data))
 
     plt.figure()
-    f = open('results.txt', 'w')
+    f = open('results-%.2f.txt' % sample_ratio, 'w')
     for j in xrange(num_samples):
         eff = np.zeros(n)
         eff_max = np.zeros(n)
@@ -470,7 +470,7 @@ def graph_analytics_multi_sample(data, n, min_problems=0, num_samples=5,
     plt.xlabel('Problem Number')
     plt.ylabel('Efficiency')
     plt.legend()
-    graph_and_save('eff-total', n, min_problems)
+    graph_and_save('eff-total-%.2f' % sample_ratio, n, min_problems)
 
 
 def graph_and_save_all(data, n, min_problems=0):
@@ -555,7 +555,8 @@ def main():
     print 'Generating analytics cards stats'
     # graph_analytics(data, n, min_problems)
     # graph_analytics_accuracy(data, n, min_problems)
-    graph_analytics_multi_sample(data, n, min_problems, 5, 0.75, True)
+    graph_analytics_multi_sample(data, n, min_problems, 5, 0.5, True)
+    graph_analytics_multi_sample(data, n, min_problems, 11, 0.5, True)
     print 'Done graphing analytics, elapsed: %f' % (time.time() - start)
 
 if __name__ == '__main__':
