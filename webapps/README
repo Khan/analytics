@@ -1,11 +1,26 @@
 This folder contains subfolders, each of which should be a fully
 self-contained and deployable web app (such as a dashboards).
 
-To start the dashboards web server run this command to start the webserver on port 5000
+To run the dashboards web app in debug mode on port 5000:
+
     analytics/webapps/dashboards/main.py -d
 
+
 TIPS:
-- You may want to create a seperate virtualenv for the analytics repo
-- Make sure you have run `pip install -r requirements.txt` from the root of the analytics repo
---- If this doesn't work, you can try installing items one-at-time until it works
-- If you get an error about a Fortran installer, try this page:  http://stackoverflow.com/questions/11442970/numpy-and-scipy-for-preinstalled-python-2-6-7-on-mac-os-lion
+- You may want to create a separate virtualenv into which you'll
+  install Python packages for the analytics repo:
+
+  sudo pip install virtualenv
+  virtualenv ~/.virtualenv/analytics
+  source ~/.virtualenv/analytics/bin/activate
+
+- Make sure you have run `pip install -r requirements.txt` from the
+  root of the analytics repo.
+  - If this doesn't work, you can try installing items one-at-time
+    until it works. First try to comment out numpy or scipy.
+  - If you get an error about a Fortran installer for numpy or scipy,
+    try the instructions at one of these places:
+
+      https://sites.google.com/a/khanacademy.org/forge/for-developers/faq#TOC-I-can-t-install-numpy-with-pip-install--r-requirements.txt-on-Mac or
+
+      http://stackoverflow.com/questions/11442970/numpy-and-scipy-for-preinstalled-python-2-6-7-on-mac-os-lion

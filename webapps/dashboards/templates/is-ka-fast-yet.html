@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html>
+<!-- Overview of key performance metrics for speeding up the homepage in Q1 2014. -->
+<head>
+<title>Is KA Fast Yet?</title>
+<link rel="shortcut icon" href="http://www.khanacademy.org/favicon.ico?leaf">
+<link rel="stylesheet" type="text/css" href="/static/css/third_party/bootstrap.css">
+<link rel="stylesheet" type="text/css" href="/static/css/third_party/jquery/flick/jquery-ui-1.8.20.custom.css">
+<style type="text/css">
+.perf-summary form,
+.perf-summary form label,
+.perf-summary form input {
+    /* Override bootstrap.css's too-aggressive stylings of label and input. */
+    display: inline;
+}
+.perf-summary form label {
+    cursor: pointer;
+}
+</style>
+</head>
+
+<body>
+
+{% include 'navbar.html' %}
+
+<div class="perf-summary" style="width:900px; margin:40px auto;">
+    <h2>Is KA Fast Yet?</h2>
+    <div id="chart-div" style="width:900px; height:500px;"></div>
+</div>
+
+<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
+<script src="/static/js/third_party/jquery-ui-1.8.20.custom.min.js"></script>
+<script src="/static/js/third_party/underscore-min.js"></script>
+<script src="/static/js/third_party/bootstrap-dropdown.js"></script>
+
+<!-- Load the Client Library. Use the onload parameter to specify a callback function -->
+<script type="text/javascript" src="https://www.google.com/jsapi"></script>
+<script>window.bootstrapData = JSON.parse('{{jsonStr|safe}}');</script>
+<script>
+(function() {
+
+// Convert GA analytics date to JS date: 20140101 -> new Date(2014, 0, 1)
+var analyticsApiDateRegexp = /^(\d\d\d\d)(\d\d)(\d\d)$/;
+function parseAnalyticsApiDate(dt) {
+    match = analyticsApiDateRegexp.exec(dt);
+    if (match) {
+        return new Date(Number(match[1]),
+                        Number(match[2]) - 1,  // Date wants months 0-11
+                        Number(match[3]));
+    } else {
+        console.error(dt + " doesn't match " + analyticsApiDateRegexp);
+        return null;
+    }
+}
+
+// Format a data point (with count of samples).
+function formatDataPoint(value, numSamples) {
+    return Number(value).toFixed(3) + "s (" + numSamples + " samples)";
+}
+
+/**
+ * For more readable code, take an array returned by Google Analytics
+ * and turn it into a hash, e.g.,
+ *
+ * For example:
+ *   asNamedRow([{name:"ga:date", ...}, {name:"ga:visitorType", ...}],
+ *              [["20140101", "New Visitor"]]);
+ * Would return:
+ *   {"ga:date": "20140101", "ga:visitorType": "New Visitor"}
+ *
+ *
+ * Arguments:
+ *   columnHeaders - Array. Column headers from the GA JSON response.
+ *     The length should match the length of the resultsRow.
+ *   resultsRow - Array. A row of data from the GA JSON response.
+ */
+function asNamedRow(columnHeaders, resultsRow) {
+    var ret = {};
+    for (var i = 0; i < columnHeaders.length; i++) {
+        ret[columnHeaders[i]["name"]] = resultsRow[i];
+    }
+    return ret;
+}
+
+// Called once the visualization package JS is loaded, this renders
+// window.bootstrapData into the chart of DOM Content Loaded metrics.
+function drawChart() {
+    var results = window.bootstrapData;
+    var rows = [];
+    if (results.rows) {
+        for (var i = 0; i < results.rows.length - 1; i += 2) {
+            // The ga:visitorType dimensions alternates on each row as
+            // "New Visitor" then "Returning Visitor".
+            newRow = asNamedRow(results.columnHeaders, results.rows[i]);
+            retRow = asNamedRow(results.columnHeaders, results.rows[i+1]);
+            if (newRow["ga:visitorType"] == "New Visitor"
+                    && retRow["ga:visitorType"] == "Returning Visitor") {
+                rows.push({c:[{v:parseAnalyticsApiDate(newRow["ga:date"])},
+                              {v:Number(newRow["ga:avgDomContentLoadedTime"]),
+                               f:formatDataPoint(newRow["ga:avgDomContentLoadedTime"],
+                                                 newRow["ga:speedMetricsSample"])},
+                              {v:Number(retRow["ga:avgDomContentLoadedTime"]),
+                               f:formatDataPoint(retRow["ga:avgDomContentLoadedTime"],
+                                                 retRow["ga:speedMetricsSample"])},
+                              // Threshold series.
+                              {v:0.5, f:""}]});
+            } else {
+                console.error(
+                    'expected ga:visitorType "New Visitor" then ' +
+                    '"Returning Visitor" but saw "' +
+                    newRow["ga:visitorType"] + '" then "' +
+                    retRow["ga:visitorType"] + '"');
+            }
+        }
+    }
+
+    var dataTable = new google.visualization.DataTable({
+        cols: [{label: "Date", type: "date"},
+               {label: "New User", type: "number"},
+               {label: "Returning User", type: "number"},
+               {label: "500ms", type: "number"}
+              ],
+        rows: rows
+    });
+
+    var options = {
+        title: "Avg. DOMContentLoaded in Seconds",
+        legend: {position: "top"},
+        focusTarget: "category",
+        series: [
+            {color: "#89b908"},  // KA green
+            {color: "#8e4c9b"},  // KA purple
+            {enableInteractivity: false,
+             pointSize: 0,
+             lineWidth: 4,
+             color: "#3b8fa3"  // KA math blue
+            }
+        ]
+    };
+
+    var chart = new google.visualization.LineChart(
+        document.getElementById("chart-div"));
+    chart.draw(dataTable, options);
+}
+
+google.load("visualization", "1", {packages:["corechart"]});
+google.setOnLoadCallback(drawChart);
+
+})();
+</script>
+</body>
+</html>

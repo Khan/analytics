@@ -2,16 +2,23 @@
 
 """A dashboard webapp.
 
+To run the dashboards web app in debug mode on port 5000:
+
+   ./main.py -d
+
+
 This hosts the following dashboards:
 - daily exercise statistics over time
 - a daily report of videos watched
 - learning efficiency and retention from exercises
+- performance-related dashboards
 
 It will house more dashboards for fundamental metrics we want to track.
 """
 
 import collections
 import datetime
+import json
 import operator
 import optparse
 import os
@@ -22,6 +29,7 @@ import pymongo
 
 import auth
 import data
+import google_analytics
 import utf8csv
 
 app = flask.Flask(__name__)
@@ -1063,6 +1071,26 @@ def statusboard_stories_widget():
                 value="",
                 source="http://www.khanacademy.org/api/v1/stories?count=100"
             )
+
+
+@app.route("/is-ka-fast-yet")
+@auth.login_required
+def is_ka_fast_yet():
+    """Key performance metrics for speeding up the homepage in Q1 2014."""
+    start_date = flask.request.args.get("start_date", "2014-01-01")
+    end_date = flask.request.args.get("end_date",
+                                      datetime.date.today().isoformat())
+    analytics_service = google_analytics.initialize_service()
+    response = analytics_service.data().ga().get(
+        ids="ga:13634188",  # GA view ID for www.khanacademy.org
+        start_date=start_date,
+        end_date=end_date,
+        dimensions="ga:date,ga:visitorType",
+        metrics="ga:avgDomContentLoadedTime,ga:speedMetricsSample",
+        filters="ga:pagePath==/;ga:country==United States"
+    ).execute()
+    return flask.render_template("is-ka-fast-yet.html",
+                                 jsonStr=json.dumps(response))
 
 
 def utc_as_dt(days_ago=0):
