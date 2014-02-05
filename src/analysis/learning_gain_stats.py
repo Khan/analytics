@@ -459,7 +459,7 @@ def graph_analytics_multi_sample(data, n, min_problems=0, num_samples=5,
                 num_mastery += 1
             if task_types[i] == 0:  # mastery.analytics
                 cards.append((i, corrects[i]))
-        if len(cards) >= 2 and num_mastery >= 30:
+        if len(cards) >= 2:
             analytics_data.append(cards)
     print 'Users with at least 2 analytics cards: %d' % len(analytics_data)
 
@@ -485,15 +485,17 @@ def graph_analytics_multi_sample(data, n, min_problems=0, num_samples=5,
                 sample = random.sample(analytics_data, sample_size)
         for cards in sample:
             # add counts to beginning to smooth out initial part
-            eff_max[:cards[0][0]] += 1
+            eff_max[:cards[0][0]] += 1 * cards[0][0] ** 2
             for i in xrange(1, len(cards)):
                 prev = cards[i - 1][0]
                 cur = cards[i][0]
                 delta = cards[i][1] - cards[i - 1][1]
                 inv_norm = 1.0 / (cur - prev)
-                eff[prev:cur] += delta * inv_norm
-                eff_max[prev:cur] += 1
-        plt.plot(np.cumsum(normalize_zero(eff, eff_max)[:-tail]), label=str(j))
+                weight = (cur - prev) ** 2
+                eff[prev:cur] += delta * inv_norm * weight
+                eff_max[prev:cur] += 1 * weight
+        label = str(j) if j > 0 else "0 (All)"
+        plt.plot(np.cumsum(normalize_zero(eff, eff_max)[:-tail]), label=label)
         f.write('Sample %d\nEff:\n%s\nEff Max:\n%s\n\n' % (j, eff, eff_max))
     f.close()
     plt.title('Cumulative Normalized Efficiency\n'
