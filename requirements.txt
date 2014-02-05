@@ -26,3 +26,7 @@ hipchat==0.0.1
 GChartWrapper==0.9
 lxml==2.3.6
 google-api-python-client==1.2
+
+# To use the dashboard service account private key. No version is set
+# to install the latest security fixes, pyOpenSSL==0.13.1 in Feb 2014.
+pyOpenSSL

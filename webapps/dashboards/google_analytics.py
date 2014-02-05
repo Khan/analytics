@@ -1,8 +1,9 @@
 """This module provides access to Google Analytics data.
 
-This isn't intended for per-user or multi-user access. One user will
-auth against Google Analytics, and the temporary access token will be
-stored locally.
+The OAuth2.0 Client is expected to be a service account that is
+authorized using a secret private key. In this way, viewers don't need
+to individually auth against Google Analytics' API.
+
 
 USAGE:
 
@@ -24,6 +25,7 @@ USAGE:
 """
 
 import httplib2
+import json
 
 import apiclient.discovery
 import apiclient.model
@@ -32,38 +34,29 @@ import oauth2client.file
 import oauth2client.tools
 
 # The file with the OAuth 2.0 Client details for authentication and
-# authorization. When created, this module used "Client ID for native
-# application" that chris@ created on the khan-academy cloud project.
+# authorization. When created, this module used "Service Account" that
+# chris@ created on the khan-academy cloud project.
 CLIENT_SECRETS = "ga_client_secrets.json"
 
-# A helpful message to display if the CLIENT_SECRETS file is missing.
-MISSING_CLIENT_SECRETS_MESSAGE = ('%s is missing. Download a "Client ID '
-                                  'for native application" from the KA '
-                                  'cloud project' % CLIENT_SECRETS)
+# The file with the private key that matches the Service Account
+# client details in CLIENT_SECRETS.
+PRIVATE_KEY = "ga_client_privatekey.p12"
 
-# The Flow object to be used if we need to authenticate.
-FLOW = oauth2client.client.flow_from_clientsecrets(
-    CLIENT_SECRETS,
-    scope="https://www.googleapis.com/auth/analytics.readonly",
-    message=MISSING_CLIENT_SECRETS_MESSAGE)
-
-# A file to store the access token. This isn't a great storage method,
-# and doesn't work for multiple users, but it's sufficient for now to
-# auth against one user and store their info.
-TOKEN_FILE_NAME = "google_analytics_access.token"
+# The OAuth 2.0 Scope used to access Google Analytics' API.
+SCOPE = "https://www.googleapis.com/auth/analytics.readonly"
 
 
 def _prepare_credentials():
-    """Read credentials from the file system or auth the user."""
-    storage = oauth2client.file.Storage(TOKEN_FILE_NAME)
-    credentials = storage.get()
+    """Build credentials for a service account client from its private key."""
+    with open(CLIENT_SECRETS, "r") as client_secrets_file:
+        client_secrets = json.load(client_secrets_file)
 
-    # If existing credentials are invalid, run the auth flow. The run
-    # method will store any new credentials.
-    if not credentials or credentials.invalid:
-        credentials = oauth2client.tools.run(FLOW, storage)
-
-    return credentials
+    with open(PRIVATE_KEY, "rb") as private_key_file:
+        credentials = oauth2client.client.SignedJwtAssertionCredentials(
+            service_account_name=client_secrets["web"]["client_email"],
+            private_key=private_key_file.read(),
+            scope=SCOPE)
+        return credentials
 
 
 def initialize_service(raw_model=False):

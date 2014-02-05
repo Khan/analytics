@@ -34,7 +34,7 @@ access_token.py
 secrets.py
 # API access for Google Analytics dashboard.
 ga_client_secrets.json
-google_analytics_access.token
+ga_client_privatekey.p12
 
 # Developer constants for convenience for testing with local
 # or non-production instances of the main webserver
