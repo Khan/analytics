@@ -26,6 +26,7 @@ USAGE:
 
 import httplib2
 import json
+import os.path
 
 import apiclient.discovery
 import apiclient.model
@@ -36,11 +37,13 @@ import oauth2client.tools
 # The file with the OAuth 2.0 Client details for authentication and
 # authorization. When created, this module used "Service Account" that
 # chris@ created on the khan-academy cloud project.
-CLIENT_SECRETS = "ga_client_secrets.json"
+CLIENT_SECRETS = os.path.join(os.path.dirname(__file__),
+                              "ga_client_secrets.json")
 
 # The file with the private key that matches the Service Account
 # client details in CLIENT_SECRETS.
-PRIVATE_KEY = "ga_client_privatekey.p12"
+PRIVATE_KEY = os.path.join(os.path.dirname(__file__),
+                           "ga_client_privatekey.p12")
 
 # The OAuth 2.0 Scope used to access Google Analytics' API.
 SCOPE = "https://www.googleapis.com/auth/analytics.readonly"
