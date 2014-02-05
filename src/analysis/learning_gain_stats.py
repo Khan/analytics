@@ -498,8 +498,9 @@ def graph_analytics_multi_sample(data, n, min_problems=0, num_samples=5,
         plt.plot(np.cumsum(normalize_zero(eff, eff_max)[:-tail]), label=label)
         f.write('Sample %d\nEff:\n%s\nEff Max:\n%s\n\n' % (j, eff, eff_max))
     f.close()
-    plt.title('Cumulative Normalized Efficiency\n'
-              'Sample Ratio: %.2f%s' % (sample_ratio,
+    plt.title('Cumulative Normalized Efficiency'
+              ' (Min Problems: %d)\n'
+              'Sample Ratio: %.2f%s' % (min_problems, sample_ratio,
                                         ' (Disjoint)' if disjoint else ''))
     plt.xlabel('Problem Number')
     plt.ylabel('Efficiency')
