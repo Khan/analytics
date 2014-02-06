@@ -469,11 +469,13 @@ def graph_analytics_multi_sample(data, n, min_problems=0, num_samples=5,
         remaining = set(range(len(analytics_data)))
     sample_size = int(sample_ratio * len(analytics_data))
 
-    plt.figure()
+    efficiency = []
+    learning_gain = []
     f = open('results-%.2f.txt' % sample_ratio, 'w')
     for j in xrange(num_samples):
         eff = np.zeros(n)
         eff_max = np.zeros(n)
+        eng = np.zeros(n)
         if j == 0:  # use the first sample as all data
             sample = analytics_data
         else:
@@ -494,18 +496,43 @@ def graph_analytics_multi_sample(data, n, min_problems=0, num_samples=5,
                 weight = (cur - prev) ** 2
                 eff[prev:cur] += delta * inv_norm * weight
                 eff_max[prev:cur] += 1 * weight
-        label = str(j) if j > 0 else "0 (All)"
-        plt.plot(np.cumsum(normalize_zero(eff, eff_max)[:-tail]), label=label)
-        f.write('Sample %d\nEff:\n%s\nEff Max:\n%s\n\n' % (j, eff, eff_max))
+            # add to engagement up to the last analytics card
+            eng[:cards[-1][0]] += 1
+        eff_norm = normalize_zero(eff, eff_max)[:-tail]
+        efficiency.append(eff_norm)
+        learning_gain.append(eff_norm * eng[-tail])
+        f.write('Sample %d\nEff:\n%s\nEff Max:\n%s\n' % (j, eff, eff_max))
+        f.write('Eng:\n%s\nGain:\n%s\n' % (eng, learning_gain[-1]))
+        f.write('\n')
     f.close()
+
+    # normalized efficiency
+    plt.figure()
     plt.title('Cumulative Normalized Efficiency'
               ' (Min Problems: %d)\n'
               'Sample Ratio: %.2f%s' % (min_problems, sample_ratio,
                                         ' (Disjoint)' if disjoint else ''))
     plt.xlabel('Problem Number')
     plt.ylabel('Efficiency')
+    for j in xrange(len(efficiency)):
+        label = str(j) if j > 0 else "0 (All)"
+        plt.plot(np.cumsum(efficiency[j]), label=label)
     plt.legend()
     graph_and_save('eff-total-%.2f' % sample_ratio, n, min_problems)
+
+    # learning gain
+    plt.figure()
+    plt.title('Total Learning Gain'
+              ' (Min Problems: %d)\n'
+              'Sample Ratio: %.2f%s' % (min_problems, sample_ratio,
+                                        ' (Disjoint)' if disjoint else ''))
+    plt.xlabel('Problem Number')
+    plt.ylabel('Learning Gain')
+    for j in xrange(len(learning_gain)):
+        label = str(j) if j > 0 else "0 (All)"
+        plt.plot(np.cumsum(learning_gain[j]), label=label)
+    plt.legend()
+    graph_and_save('learn-gain-total-%.2f' % sample_ratio, n, min_problems)
 
 
 def graph_and_save_all(data, n, min_problems=0):
