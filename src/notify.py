@@ -19,7 +19,7 @@ def send_email(subject, body, addresses=EMAIL_RECIPIENTS):
     os.system(command)
 
 
-def send_hipchat(message, rooms=["analytics"]):
+def send_hipchat(message, rooms=["data science"]):
 
     cfg_location = os.path.join(os.path.dirname(__file__), 'hipchat.cfg')
     try:
