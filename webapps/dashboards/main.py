@@ -1081,12 +1081,13 @@ def is_ka_fast_yet():
     end_date = flask.request.args.get("end_date",
                                       datetime.date.today().isoformat())
     analytics_service = google_analytics.initialize_service()
+    # Build your queries at http://ga-dev-tools.appspot.com/explorer/
     response = analytics_service.data().ga().get(
         ids="ga:13634188",  # GA view ID for www.khanacademy.org
         start_date=start_date,
         end_date=end_date,
-        dimensions="ga:date,ga:visitorType",
-        metrics="ga:avgDomContentLoadedTime,ga:speedMetricsSample",
+        dimensions="ga:date,ga:customVarValue1",
+        metrics="ga:avgDomContentLoadedTime,ga:domLatencyMetricsSample",
         filters="ga:pagePath==/;ga:country==United States"
     ).execute()
     return flask.render_template("is-ka-fast-yet.html",

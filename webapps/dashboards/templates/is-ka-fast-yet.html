@@ -82,51 +82,109 @@ function asNamedRow(columnHeaders, resultsRow) {
     return ret;
 }
 
+/**
+ * Merge one row of averaged data into another.
+ *
+ * Arguments:
+ *   namedRow1 - Object. Row of data returned by asNamedRow. Data from
+ *     namedRow2 is merged into this object.
+ *   namedRow2 - Object. Row of data returned by asNamedRow.
+ *   metric - String. Metric name to merge, e.g., avgServerResponseTime.
+ *   sample - String. Sample name for metric, e.g., speedMetricsSample.
+ */
+function mergeAvgMetric(namedRow1, namedRow2, metric, sample) {
+    var total1 = Number(namedRow1[metric]) * Number(namedRow1[sample]);
+    var total2 = Number(namedRow2[metric]) * Number(namedRow2[sample]);
+    var numSamples = Number(namedRow1[sample]) + Number(namedRow2[sample]);
+    namedRow1[metric] = String((total1 + total2) / numSamples);
+    namedRow1[sample] = String(numSamples);
+}
+
+/**
+ * Segment a Google Analytics API JSON response on KA user type.
+ *
+ * KA user data can be segmented into "Logged In", "New", and
+ * "Phantom" types. This function merges the data from "New" and
+ * "Phantom" to represent the segment of non-logged-in users.
+ *
+ * Arguments:
+ *   results - Object. Result of a Google Analytics API call.
+ *
+ * Returns:
+ *   An object whose keys are dates and whose values are objects with
+ *   two keys, "loggedIn" and "loggedOut", whose associated values are
+ *   rows in the format returned by asNamedRow, e.g.,
+ *     {"20140101" -> {loggedIn: {...}, loggedOut: {...}}}
+ */
+function segmentResults(results) {
+    if (!results || !results.rows) {
+        return {};
+    }
+    var mergedResults = {};
+    for (var i = 0; i < results.rows.length; i++) {
+        var row = asNamedRow(results.columnHeaders, results.rows[i]);
+        var dateEntry = mergedResults[row["ga:date"]];
+        if (!dateEntry) {
+            dateEntry = mergedResults[row["ga:date"]] = {};
+        }
+        // customVarValue1 will be one of "Logged In", "New", or "Phantom".
+        if (row["ga:customVarValue1"] == "Logged In") {
+            dateEntry["loggedIn"] = row;
+        } else if (!dateEntry["loggedOut"]) {
+            dateEntry["loggedOut"] = row;
+        } else {
+            // Visits to the logged-out homepage consist of "New" plus
+            // "Phantom" visits which we merge by re-averaging using
+            // the sample count.
+            mergeAvgMetric(
+                dateEntry["loggedOut"], row,
+                "ga:avgDomContentLoadedTime", "ga:domLatencyMetricsSample");
+        }
+    }
+    return mergedResults;
+}
+
 // Called once the visualization package JS is loaded, this renders
 // window.bootstrapData into the chart of DOM Content Loaded metrics.
 function drawChart() {
-    var results = window.bootstrapData;
+    var segmentedData = segmentResults(window.bootstrapData);
     var rows = [];
-    if (results.rows) {
-        for (var i = 0; i < results.rows.length - 1; i += 2) {
-            // The ga:visitorType dimensions alternates on each row as
-            // "New Visitor" then "Returning Visitor".
-            newRow = asNamedRow(results.columnHeaders, results.rows[i]);
-            retRow = asNamedRow(results.columnHeaders, results.rows[i+1]);
-            if (newRow["ga:visitorType"] == "New Visitor"
-                    && retRow["ga:visitorType"] == "Returning Visitor") {
-                rows.push({c:[{v:parseAnalyticsApiDate(newRow["ga:date"])},
-                              {v:Number(newRow["ga:avgDomContentLoadedTime"]),
-                               f:formatDataPoint(newRow["ga:avgDomContentLoadedTime"],
-                                                 newRow["ga:speedMetricsSample"])},
-                              {v:Number(retRow["ga:avgDomContentLoadedTime"]),
-                               f:formatDataPoint(retRow["ga:avgDomContentLoadedTime"],
-                                                 retRow["ga:speedMetricsSample"])},
-                              // Threshold series.
-                              {v:0.5, f:""}]});
-            } else {
-                console.error(
-                    'expected ga:visitorType "New Visitor" then ' +
-                    '"Returning Visitor" but saw "' +
-                    newRow["ga:visitorType"] + '" then "' +
-                    retRow["ga:visitorType"] + '"');
-            }
+    function metricField(row, metric, sample) {
+        if (row === undefined) {
+            return null;
+        }
+        return {v: Number(row[metric]),
+                f: formatDataPoint(row[metric], row[sample])};
+    }
+
+    for (var date in segmentedData) {
+        if (segmentedData.hasOwnProperty(date)) {
+            rows.push({c: [{v: parseAnalyticsApiDate(date)},
+                           metricField(segmentedData[date]["loggedIn"],
+                                       "ga:avgDomContentLoadedTime",
+                                       "ga:domLatencyMetricsSample"),
+                           metricField(segmentedData[date]["loggedOut"],
+                                       "ga:avgDomContentLoadedTime",
+                                       "ga:domLatencyMetricsSample"),
+                           // Threshold series.
+                           {v: 0.5, f: ""}]});
         }
     }
 
     var dataTable = new google.visualization.DataTable({
         cols: [{label: "Date", type: "date"},
-               {label: "New User", type: "number"},
-               {label: "Returning User", type: "number"},
+               {label: "Logged In", type: "number"},
+               {label: "Logged Out", type: "number"},
                {label: "500ms", type: "number"}
               ],
         rows: rows
     });
 
     var options = {
-        title: 'Avg. DOMContentLoaded in Seconds for "/"',
+        title: 'Timing Metrics for "/" on khanacademy.org',
         legend: {position: "top"},
         focusTarget: "category",
+        vAxis: {"title": "Avg. DOMContentLoaded (seconds)"},
         series: [
             {color: "#89b908"},  // KA green
             {color: "#8e4c9b"},  // KA purple
