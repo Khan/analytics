@@ -519,7 +519,7 @@ def graph_analytics_multi_sample(data, n, min_problems=0, num_samples=5,
     for j in xrange(len(efficiency)):
         label = str(j) if j > 0 else "0 (All)"
         plt.plot(np.cumsum(efficiency[j]), label=label)
-    plt.legend()
+    plt.legend(loc='upper left')
     graph_and_save('eff-total-%.2f' % sample_ratio, n, min_problems)
 
     # learning gain
@@ -533,7 +533,7 @@ def graph_analytics_multi_sample(data, n, min_problems=0, num_samples=5,
     for j in xrange(len(learning_gain)):
         label = str(j) if j > 0 else "0 (All)"
         plt.plot(np.cumsum(learning_gain[j]), label=label)
-    plt.legend()
+    plt.legend(loc='upper left')
     graph_and_save('learn-gain-total-%.2f' % sample_ratio, n, min_problems)
 
     # efficiency raw
@@ -547,7 +547,7 @@ def graph_analytics_multi_sample(data, n, min_problems=0, num_samples=5,
     for j in xrange(len(efficiency_raw)):
         label = str(j) if j > 0 else "0 (All)"
         plt.plot(np.cumsum(efficiency_raw[j]), label=label)
-    plt.legend()
+    plt.legend(loc='upper left')
     graph_and_save('eff-raw-total-%.2f' % sample_ratio, n, min_problems)
 
 
