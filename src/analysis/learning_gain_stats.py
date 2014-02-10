@@ -454,14 +454,11 @@ def graph_analytics_multi_sample(data, n, min_problems=0, num_samples=5,
         m = min(len(task_types), n)
         num_mastery = 0
         cards = []
-        first_mastery = None
         for i in xrange(m):
             if task_types[i] <= 4:
                 num_mastery += 1
-                if first_mastery is None:
-                    first_mastery = i
             if task_types[i] == 0:  # mastery.analytics
-                cards.append((i - first_mastery, corrects[i]))
+                cards.append((i, corrects[i]))
         if len(cards) >= 2:
             analytics_data.append(cards)
     print 'Users with at least 2 analytics cards: %d' % len(analytics_data)
