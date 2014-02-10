@@ -454,11 +454,14 @@ def graph_analytics_multi_sample(data, n, min_problems=0, num_samples=5,
         m = min(len(task_types), n)
         num_mastery = 0
         cards = []
+        first_mastery = None
         for i in xrange(m):
             if task_types[i] <= 4:
                 num_mastery += 1
+                if first_mastery is None:
+                    first_mastery = i
             if task_types[i] == 0:  # mastery.analytics
-                cards.append((i, corrects[i]))
+                cards.append((i - first_mastery, corrects[i]))
         if len(cards) >= 2:
             analytics_data.append(cards)
     print 'Users with at least 2 analytics cards: %d' % len(analytics_data)
@@ -488,7 +491,7 @@ def graph_analytics_multi_sample(data, n, min_problems=0, num_samples=5,
                 sample = random.sample(analytics_data, sample_size)
         for cards in sample:
             # add counts to beginning to smooth out initial part
-            eff_max[:cards[0][0]] += 1
+            # eff_max[:cards[0][0]] += 1
             for i in xrange(1, len(cards)):
                 prev = cards[i - 1][0]
                 cur = cards[i][0]
@@ -502,7 +505,7 @@ def graph_analytics_multi_sample(data, n, min_problems=0, num_samples=5,
         eff_norm = normalize_zero(eff, eff_max)[:-tail]
         efficiency.append(eff_norm)
         learning_gain.append(eff_norm * eng[-tail])
-        efficiency_raw.append(eff / len(sample))
+        efficiency_raw.append(eff[:-tail] / len(sample))
         f.write('Sample %d\nEff:\n%s\nEff Max:\n%s\n' % (j, eff, eff_max))
         f.write('Eng:\n%s\nGain:\n%s\n' % (eng, learning_gain[-1]))
         f.write('\n')
