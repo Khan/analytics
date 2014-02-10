@@ -501,7 +501,7 @@ def graph_analytics_multi_sample(data, n, min_problems=0, num_samples=5,
             eng[:cards[-1][0]] += 1
         eff_norm = normalize_zero(eff, eff_max)[:-tail]
         efficiency.append(eff_norm)
-        learning_gain.append(eff_norm * eng[-tail])
+        learning_gain.append(eff_norm * eng[-tail] / len(sample))
         efficiency_raw.append(eff[:-tail] / len(sample))
         f.write('Sample %d\nEff:\n%s\nEff Max:\n%s\n' % (j, eff, eff_max))
         f.write('Eng:\n%s\nGain:\n%s\n' % (eng, learning_gain[-1]))
@@ -524,7 +524,7 @@ def graph_analytics_multi_sample(data, n, min_problems=0, num_samples=5,
 
     # learning gain
     plt.figure()
-    plt.title('Total Learning Gain'
+    plt.title('Total Per-User Learning Gain'
               ' (Min Problems: %d)\n'
               'Sample Ratio: %.2f%s' % (min_problems, sample_ratio,
                                         ' (Disjoint)' if disjoint else ''))
