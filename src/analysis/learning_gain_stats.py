@@ -476,10 +476,12 @@ def graph_accuracy_delta_by_population(analytics_data, problem_counts,
     plt.xlabel('Bucket Number (%d Problems)' % bucket_size)
     plt.ylabel('Average "Last - First" Accuracy on Analytics Cards')
     for j in xrange(len(accuracies)):
-        label = str(j) if j > 0 else "0 (All)"
-        plt.plot(accuracies[j], 'o-', label=label)
-    plt.legend()
-    graph_and_save('diff-by-bucket-%.2f' % sample_ratio, n, min_problems)
+        label, format, lw = ((str(j), 'o-', 1.0) if j > 0 else
+                             ('0 (All)', 's-', 3.0))
+        plt.plot(accuracies[j], format, label=label, linewidth=lw)
+    # plt.legend()
+    graph_and_save('diff-by-bucket-%d-%.2f' % (bucket_size, sample_ratio),
+                   n, min_problems)
     # plot full distribution
     # TODO
 
