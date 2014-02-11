@@ -444,12 +444,53 @@ def graph_analytics_accuracy(data, n, min_problems=0):
     graph_and_save('analytics_accuracy_mastery', n, min_problems)
 
 
+def graph_accuracy_delta_by_population(analytics_data, problem_counts,
+                                       n, min_problems, num_samples=5):
+    random.seed(0)
+    sample_ratio = 1.0 / (num_samples - 1)
+    sample_size = int(sample_ratio * len(analytics_data))
+    remaining = set(range(len(analytics_data)))
+    bucket_size = 50
+    accuracies = []
+    # TODO(tony): do breakdown of 00 01 10 11 by population...
+    for j in xrange(num_samples):
+        accuracy_by_bucket = [[] for i in xrange(n / bucket_size + 1)]
+        if j == 0:  # use the first sample as all data
+            assert len(analytics_data) == len(problem_counts)
+            sample = zip(analytics_data, problem_counts)
+        else:
+            sample = random.sample(remaining, sample_size)
+            remaining = remaining - set(sample)
+            sample = [(analytics_data[i], problem_counts[i]) for i in sample]
+        for cards, count in sample:
+            delta = cards[-1][1] - cards[0][1]
+            accuracy_by_bucket[min(count, n) / bucket_size].append(delta)
+        accuracies.append([np.mean(acc) for acc in accuracy_by_bucket])
+        print j, np.array([np.mean(acc) for acc in accuracy_by_bucket])
+
+    # plot accuracies
+    plt.figure()
+    plt.title('Delta Accuracy By Problems Done'
+              ' (Min Problems: %d)\n'
+              'Sample Ratio: %.2f (Disjoint)' % (min_problems, sample_ratio))
+    plt.xlabel('Bucket Number (%d Problems)' % bucket_size)
+    plt.ylabel('Average "Last - First" Accuracy on Analytics Cards')
+    for j in xrange(len(accuracies)):
+        label = str(j) if j > 0 else "0 (All)"
+        plt.plot(accuracies[j], 'o-', label=label)
+    plt.legend()
+    graph_and_save('diff-by-bucket-%.2f' % sample_ratio, n, min_problems)
+    # plot full distribution
+    # TODO
+
+
 def graph_analytics_multi_sample(data, n, min_problems=0, num_samples=5,
                                  sample_ratio=.5, disjoint=False, tail=50):
     if min_problems > 0:
         data = filter_for_min_problems(data, n)
 
     analytics_data = []
+    problem_counts = []
     for task_types, corrects in data:
         m = min(len(task_types), n)
         num_mastery = 0
@@ -461,8 +502,14 @@ def graph_analytics_multi_sample(data, n, min_problems=0, num_samples=5,
                 cards.append((i, corrects[i]))
         if len(cards) >= 2:
             analytics_data.append(cards)
+            problem_counts.append(m)
     print 'Users with at least 2 analytics cards: %d' % len(analytics_data)
 
+    # breakdown of last minus first by user population
+    graph_accuracy_delta_by_population(analytics_data, problem_counts,
+                                       n, min_problems, num_samples)
+
+    # efficiency, engagement, learning gain curves
     random.seed(0)
     if disjoint:
         sample_ratio = 1.0 / (num_samples - 1)
