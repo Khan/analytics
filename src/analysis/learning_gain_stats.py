@@ -73,6 +73,26 @@ def read_data_csv(filename=None, num_rows=2):
     return data
 
 
+def read_data_csv_alt(filename=None, num_rows=2):
+    data = []
+    with (sys.stdin if filename is None else open(filename, 'r')) as f:
+        reader = csv.reader(f)
+        i = 0
+        for row in reader:
+            # TODO(tony): redo the format so extra info comes at the end!
+            if i == 0:
+                alt = int(row[0])
+            elif i == 1:
+                prev = csv_to_array(row)
+            elif i == 2:
+                row = csv_to_array(row)
+                data.append((prev, row, alt))
+                if len(data) % 10000 == 0:
+                    print '%d processed...' % len(data)
+            i = (i + 1) % num_rows
+    return data
+
+
 def read_data_list(filename=None):
     if filename is None:
         f = sys.stdin
@@ -445,10 +465,11 @@ def graph_analytics_accuracy(data, n, min_problems=0):
 
 
 def graph_accuracy_delta_by_population(analytics_data, problem_counts,
-                                       n, min_problems, num_samples=5):
+                                       n, min_problems, num_samples,
+                                       groups):
     random.seed(0)
     sample_ratio = 1.0 / (num_samples - 1)
-    sample_size = int(sample_ratio * len(analytics_data))
+    # sample_size = int(sample_ratio * len(analytics_data))
     remaining = set(range(len(analytics_data)))
     bucket_size = 50
     accuracies = []
@@ -459,7 +480,9 @@ def graph_accuracy_delta_by_population(analytics_data, problem_counts,
             assert len(analytics_data) == len(problem_counts)
             sample = zip(analytics_data, problem_counts)
         else:
-            sample = random.sample(remaining, sample_size)
+            # sample = random.sample(remaining, sample_size)
+            sample = filter(lambda i: groups[i] == j - 1,
+                            range(len(analytics_data)))
             remaining = remaining - set(sample)
             sample = [(analytics_data[i], problem_counts[i]) for i in sample]
         for cards, count in sample:
@@ -493,7 +516,9 @@ def graph_analytics_multi_sample(data, n, min_problems=0, num_samples=5,
 
     analytics_data = []
     problem_counts = []
-    for task_types, corrects in data:
+    groups = []
+    # for task_types, corrects in data:
+    for task_types, corrects, alternative in data:
         m = min(len(task_types), n)
         num_mastery = 0
         cards = []
@@ -505,11 +530,13 @@ def graph_analytics_multi_sample(data, n, min_problems=0, num_samples=5,
         if len(cards) >= 2:
             analytics_data.append(cards)
             problem_counts.append(m)
+            groups.append(alternative)
     print 'Users with at least 2 analytics cards: %d' % len(analytics_data)
 
     # breakdown of last minus first by user population
     graph_accuracy_delta_by_population(analytics_data, problem_counts,
-                                       n, min_problems, num_samples)
+                                       n, min_problems, num_samples,
+                                       groups)
 
     # efficiency, engagement, learning gain curves
     random.seed(0)
@@ -530,7 +557,9 @@ def graph_analytics_multi_sample(data, n, min_problems=0, num_samples=5,
             sample = analytics_data
         else:
             if disjoint:
-                sample = random.sample(remaining, sample_size)
+                # sample = random.sample(remaining, sample_size)
+                sample = filter(lambda i: groups[i] == j - 1,
+                                range(len(analytics_data)))
                 remaining = remaining - set(sample)
                 sample = [analytics_data[i] for i in sample]
             else:
@@ -646,7 +675,7 @@ def main():
 
     # run!
     start = time.time()
-    data = read_data_csv(filename, 2)
+    data = read_data_csv_alt(filename, 5)
     print 'Done reading input, elapsed: %f' % (time.time() - start)
     print 'Users: %d' % len(data)
     print 'Users (min_problems=%d): %d' % (min_problems,
@@ -682,8 +711,9 @@ def main():
     print 'Generating analytics cards stats'
     # graph_analytics(data, n, min_problems)
     # graph_analytics_accuracy(data, n, min_problems)
-    graph_analytics_multi_sample(data, n, min_problems, 5, 0.5, True, 50)
-    graph_analytics_multi_sample(data, n, min_problems, 11, 0.5, True, 50)
+    # graph_analytics_multi_sample(data, n, min_problems, 5, 0.5, True, 50)
+    # graph_analytics_multi_sample(data, n, min_problems, 11, 0.5, True, 50)
+    graph_analytics_multi_sample(data, n, min_problems, 4, 0.5, True, 50)
     print 'Done graphing analytics, elapsed: %f' % (time.time() - start)
 
 if __name__ == '__main__':
