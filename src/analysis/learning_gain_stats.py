@@ -498,10 +498,10 @@ def graph_accuracy_delta_by_population(analytics_data, problem_counts,
     plt.xlabel('Bucket Number (%d Problems)' % bucket_size)
     plt.ylabel('Average "Last - First" Accuracy on Analytics Cards')
     for j in xrange(len(accuracies)):
-        label, format, lw = ((str(j), 'o-', 1.0) if j > 0 else
-                             ('0 (All)', 's-', 3.0))
+        label, format, lw = ((str(j - 1), 'o-', 1.0) if j > 0 else
+                             ('All', 's-', 3.0))
         plt.plot(accuracies[j], format, label=label, linewidth=lw)
-    # plt.legend()
+    plt.legend()
     graph_and_save('diff-by-bucket-%d-%.2f' % (bucket_size, sample_ratio),
                    n, min_problems)
     # plot full distribution
@@ -608,7 +608,7 @@ def graph_analytics_multi_sample(data, n, min_problems=0, num_samples=5,
     plt.xlabel('Problem Number')
     plt.ylabel('Learning Gain')
     for j in xrange(len(learning_gain)):
-        label = str(j) if j > 0 else "0 (All)"
+        label = str(j - 1) if j > 0 else "All"
         plt.plot(np.cumsum(learning_gain[j]), label=label)
     plt.legend(loc='upper left')
     graph_and_save('learn-gain-total-%.2f' % sample_ratio, n, min_problems)
@@ -678,7 +678,7 @@ def main():
     print 'Done reading input, elapsed: %f' % (time.time() - start)
     print 'Users: %d' % len(data)
     print 'Users (min_problems=%d): %d' % (min_problems,
-        sum([len(t) >= min_problems for t, c in data]))
+        sum([len(r[0]) >= min_problems for r in data]))
 
     # store output in FIG_PATH/FOLDER_NAME
     FOLDER_NAME = parse_filename(filename)
