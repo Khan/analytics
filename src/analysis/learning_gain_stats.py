@@ -62,9 +62,9 @@ def read_data_csv(filename=None, num_rows=2):
         reader = csv.reader(f)
         i = 0
         for row in reader:
-            if i % num_rows == 0:
+            if i == 0:
                 prev = csv_to_array(row)
-            elif i % num_rows == 1:
+            elif i == 1:
                 row = csv_to_array(row)
                 data.append((prev, row))
                 if len(data) % 10000 == 0:
@@ -73,20 +73,19 @@ def read_data_csv(filename=None, num_rows=2):
     return data
 
 
-def read_data_csv_alt(filename=None, num_rows=2):
+def read_data_csv_alt(filename=None, num_rows=5):
     data = []
     with (sys.stdin if filename is None else open(filename, 'r')) as f:
         reader = csv.reader(f)
         i = 0
         for row in reader:
-            # TODO(tony): redo the format so extra info comes at the end!
             if i == 0:
-                alt = int(row[0])
+                prev0 = csv_to_array(row)
             elif i == 1:
-                prev = csv_to_array(row)
-            elif i == 2:
-                row = csv_to_array(row)
-                data.append((prev, row, alt))
+                prev1 = csv_to_array(row)
+            elif i == 4:
+                alt = int(row[0])
+                data.append((prev0, prev1, alt))
                 if len(data) % 10000 == 0:
                     print '%d processed...' % len(data)
             i = (i + 1) % num_rows
