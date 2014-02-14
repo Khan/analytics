@@ -39,7 +39,7 @@ def read_data(filename):
         for row in reader:
             user_id = row[user_id_index]
             exercise = row[exercise_index]
-            correct = bool(row[correct_index])
+            correct = 1 if row[correct_index] == 'true' else 0
             if prev_user_id is None or user_id != prev_user_id:
                 prev_user_id = user_id
                 data.append([])
@@ -66,6 +66,10 @@ def get_exercises(data, min_problems):
     exercises.sort()
 
     return exercises
+
+
+def graph_by_difficulty():
+    pass
 
 
 def compute_and_write(data, min_problems, filename):
@@ -100,19 +104,25 @@ def compute_and_write(data, min_problems, filename):
             if prev_e:
                 i = exercise_to_index[prev_e]
                 j = exercise_to_index[e]
-                if prev_c:
-                    p1[i][0][j] += c
-                    p1[i][1][j] += 1
-                else:
+                if prev_c == 0:
                     p0[i][0][j] += c
                     p0[i][1][j] += 1
+                else:
+                    p1[i][0][j] += c
+                    p1[i][1][j] += 1
             prev_e, prev_c = e, c
 
+    print np.sum(p0)
+    print np.sum(p1)
+
+    with open('tmp.txt', 'w') as f:
+        f.write(str(p0) + '\n')
+        f.write(str(p1) + '\n')
     # TODO(tony): plot overall exercise accuracy by these values?
     with open(filename, 'w') as f:
         for i, e in enumerate(exercises):
-            prob0 = np.mean(p0[i][0] / p0[i][1])
-            prob1 = np.mean(p1[i][0] / p1[i][1])
+            prob0 = 1.0 * (np.sum(p0[i][0]) / np.sum(p0[i][1]))
+            prob1 = 1.0 * (np.sum(p1[i][0]) / np.sum(p1[i][1]))
             f.write('%s,%.5f,%.5f\n' % (e, prob0, prob1))
 
 
