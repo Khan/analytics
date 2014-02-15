@@ -25,7 +25,9 @@ import matplotlib.pyplot as plt
 
 
 def read_data(filename):
-    data = []
+    # BigQuery can't handle sorting so we do it here
+    data = {}
+
     with (sys.stdin if filename is None else open(filename, 'r')) as f:
         reader = csv.reader(f)
         header = reader.next()
@@ -34,19 +36,24 @@ def read_data(filename):
         user_id_index = header.index('user_id')
         exercise_index = header.index('exercise')
         correct_index = header.index('correct')
+        time_done_index = header.index('time_done')
 
         # break down analytics cards by user_id
-        prev_user_id = None
+        i = 0
         for row in reader:
             user_id = row[user_id_index]
             exercise = row[exercise_index]
             correct = 1 if row[correct_index] == 'true' else 0
-            if prev_user_id is None or user_id != prev_user_id:
-                prev_user_id = user_id
-                data.append([])
-            data[-1].append((exercise, correct))
+            time_done = int(row[time_done_index])
+            if user_id not in data:
+                data[user_id] = []
+            data[user_id].append((time_done, exercise, correct))
+            i += 1
+            if i % 100000 == 0:
+                print 'Processed %d' % i
 
-    return data
+    # we remove the timestamp and turn everything into a list
+    return [[(e, c) for t, e, c in sorted(row)] for row in data.values()]
 
 
 def get_exercises(data, min_problems):
@@ -148,6 +155,8 @@ def compute_and_write(data, min_problems, filename):
         f.write(str(p0) + '\n')
         f.write(str(p1) + '\n')
     """
+    print np.array(sorted([np.sum(p0[i][1] for i in xrange(n))]))
+    print np.array(sorted([np.sum(p1[i][1] for i in xrange(n))]))
 
     # A list of (global_prob, prob0, prob1)
     prob_all = []
@@ -159,6 +168,10 @@ def compute_and_write(data, min_problems, filename):
             prob1 = 1.0 * (np.sum(p1[i][0]) / np.sum(p1[i][1]))
             f.write('%s,%.5f,%.5f\n' % (e, prob0, prob1))
             prob_all.append((p[i][0] / p[i][1], prob0, prob1))
+            if prob0 < 0.2:
+                print e, i
+                print p[i][0] / p[i][1], prob0, prob1
+                print p[i][1], np.sum(p0[i][1]), np.sum(p1[i][1])
 
     # Plot overall exercise accuracy by these values
     graph_by_difficulty(prob_all, min_problems)
@@ -171,7 +184,7 @@ def main():
         help='input file (default is stdin)')
     parser.add_argument('-m', '--min-problems',
         help='minimum number of samples for filtering exercises',
-        type=int, default=1000)
+        type=int, default=10000)
 
     args = parser.parse_args()
 
