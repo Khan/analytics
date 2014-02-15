@@ -21,6 +21,7 @@ import sys
 import time
 
 import numpy as np
+import matplotlib.pyplot as plt
 
 
 def read_data(filename):
@@ -68,8 +69,28 @@ def get_exercises(data, min_problems):
     return exercises
 
 
-def graph_by_difficulty():
-    pass
+def graph_by_difficulty(prob_all, min_problems):
+    prob_all.sort()
+    prob_all = np.array(prob_all)
+    p = prob_all[:, 0]
+    p0 = prob_all[:, 1]
+    p1 = prob_all[:, 2]
+
+    plt.figure()
+
+    plt.title('Conditional Probabilities on Analytics Cards')
+    plt.xlabel('Exercise (sorted by average accuracy)')
+    plt.ylabel('Accuracy')
+    plt.plot(p, label='p_global')
+    plt.plot(p0, label='p_0')
+    plt.plot(p1, label='p_1')
+    plt.legend(loc='upper center')
+
+    filename = 'conditional-prob-%d.png' % min_problems
+    print 'Saving... %s' % filename
+    plt.savefig(filename)
+    # plt.show()
+    plt.clf()
 
 
 def compute_and_write(data, min_problems, filename):
@@ -93,6 +114,9 @@ def compute_and_write(data, min_problems, filename):
     p0 = np.zeros((n, 2, n))
     p1 = np.zeros((n, 2, n))
 
+    # global probabilities for each exercise
+    p = np.zeros((n, 2))
+
     for row in data:
         prev_e, prev_c = None, False
         for e, c in row:
@@ -100,10 +124,13 @@ def compute_and_write(data, min_problems, filename):
             if e not in exercise_to_index:
                 continue
 
+            j = exercise_to_index[e]
+            p[j][0] += c
+            p[j][1] += 1
+
             # look at our current pair!
             if prev_e:
                 i = exercise_to_index[prev_e]
-                j = exercise_to_index[e]
                 if prev_c == 0:
                     p0[i][0][j] += c
                     p0[i][1][j] += 1
@@ -112,18 +139,29 @@ def compute_and_write(data, min_problems, filename):
                     p1[i][1][j] += 1
             prev_e, prev_c = e, c
 
-    print np.sum(p0)
-    print np.sum(p1)
+    print 'Count, all:', int(np.sum(p) / 2)
+    print 'Count, prev 0:', int(np.sum(p0) / 2)
+    print 'Count, prev 1:', int(np.sum(p1) / 2)
 
+    """
     with open('tmp.txt', 'w') as f:
         f.write(str(p0) + '\n')
         f.write(str(p1) + '\n')
-    # TODO(tony): plot overall exercise accuracy by these values?
+    """
+
+    # A list of (global_prob, prob0, prob1)
+    prob_all = []
+
+    # Write results
     with open(filename, 'w') as f:
         for i, e in enumerate(exercises):
             prob0 = 1.0 * (np.sum(p0[i][0]) / np.sum(p0[i][1]))
             prob1 = 1.0 * (np.sum(p1[i][0]) / np.sum(p1[i][1]))
             f.write('%s,%.5f,%.5f\n' % (e, prob0, prob1))
+            prob_all.append((p[i][0] / p[i][1], prob0, prob1))
+
+    # Plot overall exercise accuracy by these values
+    graph_by_difficulty(prob_all, min_problems)
 
 
 def main():
