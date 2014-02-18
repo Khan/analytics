@@ -836,8 +836,8 @@ class WebpagetestInputs(object):
         'Dulles:Firefox',
         'Dulles_IE8',
         'Dulles_IE9',
-        'SanJose_IE9',
-        'London_IE8',
+        'LosAngeles_IE9',
+        'London_IE9',
     )
 
     _URLS_TO_TEST = (
