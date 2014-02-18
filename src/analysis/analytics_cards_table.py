@@ -49,7 +49,7 @@ def read_data(filename):
                 data[user_id] = []
             data[user_id].append((time_done, exercise, correct))
             i += 1
-            if i % 100000 == 0:
+            if i % 500000 == 0:
                 print 'Processed %d' % i
 
     # we remove the timestamp and turn everything into a list
@@ -155,8 +155,8 @@ def compute_and_write(data, min_problems, filename):
         f.write(str(p0) + '\n')
         f.write(str(p1) + '\n')
     """
-    print np.array(sorted([np.sum(p0[i][1] for i in xrange(n))]))
-    print np.array(sorted([np.sum(p1[i][1] for i in xrange(n))]))
+    print np.array(sorted([np.sum(p0[i][1]) for i in xrange(n)]))
+    print np.array(sorted([np.sum(p1[i][1]) for i in xrange(n)]))
 
     # A list of (global_prob, prob0, prob1)
     prob_all = []
