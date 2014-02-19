@@ -23,9 +23,17 @@ class RandomFeatures:
             self.set_components(pickle.load(f))
 
     def set_components(self, component_dict):
-        # TODO(jace) assert all component vectors have same length
+        """Updates the set of components, and disables creation of any new
+        components. You can turn creation of new components back on by setting
+        dynamic_mode = True.
+        """
+        if not all(
+                self.num_features == len(v) for v in component_dict.values()):
+            raise ValueError("Feature vectors were not all of %d length.",
+                self.num_features)
+
         self.num_features = component_dict[component_dict.keys()[0]].size
-        self.random_components = component_dict
+        self.random_components.update(component_dict)
         self.dynamic_mode = False
         self.reset_features()
 

@@ -13,10 +13,10 @@ class FieldIndexer:
             'time_taken', 'problem_number', 'correct', 'scheduler_info',
             'user_segment', 'dt']
 
-    plog_fields = ['user', 'time_done', 'rowtype', 'exercise', 'problem_type',
+    plog_fields = ['user', 'time_done', 'exercise', 'problem_type',
             'seed', 'time_taken', 'problem_number', 'correct',
             'number_attempts', 'number_hints', 'eventually_correct',
-            'topic_mode', 'dt']
+            'review_mode', 'task_type', 'skipped', 'dt']
 
 
 def sequential_problem_numbers(attempts, idx):

@@ -2,8 +2,15 @@
 
 For more detail on the expected format of the input data, see FeaturesetFields
 below, or accuracy_model_featureset.py.
+
+TODO(mattfaus): Some performance benefits could be gained by:
+- Separating the file processing from the model training.  As a model is being
+    trained, we could be collecting and pre-processing the next set of data.
 """
 
+import affinity
+import datetime
+import multiprocessing
 import optparse
 import pickle
 import sys
@@ -11,23 +18,34 @@ import sys
 import numpy as np
 from sklearn.ensemble import RandomForestClassifier
 
+# necessary to do this after importing numpy to take avantage of
+# multiple cores on unix
+affinity.set_process_affinity_mask(0, 2 ** multiprocessing.cpu_count() - 1)
+
 import accuracy_model_util
 import regression_util
 
 # Minimum number of data samples required to fit a model.  Exercises which
 # do not have at least this many problems attempted will not have parameters,
 # and call to predict() will end up emitting None in production.
-MIN_SAMPLES = 5000
+# As a rule of thumb, this number should be at least approximately
+# 10 * NUM_RANDOM_FEATURES
+MIN_SAMPLES = 2500
+
 # Max number of data samples used to fit a model.  We can cap it if we want
 # faster training and are confident that MAX_SAMPLES will be enough data to
 # avoid overfitting.
-MAX_SAMPLES = 50000
+MAX_SAMPLES = 5000000
+
+# TODO(mattfaus): Remove all the code that splits data into test/training and
+# tries to output ROC curves for it since we have compare_accuracy_models.py?
+
 # The amount of data witheld for testing.  This can be an integer number of
 # samples, or a fraction (expressed as a decimal between 0.0 and 1.0).  Note
 # that the choice of a fixed size will affect analysis of model performance
 # that averages across exercises by either equal-weighting performance of
 # each exercise or weighthing proportional to frequency of attempts.
-TEST_SIZE = 500
+TEST_SIZE = 1
 
 
 class FeaturesetFields:
@@ -37,6 +55,7 @@ class FeaturesetFields:
     baseline_prediction = 2
     num_previous_exs = 3
     problem_number = 4
+    attempt_number = 5
 
     # The following feature types may or may not be present in the input data,
     # but if they are, these are the column slices where they should be.
@@ -206,9 +225,9 @@ def fit_model(models, model_key, lines, options):
             lines = lines[:MAX_SAMPLES]
 
         # TODO(jace): why is this check necessary?
-        if 'representing_numbers' in model_key or (
-                'rotation_of_polygons' in model_key):
-            return
+        # if 'representing_numbers' in model_key or (
+        #         'rotation_of_polygons' in model_key):
+        #     return
 
         if options.classifier == 'logistic_log':
             model = fit_logistic_log_regression(lines, options)
@@ -221,6 +240,11 @@ def fit_model(models, model_key, lines, options):
     else:
         print >> sys.stderr, "Insufficient data points (%d) for %s" % (
                 len(lines), model_key)
+
+        models[model_key] = {}
+
+    # Add some meta-data about this model
+    models[model_key]['num_samples'] = len(lines)
 
 
 def summarize_models(models):
@@ -241,7 +265,7 @@ def summarize_models(models):
         print "PREDICT_DIST,%s," % model_key,
         print ",".join([str(q) for q in quants])
 
-    print_roc_curve(roc_curve(labels, predictions))
+        print_roc_curve(roc_curve(labels, predictions))
 
 
 def output_models(models, options):
@@ -250,9 +274,28 @@ def output_models(models, options):
     with open(options.rand_comp_file, 'r') as infile:
         random_components = pickle.load(infile)
 
-    model_thetas = {k: v['theta'] for k, v in models.iteritems()}
+    model_thetas = {
+        k: v['theta'] for k, v in models.iteritems()
+        if 'theta' in v
+    }
 
-    output = {"components": random_components, "thetas": model_thetas}
+    output = {
+        "components": random_components,
+        "thetas": model_thetas,
+        "training_info": {
+            "timestamp": datetime.datetime.now().isoformat(),
+            "classifier": options.classifier,
+            "bias_included": not options.no_bias,
+            "feature_list": options.feature_list,
+            "random_component_file": options.rand_comp_file,
+            "min_samples": MIN_SAMPLES,
+            "max_samples": MAX_SAMPLES,
+            "samples_per_exercise": {
+                k: v['num_samples'] for k, v in models.iteritems()
+            },
+        }
+    }
+
     assert options.output_model_file, "Specify output model file."
     with open(options.output_model_file, 'w') as outfile:
         pickle.dump(output, outfile)
@@ -271,8 +314,8 @@ def get_cmd_line_options():
             help="Whether to omit using a bias in the feature set.  By "
                  "default a bias unit is included.")
     parser.add_option("-r", "--rand_comp_file",
-            help="Name of a file to optionally write the random components "
-                 "to.")
+            help="Name of a file to optionally read the random components "
+                 "from.  Required to write the model file.")
     parser.add_option("-o", "--output_model_file",
             help="Name of a file you optionally want to write a pickeled "
                  "file of all the models to.")
@@ -315,7 +358,9 @@ def main():
     # one last time for the final model_key
     fit_model(models, model_key, lines, options)
 
-    summarize_models(models)
+    # TODO(mattfaus): Remove this? It's no longer necessary due to
+    # compare_accuracy_models.py
+    # summarize_models(models)
 
     if options.output_model_file:
         output_models(models, options)
