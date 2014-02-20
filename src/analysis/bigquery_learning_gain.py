@@ -15,6 +15,7 @@ Setup notes:
 import httplib2
 import os
 import pprint
+import time
 
 from apiclient.discovery import build
 from apiclient.errors import HttpError
@@ -51,25 +52,84 @@ def get_bigquery_service():
     http = httplib2.Http()
     http = credentials.authorize(http)
 
-    bigquery_service = build('bigquery', 'v2', http=http)
+    service = build('bigquery', 'v2', http=http)
 
-    return bigquery_service
+    return service
 
 
-def run_query(query_string, destination_table, allow_large_results=True):
+def run_query(service, project_id, query_string,
+              destination_table, allow_large_results=True):
+    # Must use the async version to specify configuration
+    query_request = service.jobs()
+    query_data = {
+        'configuration': {
+            'query': {
+                'destinationTable': {
+                    'projectId': project_id,
+                    'tableId': destination_table,
+                    'datasetId': 'tony',  # TODO(tony): don't hard-code this
+                },
+                'priority': 'INTERACTIVE',
+                'writeDisposition': 'WRITE_TRUNCATE',  # Overwrite
+                'allowLargeResults': allow_large_results,
+                'createDisposition': 'CREATE_IF_NEEDED',
+                'query': query_string,
+            },
+        },
+    }
+
+    try:
+        query_response = query_request.insert(projectId=project_id,
+                                              body=query_data).execute()
+        # Poll until this is done...
+        start_status = query_response['status']
+        start_time = time.time()
+        print 'Status', start_status
+        while query_response['status'] == start_status:
+            print 'Sleeping...'
+            time.sleep(1.0)
+            query_response = query_request.getQueryResults(
+                projectId=project_id,
+                jobId=query_response['jobReference']['jobId']
+            ).execute()
+        print 'Status', query_response['status']
+        print 'Elapsed', time.time() - start_time
+
+    except HttpError as err:
+        print 'Error:', pprint.pprint(err.content)
+
+    except AccessTokenRefreshError:
+        print ("Credentials have been revoked or expired, please re-run"
+         "the application to re-authorize")
+
+
+def generate_learning_gain(service, project_id, experiment_name,
+                           start_date, backup_date):
+    # Query 1:
     pass
 
 
 def main():
-    bigquery_service = get_bigquery_service()
+    service = get_bigquery_service()
     project_id = get_project_id()
 
+    query_string = (
+        'SELECT title, COUNT(*) as revision_count'
+        ' FROM [publicdata:samples.wikipedia]'
+        ' WHERE wp_namespace = 0'
+        ' GROUP EACH BY title'
+        ' LIMIT 20'
+    )
+    run_query(service, project_id, query_string, 'tmp')
+
+    """
     try:
-        query_request = bigquery_service.jobs()
+        query_request = service.jobs()
         query_data = {'query': (
-                'SELECT TOP( title, 10) as title, COUNT(*) as revision_count'
+                'SELECT TOP(title, 10) as title, COUNT(*) as revision_count'
                 ' FROM [publicdata:samples.wikipedia] WHERE wp_namespace = 0;'
-            )
+            ),
+            'timeoutMs': 60 * 1000,
         }
         query_response = query_request.query(projectId=project_id,
                                              body=query_data).execute()
@@ -86,6 +146,7 @@ def main():
     except AccessTokenRefreshError:
         print ("Credentials have been revoked or expired, please re-run"
          "the application to re-authorize")
+    """
 
 
 if __name__ == '__main__':
