@@ -59,8 +59,8 @@ def get_bigquery_service():
 
 def run_query(service, project_id, query_string,
               destination_table, allow_large_results=True):
+    print '\nQuery:\n%s' % query_string
     # Must use the async version to specify configuration
-    query_request = service.jobs()
     query_data = {
         'configuration': {
             'query': {
@@ -79,8 +79,10 @@ def run_query(service, project_id, query_string,
     }
 
     try:
+        query_request = service.jobs()
         query_response = query_request.insert(projectId=project_id,
                                               body=query_data).execute()
+
         # Poll until this is done...
         start_time = time.time()
         while True:
@@ -89,12 +91,13 @@ def run_query(service, project_id, query_string,
                 jobId=query_response['jobReference']['jobId']
             ).execute()
             status = query_response['status']['state']
+
+            print 'Elapsed: %.1fs, status: %s' % (
+                time.time() - start_time, status)
+
             if status == 'DONE':
-                print 'Total elapsed: %3f' % (time.time() - start_time)
                 break
             else:
-                print 'Sleeping... elapsed: %.3f, current status: %s' % (
-                    time.time() - start_time, status)
                 time.sleep(1.0)
 
     except HttpError as err:
@@ -108,18 +111,73 @@ def run_query(service, project_id, query_string,
 def generate_learning_gain(service, project_id, experiment_name,
                            start_date, backup_date):
     # Query 1:
-    pass
+    # TODO(tony): generate analytics_cards_1 table (rename?)
+
+    # Query 2: exp_analytics
+    query_string = (
+        'SELECT user_id, correct, time_done\n'
+        'FROM [tony.analytics_cards_1]\n'
+        'WHERE task_type = \'mastery.analytics\'\n'
+        'AND time_done >= TIMESTAMP(\'%s 00:00:00\')\n'
+    ) % start_date
+    run_query(service, project_id, query_string, 'exp_analytics')
+
+    # Query 3: exp_analytics_min_max
+    query_string = (
+        'SELECT user_id,\n'
+        '  MIN(time_done) AS min_time,\n'
+        '  MAX(time_done) AS max_time\n'
+        'FROM [tony.exp_analytics]\n'
+        'GROUP BY user_id\n'
+    )
+    run_query(service, project_id, query_string, 'exp_analytics_min_max')
+
+    # Query 4: exp_user_bingo
+    query_string = (
+        'SELECT ud.user_id AS user_id, bm.alternative AS alternative\n'
+        'FROM\n'
+        '  (SELECT user_id, gae_bingo_identity\n'
+        '   FROM [2014_02_08.UserData]) AS ud\n'  # TODO(tony): replace date
+        '  JOIN EACH\n'
+        '    (SELECT bingo_id, alternative\n'
+        '     FROM [jace.bingo_map]\n'
+        '     WHERE canonical_name=\'%s\') AS bm\n'
+        '    ON bm.bingo_id=ud.gae_bingo_identity\n'
+    ) % experiment_name
+    run_query(service, project_id, query_string, 'exp_user_bingo')
+
+    # Query 5: exp_analytics_first_last
+    query_string = (
+        'SELECT amm.user_id AS user_id, ub.alternative AS alternative,\n'
+        '  ap1.correct AS first_correct, ap2.correct AS last_correct\n'
+        'FROM [tony.exp_analytics_min_max] AS amm\n'
+        'LEFT JOIN EACH [tony.exp_analytics] AS ap1\n'
+        '  ON ap1.time_done=amm.min_time AND ap1.user_id=amm.user_id\n'
+        'LEFT JOIN EACH [tony.exp_analytics] AS ap2\n'
+        '  ON ap2.time_done=amm.max_time AND ap2.user_id=amm.user_id\n'
+        'LEFT JOIN EACH [tony.exp_user_bingo] AS ub\n'
+        '  ON ub.user_id=amm.user_id\n'
+    )
+    run_query(service, project_id, query_string, 'exp_analytics_first_last')
+
+    # Query 6: exp_results
+    query_string = (
+        'SELECT alternative,\n'
+        '  AVG(last_correct - first_correct) AS delta,\n'
+        '  COUNT(alternative) AS n\n'
+        'FROM [tony.exp_analytics_first_last]\n'
+        'WHERE alternative != "null"\n'
+        'GROUP BY alternative ORDER BY alternative\n'
+    )
+    run_query(service, project_id, query_string, 'exp_results')
 
 
 def main():
     service = get_bigquery_service()
     project_id = get_project_id()
-
-    query_string = (
-        'SELECT *'
-        ' FROM [tony.exp_results]'
-    )
-    run_query(service, project_id, query_string, 'tmp')
+    generate_learning_gain(service, project_id,
+        'Review scheduling methods',
+        '2013-12-01', '2014_02_08')
 
 
 if __name__ == '__main__':
