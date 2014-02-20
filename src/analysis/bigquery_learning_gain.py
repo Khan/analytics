@@ -112,6 +112,7 @@ def generate_learning_gain(service, project_id, experiment_name,
                            start_date, backup_date):
     # Query 1:
     # TODO(tony): generate analytics_cards_1 table (rename?)
+    # Note: only need to do this once (and it's the most expensive)
 
     # Query 2: exp_analytics
     query_string = (
@@ -137,13 +138,13 @@ def generate_learning_gain(service, project_id, experiment_name,
         'SELECT ud.user_id AS user_id, bm.alternative AS alternative\n'
         'FROM\n'
         '  (SELECT user_id, gae_bingo_identity\n'
-        '   FROM [2014_02_08.UserData]) AS ud\n'  # TODO(tony): replace date
+        '   FROM [%s.UserData]) AS ud\n'  # TODO(tony): replace date
         '  JOIN EACH\n'
         '    (SELECT bingo_id, alternative\n'
         '     FROM [jace.bingo_map]\n'
         '     WHERE canonical_name=\'%s\') AS bm\n'
         '    ON bm.bingo_id=ud.gae_bingo_identity\n'
-    ) % experiment_name
+    ) % (backup_date, experiment_name)
     run_query(service, project_id, query_string, 'exp_user_bingo')
 
     # Query 5: exp_analytics_first_last
@@ -177,7 +178,7 @@ def main():
     project_id = get_project_id()
     generate_learning_gain(service, project_id,
         'Review scheduling methods',
-        '2013-12-01', '2014_02_08')
+        '2013-11-01', '2014_02_08')
 
 
 if __name__ == '__main__':
