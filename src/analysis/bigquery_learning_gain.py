@@ -82,18 +82,20 @@ def run_query(service, project_id, query_string,
         query_response = query_request.insert(projectId=project_id,
                                               body=query_data).execute()
         # Poll until this is done...
-        start_status = query_response['status']
         start_time = time.time()
-        print 'Status', start_status
-        while query_response['status'] == start_status:
-            print 'Sleeping...'
-            time.sleep(1.0)
-            query_response = query_request.getQueryResults(
+        while True:
+            query_response = query_request.get(
                 projectId=project_id,
                 jobId=query_response['jobReference']['jobId']
             ).execute()
-        print 'Status', query_response['status']
-        print 'Elapsed', time.time() - start_time
+            status = query_response['status']['state']
+            if status == 'DONE':
+                print 'Total elapsed: %3f' % (time.time() - start_time)
+                break
+            else:
+                print 'Sleeping... elapsed: %.3f, current status: %s' % (
+                    time.time() - start_time, status)
+                time.sleep(1.0)
 
     except HttpError as err:
         print 'Error:', pprint.pprint(err.content)
@@ -114,39 +116,10 @@ def main():
     project_id = get_project_id()
 
     query_string = (
-        'SELECT title, COUNT(*) as revision_count'
-        ' FROM [publicdata:samples.wikipedia]'
-        ' WHERE wp_namespace = 0'
-        ' GROUP EACH BY title'
-        ' LIMIT 20'
+        'SELECT *'
+        ' FROM [tony.exp_results]'
     )
     run_query(service, project_id, query_string, 'tmp')
-
-    """
-    try:
-        query_request = service.jobs()
-        query_data = {'query': (
-                'SELECT TOP(title, 10) as title, COUNT(*) as revision_count'
-                ' FROM [publicdata:samples.wikipedia] WHERE wp_namespace = 0;'
-            ),
-            'timeoutMs': 60 * 1000,
-        }
-        query_response = query_request.query(projectId=project_id,
-                                             body=query_data).execute()
-        print 'Query Results:'
-        for row in query_response['rows']:
-            result_row = []
-            for field in row['f']:
-                result_row.append(field['v'])
-            print ('\t').join(result_row)
-
-    except HttpError as err:
-        print 'Error:', pprint.pprint(err.content)
-
-    except AccessTokenRefreshError:
-        print ("Credentials have been revoked or expired, please re-run"
-         "the application to re-authorize")
-    """
 
 
 if __name__ == '__main__':
