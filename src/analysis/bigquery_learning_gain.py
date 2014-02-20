@@ -177,8 +177,14 @@ def main():
     service = get_bigquery_service()
     project_id = get_project_id()
     generate_learning_gain(service, project_id,
-        'Review scheduling methods',
-        '2013-11-01', '2014_02_08')
+        # 'Review scheduling methods', '2013-11-20',
+        # 'adaptive pretest question difficulty cutoff', '2013-10-19',
+        # 'Athena: mastery task length v2', '2013-10-22',
+        # 'Mastery Tasks: progress card ordering', '2013-11-28',
+        # 'metacognitive 2', '2013-09-14',
+        # 'metacognitive 2 prompt type', '2013-09-14',
+        'metacognitive 2 text', '2013-09-14',
+        '2014_02_08')
 
 
 if __name__ == '__main__':
