@@ -147,12 +147,14 @@ def generate_learning_gain(service, project_id, experiment_name,
     # Get start date from experiment name
     start_date = get_start_date_for_experiment(service, project_id,
         experiment_name, backup_date)
+    last_date = datetime.datetime.strptime(backup_date, '%Y_%m_%d')
+    days_old = (last_date - start_date).days
 
     print '\nRunning learning gain...'
     print 'Bucket: %s\n' % backup_date
 
     print experiment_name
-    print 'Started: %s' % start_date
+    print 'Started: %s (%d days old)' % (start_date.date(), days_old)
 
     # Query 1:
     # TODO(tony): generate analytics_cards_1 table (rename?)
@@ -219,7 +221,7 @@ def generate_learning_gain(service, project_id, experiment_name,
     # Wrap it up
     print '\nResults ready!\n'
     print experiment_name
-    print 'Started: %s (%s days old)' % (start_date, 'TODO')
+    print 'Started: %s (%d days old)' % (start_date.date(), days_old)
     # TODO(tony): print results here too
 
 
@@ -228,14 +230,14 @@ def main():
     project_id = get_project_id()
     generate_learning_gain(service, project_id,
         'Review scheduling methods',
-        # 'adaptive pretest question difficulty cutoff', '2013-10-19',
-        # 'Athena: mastery task length v2', '2013-10-22',
-        # 'Mastery Tasks: Challenge Card Enforce Prerequisites', '2013-11-18',
+        # 'adaptive pretest question difficulty cutoff',
+        # 'Athena: mastery task length v2',
+        # 'Mastery Tasks: Challenge Card Enforce Prerequisites',
         # 'Mastery Tasks: Challenge Card Selection Aggressiveness',
-        # 'Mastery Tasks: progress card ordering', '2013-11-28',
-        # 'metacognitive 2', '2013-09-14',
-        # 'metacognitive 2 prompt type', '2013-09-14',
-        # 'metacognitive 2 text', '2013-09-14',
+        # 'Mastery Tasks: progress card ordering',
+        # 'metacognitive 2',
+        # 'metacognitive 2 prompt type',
+        # 'metacognitive 2 text',
         '2014_02_08')
 
 
