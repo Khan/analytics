@@ -99,7 +99,7 @@ def run_query(service, project_id, query_string,
             if status == 'DONE':
                 break
             else:
-                time.sleep(1.0)
+                time.sleep(2.0)
         return query_response
 
     except HttpError as err:
@@ -176,6 +176,7 @@ def generate_learning_gain(service, project_id, experiment_name,
         '  MAX(time_done) AS max_time\n'
         'FROM [tony.exp_analytics]\n'
         'GROUP BY user_id\n'
+        'HAVING min_time != max_time\n'
     )
     run_query(service, project_id, query_string, 'exp_analytics_min_max')
 
@@ -210,7 +211,9 @@ def generate_learning_gain(service, project_id, experiment_name,
     # Query 6: exp_results
     query_string = (
         'SELECT alternative,\n'
-        '  AVG(last_correct - first_correct) AS delta,\n'
+        '  ROUND(100 * AVG(last_correct - first_correct), 5) AS delta,\n'
+        '  ROUND(100 * STDDEV(last_correct - first_correct) / SQRT(n), 5)\n'
+        '    as stderr,\n'
         '  COUNT(alternative) AS n\n'
         'FROM [tony.exp_analytics_first_last]\n'
         'WHERE alternative != "null"\n'
@@ -229,7 +232,7 @@ def main():
     service = get_bigquery_service()
     project_id = get_project_id()
     generate_learning_gain(service, project_id,
-        'Review scheduling methods',
+        # 'Review scheduling methods',
         # 'adaptive pretest question difficulty cutoff',
         # 'Athena: mastery task length v2',
         # 'Mastery Tasks: Challenge Card Enforce Prerequisites',
@@ -238,6 +241,16 @@ def main():
         # 'metacognitive 2',
         # 'metacognitive 2 prompt type',
         # 'metacognitive 2 text',
+
+        # 'Practice Tasks: Curation Strategy',
+        # 'Practice Tasks: Knowledge Map Strategies',
+        # 'Practice Tasks: Suggestion Strategy',
+
+        # 'pretest utility function - difficulty',
+        # 'pretest utility function - time',
+        # 'Pretest: parameterization',
+        'Pretest: promoter aggressiveness',
+
         '2014_02_08')
 
 
