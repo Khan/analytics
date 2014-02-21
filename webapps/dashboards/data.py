@@ -199,7 +199,7 @@ def webpagetest_stats(mongo, dt=None,
     return retval[:limit]
 
 
-def gae_dashboard_reports(mongo, report_name, limit=12 * 24 * 366):
+def gae_dashboard_reports(mongo, report_name, limit=12 * 24 * 90):
     """Fetch reports from the mongo collection associated with a given
     report name.
 
@@ -212,7 +212,7 @@ def gae_dashboard_reports(mongo, report_name, limit=12 * 24 * 366):
         generate the collection name in the format "gae_dashboard_%s_reports"
         and must have a "utc_datetime" field
       limit (optional): the maximum size of the result set. Default is
-        12*24*366 which is about a year.
+        12*24*90 which is about 3 months.
 
     Returns:
       An iterable of documents from the report's collection in mongo,
