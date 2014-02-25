@@ -313,12 +313,9 @@ def generate_learning_gain(service, project_id, backup_date,
 
 def calculate_prob(n1, n2, m1, m2, s1, s2):
     # Calculates the probability that the first sample's mean is greater than
-    # the second. We assume equal variances but unequal sample sizes. We use
-    # a z-test here (the sample sizes are huge; same as t-test).
-    s12 = sqrt(((n1 - 1) * s1 * s1 * n1
-              + (n2 - 1) * s2 * s2 * n2) / (n1 + n2 - 2))
-    # print 's12:', s12
-    z = 1.0 * (m1 - m2) / (s12 * sqrt(1.0 / n1 + 1.0 / n2))
+    # the second. We assume unequal variances but unequal sample sizes. We use
+    # Welch's t-test here (the sample sizes are huge; same as z-test).
+    z = 1.0 * (m1 - m2) / sqrt(s1 * s1 + s2 * s2)
     # print 'z:', z
     p = stats.norm.cdf(z)
     # print 'p:', p
