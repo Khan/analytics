@@ -16,6 +16,7 @@ import datetime
 import httplib2
 import os
 import pprint
+import re
 import time
 
 from apiclient.discovery import build
@@ -145,8 +146,18 @@ def get_start_date_for_experiment(service, project_id, experiment_name,
 
 
 def get_most_recent_backup_date(service, project_id):
-    return '2014_02_08'
-    # TODO(tony): implement this...
+    # Get most recent dataset that matches YYYY_MM_DD
+    datasets = service.datasets()
+    datasets_list = datasets.list(projectId=project_id).execute()
+    backup_date = None
+    for d in datasets_list['datasets']:
+        dataset_name = d['datasetReference']['datasetId']
+        if re.search('(^[0-9]{4}_[0-9]{2}_[0-9]{2}$)', dataset_name):
+            if backup_date is None or dataset_name > backup_date:
+                backup_date = dataset_name
+    assert backup_date
+    print 'Backup date:', backup_date
+    return backup_date
 
 
 def read_results(project_id):
@@ -270,6 +281,8 @@ def main():
     service = get_bigquery_service()
     project_id = get_project_id()
     backup_date = get_most_recent_backup_date(service, project_id)
+    print backup_date
+    """
     generate_learning_gain(service, project_id, backup_date,
         # 'Review scheduling methods',
         # 'adaptive pretest question difficulty cutoff',
@@ -290,6 +303,7 @@ def main():
         # 'Pretest: parameterization',
         # 'Pretest: promoter aggressiveness',
     )
+    """
 
 
 if __name__ == '__main__':
