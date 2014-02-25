@@ -28,6 +28,8 @@ from oauth2client.client import flow_from_clientsecrets
 from oauth2client.file import Storage
 from oauth2client.tools import run
 
+from numpy import sqrt
+from scipy import stats
 from pandas.io import gbq
 
 
@@ -122,6 +124,7 @@ def get_start_date_for_experiment(service, project_id, experiment_name,
 
     # We assume that the earliest conversion (that hasn't changed) is
     # actually we the A/B test started. Reasonable.
+    print 'Getting start date for experiment', experiment_name
     query_request = service.jobs()
     query_string = (
         'SELECT MIN(dt_started) as start_date\n'
@@ -202,9 +205,11 @@ def read_results(project_id):
 
 
 class LearningGainResults:
-    def __init__(self, experiment_name, data):
+    def __init__(self, experiment_name, data, start_date, days_old):
         self.experiment_name = experiment_name
         self.data = data
+        self.start_date = start_date
+        self.days_old = days_old
 
     # TODO(tony): implement helpers
     def is_significant(self):
@@ -227,9 +232,8 @@ def generate_learning_gain(service, project_id, backup_date,
     print experiment_name
     print 'Started: %s (%d days old)' % (start_date.date(), days_old)
 
-    # Query 1:
-    # TODO(tony): generate analytics_cards_1 table (rename?)
-    # Note: only need to do this once (and it's the most expensive)
+    # Query 1: generate analytics_cards_1
+    # This is now done in generate_analytics_cards
 
     # Query 2: exp_analytics
     query_string = (
@@ -301,32 +305,73 @@ def generate_learning_gain(service, project_id, backup_date,
     print data
 
     # Wrap it up
-    # TODO(tony): print results here too
-    # TODO(tony): return results
-    results = LearningGainResults(experiment_name, data)
+    results = LearningGainResults(experiment_name, data, start_date, days_old)
     return results
 
 
+def calculate_t_test_cdf(n1, n2, m1, m2, s1, s2):
+    # Calculates the probability that the first sample's mean is greater than
+    # the second. We assume equal variances but unequal sample sizes. We use
+    # a t-test here. Note that we can't use the built in one from scipy because
+    # we don't have the whole sample available to us (just means and stderr,
+    # which is all we need). So, we compute it directly.
+    s12 = sqrt(((n1 - 1) * s1 * s1 + (n2 - 1) * s2 * s2) / (n1 + n2 - 2))
+    print 's12:', s12
+    t = 1.0 * (m1 - m2) / (s12 * sqrt(1.0 / n1 + 1.0 / n2))
+    print 't:', t
+    p = stats.t.cdf(t, n1 + n2 - 2)
+    print 'p:', p
+    return p
+
+
 def generate_report(backup_date, all_results):
+    print 'Begin report...\n'
     for results in all_results:
-        pass
+        text = ''
+
+        data = results.data
+        i = data['delta'].argmax()
+        best_alternative = data['alternative'][i]
+
+        text += results.experiment_name + '\n'
+        text += 'Started: %s (%d days old)\n' % (results.start_date.date(),
+                                               results.days_old)
+        text += '\n' + str(data) + '\n\n'
+        text += 'The best alternative is: %s!\n' % best_alternative
+        for j in xrange(len(data)):
+            if j == i:
+                continue
+            n1, n2 = data['n'][i], data['n'][j]
+            m1, m2 = data['delta'][i], data['delta'][j]
+            s1, s2 = data['stderr'][i], data['stderr'][j]
+            prob = calculate_t_test_cdf(n1, n2, m1, m2, s1, s2)
+            text += ('The probability this is better than %s is %.2f%%.\n' % (
+                     data['alternative'][j], prob * 100.0))
+
+        print text
 
 
 def main():
+    # TODO(tony): add command-line args
+    # -v, --verbose
+    # -e, --experiments (file)
+
     service = get_bigquery_service()
     project_id = get_project_id()
     backup_date = get_most_recent_backup_date(service, project_id)
 
+    # Update the analytics cards table if necessary
     generate_analytics_cards(service, project_id, backup_date)
-    """
-    generate_learning_gain(service, project_id, backup_date,
+
+    # Generate the results for all experiments
+    experiments = [
         # 'Review scheduling methods',
         # 'adaptive pretest question difficulty cutoff',
         # 'Athena: mastery task length v2',
         # 'Mastery Tasks: Challenge Card Enforce Prerequisites',
-        'Mastery Tasks: Challenge Card Selection Aggressiveness',
+        # 'Mastery Tasks: Challenge Card Selection Aggressiveness',
         # 'Mastery Tasks: progress card ordering',
-        # 'metacognitive 2',
+        'metacognitive 2',
         # 'metacognitive 2 prompt type',
         # 'metacognitive 2 text',
 
@@ -338,8 +383,13 @@ def main():
         # 'pretest utility function - time',
         # 'Pretest: parameterization',
         # 'Pretest: promoter aggressiveness',
-    )
-    """
+    ]
+    all_results = []
+    for e in experiments:
+        results = generate_learning_gain(service, project_id, backup_date, e)
+        all_results.append(results)
+
+    generate_report(backup_date, all_results)
 
 
 if __name__ == '__main__':
