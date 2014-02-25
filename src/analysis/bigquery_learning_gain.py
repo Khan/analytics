@@ -26,6 +26,8 @@ from oauth2client.client import flow_from_clientsecrets
 from oauth2client.file import Storage
 from oauth2client.tools import run
 
+from pandas.io import gbq
+
 
 PROJECT_ID_FILE = 'id.txt'
 CREDENTIALS_FILE = 'bigquery_credentials.dat'
@@ -39,13 +41,13 @@ def get_project_id():
     return project_id
 
 
-def get_bigquery_service():
+def get_bigquery_service(client_secrets_file=CLIENT_SECRETS_FILE):
     storage = Storage(CREDENTIALS_FILE)
     credentials = storage.get()
 
     if credentials is None or credentials.invalid:
         flow = flow_from_clientsecrets(
-            CLIENT_SECRETS_FILE,
+            client_secrets_file,
             scope='https://www.googleapis.com/auth/bigquery'
         )
         credentials = run(flow, storage)
@@ -228,6 +230,12 @@ def generate_learning_gain(service, project_id, experiment_name,
     # TODO(tony): print results here too
 
 
+def read_results(project_id):
+    results = gbq.read_gbq('SELECT * FROM [tony.exp_results]',
+                           project_id=project_id)
+    return results
+
+
 def main():
     service = get_bigquery_service()
     project_id = get_project_id()
@@ -236,7 +244,7 @@ def main():
         # 'adaptive pretest question difficulty cutoff',
         # 'Athena: mastery task length v2',
         # 'Mastery Tasks: Challenge Card Enforce Prerequisites',
-        # 'Mastery Tasks: Challenge Card Selection Aggressiveness',
+        'Mastery Tasks: Challenge Card Selection Aggressiveness',
         # 'Mastery Tasks: progress card ordering',
         # 'metacognitive 2',
         # 'metacognitive 2 prompt type',
@@ -249,9 +257,11 @@ def main():
         # 'pretest utility function - difficulty',
         # 'pretest utility function - time',
         # 'Pretest: parameterization',
-        'Pretest: promoter aggressiveness',
+        # 'Pretest: promoter aggressiveness',
 
         '2014_02_08')
+    results = read_results(project_id)
+    print results
 
 
 if __name__ == '__main__':
