@@ -4,7 +4,8 @@ Using BigQuery to do a quick-n-dirty learning gain approximation.
 This also serves as an experiment in using the BigQuery Python API.
 
 Setup notes:
-- install the python client:
+- install the python client and bigquery:
+    pip install bigquery
     pip install google-api-python-client
 - put the project ID in a file, say "id.txt"
 - download the "clients_secrets.json" file for the khan project
@@ -120,7 +121,7 @@ def get_start_date_for_experiment(service, project_id, experiment_name,
     # Instead, let's just run a query...
 
     # We assume that the earliest conversion (that hasn't changed) is
-    # actually wne the A/B test started. Reasonable.
+    # actually we the A/B test started. Reasonable.
     query_request = service.jobs()
     query_string = (
         'SELECT MIN(dt_started) as start_date\n'
@@ -152,7 +153,9 @@ def get_most_recent_backup_date(service, project_id):
     backup_date = None
     for d in datasets_list['datasets']:
         dataset_name = d['datasetReference']['datasetId']
+        # Must match YYYY_MM_DD format
         if re.search('(^[0-9]{4}_[0-9]{2}_[0-9]{2}$)', dataset_name):
+            # Take the most recent date
             if backup_date is None or dataset_name > backup_date:
                 backup_date = dataset_name
     assert backup_date
@@ -160,7 +163,39 @@ def get_most_recent_backup_date(service, project_id):
     return backup_date
 
 
+def generate_analytics_cards(service, project_id, backup_date):
+    # We generate the analytics cards from the ProblemLog table,
+    # only if necessary. Note that this query is expensive, so
+    # we only do this once (and subsequent queries can just look
+    # at the analytics cards - much smaller).
+    #
+    # Let's look at the most recently done analytics card
+    # and if it's close enough to the backup date, assume
+    # that we don't need to regenerate the table.
+    results = gbq.read_gbq('SELECT MAX(time_done) as max_time \n'
+                           'FROM [tony.analytics_cards_1]',
+                           project_id=project_id)
+    usec = int(results['max_time'][0])
+    ts = usec / 1000 / 1000
+    last_ac_time = datetime.datetime.fromtimestamp(ts)
+    last_date = datetime.datetime.strptime(backup_date, '%Y_%m_%d')
+    gap = last_date - last_ac_time
+    gap_in_days = gap.days
+    print 'Analytics card table is', gap, 'old'
+    if gap_in_days > 1:
+        print 'Regenerating analytics_cards_1...'
+        query_string = (
+            'SELECT user_id, task_type, time_done, exercise, correct\n'
+            'FROM [%s.ProblemLog]\n'
+            'WHERE task_type = \'mastery.analytics\'\n'
+        ) % backup_date
+        run_query(service, project_id, query_string, 'analytics_cards_1')
+    else:
+        print 'Table is up to date. Skipping...'
+
+
 def read_results(project_id):
+    # Assumes the table is available!
     results = gbq.read_gbq('SELECT * FROM [tony.exp_results]',
                            project_id=project_id)
     return results
@@ -281,7 +316,8 @@ def main():
     service = get_bigquery_service()
     project_id = get_project_id()
     backup_date = get_most_recent_backup_date(service, project_id)
-    print backup_date
+
+    generate_analytics_cards(service, project_id, backup_date)
     """
     generate_learning_gain(service, project_id, backup_date,
         # 'Review scheduling methods',
