@@ -144,8 +144,31 @@ def get_start_date_for_experiment(service, project_id, experiment_name,
     raise
 
 
-def generate_learning_gain(service, project_id, experiment_name,
-                           backup_date):
+def get_most_recent_backup_date(service, project_id):
+    return '2014_02_08'
+    # TODO(tony): implement this...
+
+
+def read_results(project_id):
+    results = gbq.read_gbq('SELECT * FROM [tony.exp_results]',
+                           project_id=project_id)
+    return results
+
+
+class LearningGainResults:
+    def __init__(self, experiment_name, data):
+        self.experiment_name = experiment_name
+        self.data = data
+
+    # TODO(tony): implement helpers
+    def is_significant(self):
+        pass
+
+    pass
+
+
+def generate_learning_gain(service, project_id, backup_date,
+                           experiment_name):
     # Get start date from experiment name
     start_date = get_start_date_for_experiment(service, project_id,
         experiment_name, backup_date)
@@ -223,23 +246,31 @@ def generate_learning_gain(service, project_id, experiment_name,
     )
     run_query(service, project_id, query_string, 'exp_results')
 
-    # Wrap it up
+    # Get results
     print '\nResults ready!\n'
     print experiment_name
     print 'Started: %s (%d days old)' % (start_date.date(), days_old)
+
+    data = read_results(project_id)
+    print data
+
+    # Wrap it up
     # TODO(tony): print results here too
-
-
-def read_results(project_id):
-    results = gbq.read_gbq('SELECT * FROM [tony.exp_results]',
-                           project_id=project_id)
+    # TODO(tony): return results
+    results = LearningGainResults(experiment_name, data)
     return results
+
+
+def generate_report(backup_date, all_results):
+    for results in all_results:
+        pass
 
 
 def main():
     service = get_bigquery_service()
     project_id = get_project_id()
-    generate_learning_gain(service, project_id,
+    backup_date = get_most_recent_backup_date(service, project_id)
+    generate_learning_gain(service, project_id, backup_date,
         # 'Review scheduling methods',
         # 'adaptive pretest question difficulty cutoff',
         # 'Athena: mastery task length v2',
@@ -258,10 +289,7 @@ def main():
         # 'pretest utility function - time',
         # 'Pretest: parameterization',
         # 'Pretest: promoter aggressiveness',
-
-        '2014_02_08')
-    results = read_results(project_id)
-    print results
+    )
 
 
 if __name__ == '__main__':
