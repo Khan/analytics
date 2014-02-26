@@ -18,10 +18,14 @@ import httplib2
 import os
 import pprint
 import re
+import smtplib
 import time
 
 from apiclient.discovery import build
 from apiclient.errors import HttpError
+
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
 
 from oauth2client.client import AccessTokenRefreshError
 from oauth2client.client import flow_from_clientsecrets
@@ -124,6 +128,7 @@ def get_start_date_for_experiment(service, project_id, experiment_name,
 
     # We assume that the earliest conversion (that hasn't changed) is
     # actually we the A/B test started. Reasonable.
+    # TODO(tony): redo these with triple quotes so queries can be copied
     print 'Getting start date for experiment:', experiment_name
     query_request = service.jobs()
     query_string = (
@@ -322,11 +327,40 @@ def calculate_prob(n1, n2, m1, m2, s1, s2):
     return p
 
 
+def send_report(text):
+    # Adds header, relevant info, then sends an email
+
+    # Create message container with multipart/alternative MIME type
+    sender = "Learning Lemur <tony+learning.lemur@khanacademy.org>"
+    recipient = "tony+receiver@khanacademy.org"
+    msg = MIMEMultipart('alternative')
+    msg['Subject'] = "Link"
+    msg['From'] = sender
+    msg['To'] = recipient
+
+    # Create the body of the message (a plain-text and an HTML version).
+    html = """\
+    <html>
+      <head>%s</head>
+      <body>
+        <p>%s</p>
+      </body>
+    </html>
+    """ % ('TODO header', text)
+
+    part = MIMEText(html, 'html')
+    msg.attach(part)
+
+    # Send the message via local SMTP server.
+    s = smtplib.SMTP('localhost')
+    s.sendmail(sender, recipient, msg.as_string())
+    s.quit()
+
+
 def generate_report(backup_date, all_results):
     print 'Begin report...\n'
+    text = ''
     for results in all_results:
-        text = ''
-
         data = results.data
         i = data['delta'].argmax()
         best_alternative = data['alternative'][i]
@@ -346,8 +380,8 @@ def generate_report(backup_date, all_results):
             text += ('The probability this is better than [%s]'
                      ' is %.2f%%.\n' % (
                      data['alternative'][j], prob * 100.0))
-
         print text
+    send_report(text)
 
 
 def main():
