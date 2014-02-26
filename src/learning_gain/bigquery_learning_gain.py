@@ -371,7 +371,8 @@ def generate_report(backup_date, all_results):
     For each A/B test, we look at the difference between the last
     and first analytics card each user did. These are averaged
     across each alternative. Users who did fewer than two analytics
-    cards are thus not included in these results.
+    cards are thus not included in these results. The results are
+    percentages, i.e. multiplied by 100.
     <br>
     <br>
     The significance tests were done using Welch's t-test, which
@@ -380,9 +381,13 @@ def generate_report(backup_date, all_results):
     and look at the z-score.
     <br>
     <br>
+    Warning! You (as a person running an A/B test) should only use
+    this metric as part of the decision making process. There are
+    potentially many other effects, e.g. engagement, that are not
+    adequately captured here.
+    <br>
+    <br>
     <b>Experiments</b>
-    <br>
-    <br>
     """ % (backup_date, backup_date)
 
     for results in all_results:
@@ -390,7 +395,7 @@ def generate_report(backup_date, all_results):
         i = data['delta'].argmax()
         best_alternative = data['alternative'][i]
 
-        text += results.experiment_name + '<br>'
+        text += '<br><br>' + results.experiment_name + '<br>'
         text += 'Started: %s (%d days old)<br>' % (results.start_date.date(),
                                                results.days_old)
         text += '<br><pre>' + str(data) + '</pre>'
