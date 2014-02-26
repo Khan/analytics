@@ -35,6 +35,8 @@ secrets.py
 # API access for Google Analytics dashboard.
 ga_client_secrets.json
 ga_client_privatekey.p12
+# API access for Google BigQuery.
+client_secrets.json
 
 # Developer constants for convenience for testing with local
 # or non-production instances of the main webserver
