@@ -39,7 +39,7 @@ from pandas.io import gbq
 
 PROJECT_ID_FILE = 'id.txt'
 CREDENTIALS_FILE = 'bigquery_credentials.dat'
-CLIENT_SECRETS_FILE = os.path.expanduser('../../clients_secrets.json')
+CLIENT_SECRETS_FILE = os.path.expanduser('../../client_secrets.json')
 
 
 def get_project_id():
