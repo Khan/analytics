@@ -241,6 +241,7 @@ def generate_learning_gain(service, project_id, backup_date,
     # This is now done in generate_analytics_cards
 
     # Query 2: exp_analytics
+    """
     query_string = (
         'SELECT user_id, correct, time_done\n'
         'FROM [tony.analytics_cards_1]\n'
@@ -302,6 +303,7 @@ def generate_learning_gain(service, project_id, backup_date,
         'GROUP BY alternative ORDER BY alternative\n'
     )
     run_query(service, project_id, query_string, 'exp_results')
+    """
 
     # Get results
     print '\nResults ready!\n'
@@ -338,7 +340,7 @@ def send_report(text):
     msg['From'] = sender
     msg['To'] = recipient
 
-    # Create the body of the message (a plain-text and an HTML version).
+    # Create the body of the message
     html = """\
     <html>
       <head>%s</head>
@@ -346,12 +348,12 @@ def send_report(text):
         <p>%s</p>
       </body>
     </html>
-    """ % ('TODO header', text)
+    """ % ('', text)
 
     part = MIMEText(html, 'html')
     msg.attach(part)
 
-    # Send the message via local SMTP server.
+    # Send the message via local SMTP server
     s = smtplib.SMTP('localhost')
     s.sendmail(sender, recipient, msg.as_string())
     s.quit()
@@ -359,17 +361,40 @@ def send_report(text):
 
 def generate_report(backup_date, all_results):
     print 'Begin report...\n'
+    # TODO(tony): redo this with jinja2 templates
     text = ''
+    text += """\
+    <b>Learning Gain Report: %s</b>
+    <br>
+    <br>
+    This report was generated with the last BigQuery backup on %s.
+    For each A/B test, we look at the difference between the last
+    and first analytics card each user did. These are averaged
+    across each alternative. Users who did fewer than two analytics
+    cards are thus not included in these results.
+    <br>
+    <br>
+    The significance tests were done using Welch's t-test, which
+    handles unequal sample sizes and unequal variances. Because our
+    sample sizes are so large, we can simply use a normal distribution
+    and look at the z-score.
+    <br>
+    <br>
+    <b>Experiments</b>
+    <br>
+    <br>
+    """ % (backup_date, backup_date)
+
     for results in all_results:
         data = results.data
         i = data['delta'].argmax()
         best_alternative = data['alternative'][i]
 
-        text += results.experiment_name + '\n'
-        text += 'Started: %s (%d days old)\n' % (results.start_date.date(),
+        text += results.experiment_name + '<br>'
+        text += 'Started: %s (%d days old)<br>' % (results.start_date.date(),
                                                results.days_old)
-        text += '\n' + str(data) + '\n\n'
-        text += 'The best alternative is [%s]!\n' % best_alternative
+        text += '<br><pre>' + str(data) + '</pre>'
+        text += 'The best alternative is [%s]!<br>' % best_alternative
         for j in xrange(len(data)):
             if j == i:
                 continue
@@ -378,10 +403,12 @@ def generate_report(backup_date, all_results):
             s1, s2 = data['stderr'][i], data['stderr'][j]
             prob = calculate_prob(n1, n2, m1, m2, s1, s2)
             text += ('The probability this is better than [%s]'
-                     ' is %.2f%%.\n' % (
+                     ' is %.2f%%.<br>' % (
                      data['alternative'][j], prob * 100.0))
-        print text
-    send_report(text)
+    f = open('email.html', 'w')
+    f.write(text)
+    f.close()
+    # send_report(text)
 
 
 def main():
