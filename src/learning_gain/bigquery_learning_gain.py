@@ -339,7 +339,8 @@ def send_report(text):
     sender = "Learning Lemur <tony+learning.lemur@khanacademy.org>"
     recipient = "tony+receiver@khanacademy.org"
     msg = MIMEMultipart('alternative')
-    msg['Subject'] = "Link"
+    # TODO(tony): add date, variants
+    msg['Subject'] = "Learning Gain Report"
     msg['From'] = sender
     msg['To'] = recipient
 
