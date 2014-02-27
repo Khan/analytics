@@ -40,6 +40,8 @@ from pandas.io import gbq
 PROJECT_ID_FILE = 'id.txt'
 CREDENTIALS_FILE = 'bigquery_credentials.dat'
 CLIENT_SECRETS_FILE = os.path.expanduser('../../client_secrets.json')
+SKIP_QUERIES = True
+SKIP_EMAIL = True
 
 
 def get_project_id():
@@ -70,6 +72,9 @@ def get_bigquery_service(client_secrets_file=CLIENT_SECRETS_FILE):
 
 def run_query(service, project_id, query_string,
               destination_table, allow_large_results=True):
+    if SKIP_QUERIES:
+        return
+
     print '\nQuery:\n%s' % query_string
     # Must use the async version to specify configuration
     query_data = {
@@ -241,7 +246,6 @@ def generate_learning_gain(service, project_id, backup_date,
     # This is now done in generate_analytics_cards
 
     # Query 2: exp_analytics
-    """
     query_string = (
         'SELECT user_id, correct, time_done\n'
         'FROM [tony.analytics_cards_1]\n'
@@ -303,7 +307,6 @@ def generate_learning_gain(service, project_id, backup_date,
         'GROUP BY alternative ORDER BY alternative\n'
     )
     run_query(service, project_id, query_string, 'exp_results')
-    """
 
     # Get results
     print '\nResults ready!\n'
@@ -410,10 +413,12 @@ def generate_report(backup_date, all_results):
             text += ('The probability this is better than [%s]'
                      ' is %.2f%%.<br>' % (
                      data['alternative'][j], prob * 100.0))
-    f = open('email.html', 'w')
-    f.write(text)
-    f.close()
-    # send_report(text)
+    if SKIP_EMAIL:
+        f = open('email.html', 'w')
+        f.write(text)
+        f.close()
+    else:
+        send_report(text)
 
 
 def main():
