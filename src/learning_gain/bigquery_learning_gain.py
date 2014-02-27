@@ -440,13 +440,13 @@ def main():
         # 'metacognitive 2 prompt type',
         # 'metacognitive 2 text',
 
-        # 'Practice Tasks: Curation Strategy',
-        # 'Practice Tasks: Knowledge Map Strategies',
-        # 'Practice Tasks: Suggestion Strategy',
+        'Practice Tasks: Curation Strategies',
+        'Practice Tasks: Knowledge Map Strategies',
+        'Practice Tasks: Suggestion Strategies',
 
         # 'pretest utility function - difficulty',
         # 'pretest utility function - time',
-        'Pretest: parameterization',
+        # 'Pretest: parameterization',
         # 'Pretest: promoter aggressiveness',
     ]
     all_results = []
