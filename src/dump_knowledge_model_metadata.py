@@ -6,6 +6,8 @@ The file-format is defined in accuracy_model_train.py, in output_models().
 """
 
 import argparse
+import cStringIO
+import csv
 import pickle
 import json
 
@@ -21,16 +23,14 @@ def parse_command_line():
     parser.add_argument("-v", help="Enable verbose output.",
         action="store_const", const="True", dest="verbose")
 
+    parser.add_argument("-t", help="Dump theta values as a CSV.",
+        action="store_const", const="True", dest="dump_thetas")
+
     options = parser.parse_args()
     return options
 
 
-def main():
-    options = parse_command_line()
-
-    with open(options.knowledge_model_file, "r") as km_file:
-        knowledge_model = pickle.load(km_file)
-
+def dump_metadata(options, knowledge_model):
     output_dict = {
         # Summarize the random components and thetas
         "components_count": len(knowledge_model["components"]),
@@ -49,6 +49,33 @@ def main():
         output_dict.update(training_info)
 
     print json.dumps(output_dict, indent=4)
+
+
+def dump_thetas(options, knowledge_model):
+    output = cStringIO.StringIO()
+    csv_writer = csv.writer(output)
+
+    # Add a header row
+    thetas_size = len(knowledge_model["thetas"].values()[0])
+    theta_labels = ["theta_%0.4d" % i for i in range(thetas_size)]
+    csv_writer.writerow(["exercise"] + theta_labels)
+
+    for exercise, thetas in knowledge_model["thetas"].iteritems():
+        csv_writer.writerow([exercise] + thetas.tolist())
+
+    print output.getvalue()
+
+
+def main():
+    options = parse_command_line()
+
+    with open(options.knowledge_model_file, "r") as km_file:
+        knowledge_model = pickle.load(km_file)
+
+    if options.dump_thetas:
+        dump_thetas(options, knowledge_model)
+    else:
+        dump_metadata(options, knowledge_model)
 
 
 if __name__ == "__main__":
