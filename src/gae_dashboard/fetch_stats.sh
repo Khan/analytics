@@ -1,11 +1,11 @@
 #!/bin/sh
 
-srcdir="${HOME}/analytics/src/gae_dashboard"
-private_pw="${HOME}/private_pw"
-username="khanbackups@gmail.com"
-curl_app="${srcdir}/gae_dashboard_curl.py"
-base_url="https://appengine.google.com"
-app_id="s~khan-academy"
+: ${srcdir:="${HOME}/analytics/src/gae_dashboard"}
+: ${private_pw:="${HOME}/private_pw"}
+: ${username:="khanbackups@gmail.com"}
+: ${curl_app:="${srcdir}/gae_dashboard_curl.py"}
+: ${base_url:="https://appengine.google.com"}
+: ${app_id:="s~khan-academy"}
 
 if [ ! -e "${private_pw}" ]; then
     echo "Need to put password for ${username} in ${private_pw}"

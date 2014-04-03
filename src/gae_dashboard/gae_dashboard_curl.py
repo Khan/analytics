@@ -13,10 +13,14 @@ The Google Appengine SDK must be installed in /usr/local/google_appengine,
 which is the location where it is installed on the analytics machine.
 """
 
+import os
 import sys
 
-sys.path.append('/usr/local/google_appengine')
-sys.path.append('/usr/local/google_appengine/lib/fancy_urllib')
+# Set up GAE import paths via gae_util.py in src/
+sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+import gae_util
+gae_util.fix_sys_path()
+
 from google.appengine.tools import appengine_rpc
 
 APPENGINE_HOST = 'appengine.google.com'
