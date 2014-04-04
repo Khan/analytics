@@ -15,12 +15,8 @@ The statistics are stored in the mongo collection
       oldest_item_age_seconds: INTEGER }
 """
 
-USAGE = 'Usage: %prog [options] UNIX_TIMESTAMP <memcache.html'
-DESCRIPTION = """UNIX_TIMESTAMP is the time_t at which memcache.html
-was downloaded and is stored on the record in the analytics database."""
-
+import argparse
 import datetime
-import optparse
 import sys
 
 import pymongo
@@ -35,13 +31,15 @@ def _mongo_collection():
     return collection
 
 
-def parse_and_commit_record(input_html, download_dt, debug=False):
+def parse_and_commit_record(input_html, download_dt, verbose=False,
+                            dry_run=False):
     """Parse and store memcache summary data.
 
     Arguments:
       input_html: HTML contents of App Engine's /memcache dashboard.
       download_dt: Datetime when /memcache was downloaded.
-      debug: If True, print but do not store the report.
+      verbose: If True, print report to stdout.
+      dry_run: If True, do not store report in the database.
     """
     summary = parsers.Memcache(input_html).statistics_dict()
     record = {'utc_datetime': download_dt,
@@ -52,25 +50,30 @@ def parse_and_commit_record(input_html, download_dt, debug=False):
               'total_cache_size_bytes': summary['total_cache_size_bytes'],
               'oldest_item_age_seconds': summary['oldest_item_age_seconds'],
              }
-    if debug:
+    if verbose:
         print record
-    else:
+
+    if not dry_run:
         _mongo_collection().insert(record)
 
 
 def main():
-    parser = optparse.OptionParser(usage=USAGE, description=DESCRIPTION)
-    parser.add_option('--debug', action='store_true',
-                      dest='debug', default=False,
-                      help='print report to stdout but do not write to '
-                           'the database')
-    (options, args) = parser.parse_args()
-    if len(args) != 1:
-        parser.error('UNIX_TIMESTAMP is required')
-    else:
-        download_dt = datetime.datetime.utcfromtimestamp(int(args[0]))
-    input_html = sys.stdin.read()
-    parse_and_commit_record(input_html, download_dt, options.debug)
+    parser = argparse.ArgumentParser(description=__doc__.split('\n\n', 1)[0])
+    parser.add_argument('unix_timestamp', type=int,
+                        help='time_t the input data was downloaded')
+    parser.add_argument('infile', nargs='?', type=argparse.FileType('r'),
+                        default=sys.stdin,
+                        help=("HTML contents of App Engine's /memcache "
+                              "[default: read from stdin]"))
+    parser.add_argument('-v', '--verbose', action='store_true', default=False,
+                        help='print report on stdout')
+    parser.add_argument('-n', '--dry-run', action='store_true', default=False,
+                        help='do not store report in the database')
+    args = parser.parse_args()
+    input_html = args.infile.read()
+    download_dt = datetime.datetime.utcfromtimestamp(args.unix_timestamp)
+    parse_and_commit_record(input_html, download_dt,
+                            args.verbose, args.dry_run)
 
 
 if __name__ == '__main__':

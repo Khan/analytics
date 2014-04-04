@@ -3,6 +3,8 @@
 # This script is meant to be run as a cron job each morning (PST) to download
 # daily usage reports from the GAE dashboard and load them into mongo.
 
+set -e
+
 : ${srcdir:="${HOME}/analytics/src/gae_dashboard"}
 : ${private_pw:="${HOME}/private_pw"}
 : ${username:="khanbackups@gmail.com"}
