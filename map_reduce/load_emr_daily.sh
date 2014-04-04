@@ -70,7 +70,10 @@ echo "Upload to S3"
 route_map_path="s3://ka-mapreduce/rawdata/route_maps/route_map.${day}.json"
 curl "http://www.khanacademy.org/stats/route_map?key=`cat ~/sleep_secret | tr -d '\012'`" \
     > /tmp/`basename $route_map_path`
-/usr/local/bin/s3cmd put /tmp/`basename $route_map_path` "$route_map_path"
+# HACK(jace) temporarily hardcode route_map until the API if fixed
+# /usr/local/bin/s3cmd put /tmp/`basename $route_map_path` "$route_map_path"
+/usr/local/bin/s3cmd put /tmp/route_map.2014-01-17.json "$route_map_path"
+# TODO(jace) fix the API call, and restore this properly.
 
 # Convert pbuf to json + additional daily aggregation jobs
 echo "Convert pbuf to json and load into the datastore"

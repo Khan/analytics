@@ -79,11 +79,17 @@ gzip -c < "$tmppipe" > "${outfile_prefix}.log.gz" &
 # fairly high. It currently takes about 8 minutes to download 1 hour's worth
 # of log files.
 # Measured 11/5/2013
-"$ROOT/fetch_logs.py" --backend -s "$hour" -e "$hour_next" -i 60 \
-    2> "${backend_outfile_prefix}-status.log" \
-    | gzip -c > "${backend_outfile_prefix}.log.gz"
-# Use a bash-ism to return the exit-code of fetch_logs (not gzip).
-exit_code_backends=${PIPESTATUS[0]}
+# TODO(jace) fetch_logs of backends became broken when we converted to
+# modules in the beginning of January 2014.  So I have temporarily
+# commented out the code to download them here.  We need to research how
+# exactly the GAE logservice API is meant to work in the context of
+# modules... Ie., how do we download logs for modules which are not the
+# default?
+#"$ROOT/fetch_logs.py" --backend -s "$hour" -e "$hour_next" -i 60 \
+#    2> "${backend_outfile_prefix}-status.log" \
+#    | gzip -c > "${backend_outfile_prefix}.log.gz"
+## Use a bash-ism to return the exit-code of fetch_logs (not gzip).
+#exit_code_backends=${PIPESTATUS[0]}
 
 wait $pid_frontends
 exit_code_frontends=$?
@@ -94,4 +100,3 @@ rm "$tmppipe"
 # TODO: don't conflate failure of FE and BE fetching. Until then, check
 # *-status.log for more info about which failed.
 [[ $exit_code_frontends == 0 ]] || exit $exit_code_frontends
-[[ $exit_code_backends  == 0 ]] || exit $exit_code_backends
