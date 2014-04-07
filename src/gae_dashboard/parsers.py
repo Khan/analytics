@@ -37,6 +37,22 @@ import re
 # - filtered_event_dicts(title="")
 
 
+def text(html_element):
+    """Returns the textual content within a node and its children.
+
+    Whereas element.text returns only the contents of the first text
+    node child of a node, this function aggregates all text nodes
+    within itself and its children.
+
+    Given the "p" element in the following markup, .text returns
+    "There are " while this function returns "There are 5 pears".
+
+    <p>There are <b>5</b> pears</p>
+
+    """
+    return html_element.xpath("string()")
+
+
 class BaseParser(object):
     """A shared base class for common operations."""
 
@@ -303,16 +319,31 @@ class Memcache(BaseParser):
                   ('hit_ratio', 'hit_ratio', r'^(\d+)%$', int),
                   ('item_count', 'item_count', r'^(\d+) item\(s\)$', int),
                   ('total_cache_size_bytes', 'total_cache_size',
-                   r'^(\d+) byte\(s\)$', int),
+                   r'^(\d+)$', int),
                   ('oldest_item_age_seconds', 'oldest_item_age',
-                   r'^(\d+) second\(s\)$', int),
+                   r'^(?:(\d+) day\(s\)\s+)?'
+                   r'(?:(\d+) hour\(s\)\s+)?'
+                   r'(?:(\d+) min\(s\)\s+)?'
+                   r'(\d+) second\(s\)$',
+                   int),
                  )
         for (out_field, in_field, pattern, fn) in fields:
             match = re.match(pattern, raw_dict[in_field])
             if not match:
-                raise ValueError('Field "%s" did not match pattern %s' %
-                                 (in_field, pattern))
-            parsed_dict[out_field] = fn(match.group(1))
+                raise ValueError('Field "%s" did not match %r on %r' %
+                                 (in_field, pattern, raw_dict[in_field]))
+            if in_field == 'oldest_item_age':
+                seconds = int(match.group(4))
+                if match.group(3):
+                    seconds += int(match.group(3)) * 60  # minutes
+                if match.group(2):
+                    seconds += int(match.group(2)) * 60 * 60  # hours
+                if match.group(1):
+                    seconds += int(match.group(1)) * 60 * 60 * 24  # days
+                value = seconds
+            else:
+                value = match.group(1)
+            parsed_dict[out_field] = fn(value)
         parsed_dict['hit_ratio'] = float(parsed_dict['hit_ratio']) / 100
         return parsed_dict
 
@@ -326,8 +357,8 @@ class Memcache(BaseParser):
            'miss_count': '123',
            'hit_ratio': '99%',
            'item_count': '678 item(s)',
-           'total_cache_size': '91011 byte(s)',
-           'oldest_item_age': '26 second(s)'}
+           'total_cache_size': '91011',
+           'oldest_item_age': '19 day(s) 20 hour(s) 27 min(s) 26 second(s)'}
         """
         stats = {}
         fields = {'Hit count:': 'hit_count',
@@ -339,11 +370,11 @@ class Memcache(BaseParser):
         selector = '#ae-stats-table tr'
         for element in self.doc.cssselect(selector):
             children = list(element)
-            assert len(children) == 2, [child.text for child in children]
-            if children[0].text and children[0].text.strip() in fields:
+            assert len(children) == 2, [text(child) for child in children]
+            if text(children[0]) and text(children[0]).strip() in fields:
                 # skip rows with invalid or empty cells
-                field_name = fields[children[0].text.strip()]
-                stats[field_name] = children[1].text.strip()
+                field_name = fields[text(children[0]).strip()]
+                stats[field_name] = text(children[1]).strip()
         # Ensure all fields were filled.
         assert len(stats) == len(fields), (fields.keys(), stats.keys())
         return stats
