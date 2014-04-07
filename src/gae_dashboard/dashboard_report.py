@@ -6,6 +6,12 @@ and store them in the analytics database.
 This script considers the most recently added records in the database
 and only adds records that are more recent, up to 6 hours of data.
 
+TODO(chris): this method used to collect the data across all graphs
+for the "6 hrs" period, but currently only the "Summary" graph is
+rendered into the page. In the future, we should instead hit the
+"/stats" endpoint that client JavaScript loads when switching between
+graphs.
+
 CAVEAT: sometimes a subsequent run will log the same data points as a
 new record.  The heart of the problem is that the x-axis of the
 scraped 6-hour graphs covers 21,600 seconds, but the charting data may
@@ -20,8 +26,9 @@ Records are stored in the collection "gae_dashboard_chart_reports",
 and each has the structure:
 
     { utc_datetime: DATETIME,
-      # From the chart "Requests/Second".
+      # From the chart "Summary"
       requests_per_second: FLOAT,
+      errors_per_second: FLOAT,
 
       # From the chart "Requests by Type/Second"
       static_requests_per_second: FLOAT,
@@ -29,28 +36,28 @@ and each has the structure:
       cached_requests_per_second: FLOAT,
       pagespeed_requests_per_second: FLOAT,
 
-      # From the chart "Milliseconds/Request".
+      # From the chart "Latency"
       milliseconds_per_dynamic_request: FLOAT,
 
-      # From the chart "Errors/Second".
-      error_per_second: FLOAT,
+      # From the chart "Loading Latency"
+      milliseconds_per_loading_request: FLOAT,
 
-      # From the chart "Bytes Received/Second".
+      # From the chart "Traffic (Bytes/Second)"
       bytes_received_per_second: FLOAT,
-
-      # From the chart "Bytes Sent/Second".
       bytes_sent_per_second: FLOAT,
 
-      # From the chart "CPU Seconds Used/Second".
+      # From the chart "Utilization"
       total_cpu_seconds_used_per_second: FLOAT,
       api_cpu_seconds_used_per_second: FLOAT,
 
-      # From the chart "Milliseconds Used/Second".
+      # From the chart "Milliseconds Used/Second"
       milliseconds_used_per_second: FLOAT,
 
-      # From the chart "Number of Quota Denials/Second".
+      # From the chart "Error Details"
       quota_denials_per_second: FLOAT,
       dos_api_denials_per_second: FLOAT,
+      client_errors_per_second: FLOAT,
+      server_errors_per_second: FLOAT,
 
       # From the chart "Instances".
       total_instance_count: FLOAT,
@@ -59,6 +66,7 @@ and each has the structure:
 
       # From the chart "Memory Usage (MB)".
       memory_usage_mb: FLOAT }
+
 """
 
 import argparse
@@ -118,28 +126,33 @@ def round_to_n_significant_digits(x, n):
 #   map from the chart's data labels (the "chdl" query parameter) to
 #   the field names for the named series data.
 _label_to_field_map = {
-    'Requests/Second': 'requests_per_second',
+    'Summary': {
+        'Total Errors': 'errors_per_second',
+        'Total Requests': 'requests_per_second',
+        },
     'Requests by Type/Second': {
         'Static Requests': 'static_requests_per_second',
         'Dynamic Requests': 'dynamic_requests_per_second',
         'Cached Requests': 'cached_requests_per_second',
         'PageSpeed Requests': 'pagespeed_requests_per_second',
         },
-    'Milliseconds/Request': {
-        'Dynamic Requests': 'milliseconds_per_dynamic_request',
+    'Latency': 'milliseconds_per_dynamic_request',
+    'Loading Latency': 'milliseconds_per_loading_request',
+    'Error Details': {
+        'Client (4xx)': 'client_errors_per_second',
+        'Server (5xx)': 'server_errors_per_second',
+        'Quota Denials': 'quota_denials_per_second',
+        'DoS API Denials': 'dos_api_denials_per_second',
         },
-    'Errors/Second': 'errors_per_second',
-    'Bytes Received/Second': 'bytes_received_per_second',
-    'Bytes Sent/Second': 'bytes_sent_per_second',
-    'CPU Seconds Used/Second': {
+    'Traffic (Bytes/Second)': {
+        'Send': 'bytes_sent_per_second',
+        'Received': 'bytes_received_per_second',
+        },
+    'Utilization': {
         'Total CPU': 'total_cpu_seconds_used_per_second',
         'API Calls CPU': 'api_cpu_seconds_used_per_second',
         },
     'Milliseconds Used/Second': 'milliseconds_used_per_second',
-    'Number of Quota Denials/Second': {
-        'Quota Denials': 'quota_denials_per_second',
-        'DOS API Denials': 'dos_api_denials_per_second',
-        },
     'Instances': {
         'Total': 'total_instance_count',
         'Active': 'active_instance_count',
@@ -296,7 +309,7 @@ def parse_and_commit_record(input_html, download_time_t, verbose=False,
       verbose: If True, print report to stdout.
       dry_run: If True, do not store report in the database.
     """
-    time_label, time_delta = '6 hrs', datetime.timedelta(hours=6)
+    time_label, time_delta = '24 hrs', datetime.timedelta(hours=24)
     chart_start_time_t = download_time_t - time_delta.total_seconds()
 
     # Extract named time series data from the raw HTML.
