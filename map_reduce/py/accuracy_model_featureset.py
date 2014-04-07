@@ -7,6 +7,8 @@ accuracy_model_train.py. I recommend you work through this script end-to-end
 with a tiny data set, to smooth things out, and then start over once things
 are fixed with a large data.
 
+You may also find this document useful: https://docs.google.com/document/d/1POHUcj-b_AtwqMEIdiaH2TP84nFBuEfQwhvZPt5gl1Y/edit?usp=sharing
+
 ---
 
 Step 1) Collect raw data from the ProblemLog table.

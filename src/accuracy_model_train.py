@@ -18,9 +18,13 @@ import sys
 import numpy as np
 from sklearn.ensemble import RandomForestClassifier
 
-# necessary to do this after importing numpy to take avantage of
-# multiple cores on unix
-affinity.set_process_affinity_mask(0, 2 ** multiprocessing.cpu_count() - 1)
+try:
+    # necessary to do this after importing numpy to take avantage of
+    # multiple cores on unix
+    affinity.set_process_affinity_mask(0, 2 ** multiprocessing.cpu_count() - 1)
+except NotImplementedError:
+    # Doesn't work on Mac OS X
+    pass
 
 import accuracy_model_util
 import regression_util
@@ -122,12 +126,37 @@ def quantiles(x, quantiles):
     return [quantile(x, q) for q in quantiles]
 
 
-def preprocess_data(lines, options):
+def parse_features(lines, no_bias, feature_list):
+    """Converts text-formatted features into their float equivalents.
+
+    Arguments:
+        lines - a list of lists. Each element is a set of features as output
+            by accuracy_model_featureset.py. Each element in the inner list is
+            one element within that set.
+        no_bias - Boolean. True to exclude the bias [1] from the returned
+            features
+        feature_list - a list of strings. Each string names a feature to
+            include in the features array.
+
+    Returns: 3 arrays. N == len(lines)
+        correct - an array of the attempt correct labels. np.shape == (N,)
+        features - an array of arrays of the converted features. Shape depends
+            on no_bias and feature_list.
+                X = 0
+                if not no_bias: X += 1
+                if 'baseline' in feature_list: X += 1
+                if 'custom' in feature_list: X += 6
+                if 'random' in feature_list: X += 100
+                if 'mirt' in feature_list: X += 100
+            np.shape == (N,X). Typically no_bias is False, and feature_list is
+            ['custom', 'random'] resulting in np.shape == (N,107).
+        baseline_prediction - an array of the baseline predictions.
+            np.shape == (N,)
+    """
     # this step is critical- currently the input is sorted not only on exercise
     # but also subsequent fields, which could introduce a ton of bias
     np.random.shuffle(lines)
 
-    # TODO(jace): extract columns individually; avoid string column
     # turn it into a numpy array
     lines = np.asarray(lines)
     print >> sys.stderr, "Preprocessing, shape = " + str(lines.shape)
@@ -137,11 +166,8 @@ def preprocess_data(lines, options):
     baseline_prediction = lines[:, idx.baseline_prediction].astype('float')
 
     # Start features with a bias vector, unless we were told not to.
-    use_ones = 0 if options.no_bias else 1
+    use_ones = 0 if no_bias else 1
     features = np.ones((correct.shape[0], use_ones))
-
-    # and add additional features as specified by command line args
-    feature_list = options.feature_list.split(",")
 
     def append_features(slice_obj):
         return np.append(features, lines[:, slice_obj].astype('float'), axis=1)
@@ -162,6 +188,13 @@ def preprocess_data(lines, options):
     correct = np.nan_to_num(correct)
     features = np.nan_to_num(features)
     baseline_prediction = np.nan_to_num(baseline_prediction)
+
+    return correct, features, baseline_prediction
+
+
+def preprocess_data(lines, options):
+    correct, features, baseline_prediction = parse_features(lines,
+        options.no_bias, options.feature_list.split(","))
 
     N = lines.shape[0]
     if TEST_SIZE < 1.0:
