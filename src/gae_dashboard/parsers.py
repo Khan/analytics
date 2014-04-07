@@ -140,40 +140,40 @@ class Dashboard(BaseParser):
                 yield label.replace(' (%s)' % time_span, ''), url
 
 
-class Instances(BaseParser):
-    """An API for the contents of /instances as structured data."""
+class InstanceSummary(BaseParser):
+    """An API for the contents of /instance_summary as structured data."""
 
-    def version(self):
-        """The app version that owns these instances."""
-        selector = '#ae-appbar-version-id option[selected="selected"]'
-        # There should be exactly one selected version.
-        (version_element, ) = self.doc.cssselect(selector)
-        return version_element.text.strip()
-
-    def raw_summary_dict(self):
+    def raw_summary_dicts(self):
         """Performance statistics summarized across instances.
 
         Returns:
-          A dict with fields like this:
+          A list of one or more dicts with fields like these:
 
-          {'total_instances': '100 total (10 Resident)',
-           'average_qps': '2.243',
-           'average_latency': '180.3 ms',
-           'average_memory': '134.8 MBytes'}
+          [{'appengine_release': '1.9.2',
+            'total_instances': '100 total (10 Resident)',
+            'average_qps': '2.243',
+            'average_latency': '180.3 ms',
+            'average_memory': '134.8 MBytes'},
+           ...]
         """
-        selector = '#ae-instances-summary-table tbody tr'
-        # The table should have exactly one row.
-        (row, ) = self.doc.cssselect(selector)
-        children = list(row)
-        # Expecting 'Total number of instances', 'Average QPS',
-        # 'Average Latency', 'Average Memory'
-        assert len(children) == 4, [child.text for child in children]
-        return {
-            'total_instances': children[0].text.strip().replace('\n', ' '),
-            'average_qps': children[1].text.strip(),
-            'average_latency': children[2].text.strip(),
-            'average_memory': children[3].text.strip()
-        }
+        summaries = []
+        selector = '#ae-content tr'
+        # The table has multiple rows when a new version is rolling out.
+        rows = self.doc.cssselect(selector)
+        assert len(rows)
+        for row in rows:
+            children = list(row)
+            # Expecting 'App Engine Release', 'Total number of instances',
+            # 'Average QPS', 'Average Latency', 'Average Memory'
+            assert len(children) == 5, [child.text for child in children]
+            summaries.append({
+                'appengine_release': children[0].text.strip(),
+                'total_instances': children[1].text.strip().replace('\n', ' '),
+                'average_qps': children[2].text.strip(),
+                'average_latency': children[3].text.strip(),
+                'average_memory': children[4].text.strip()
+            })
+        return summaries
 
     def summary_dict(self):
         """A parsed representation of performance statistics.
@@ -191,8 +191,8 @@ class Instances(BaseParser):
            'average_latency_ms': 180.3,
            'average_memory_mb': 134.8}
         """
-        parsed_summary_dict = {}
-        raw_summary_dict = self.raw_summary_dict()
+        summary_dicts = []
+        raw_summary_dict = self.raw_summary_dicts()
         # Validate the raw summary and convert to a parsed
         # representation using this table of tuples whose fields are:
         #   (OUTPUT_FIELD, INPUT_FIELD, PATTERN, MATCHED_GROUP_PARSER)
@@ -205,13 +205,39 @@ class Instances(BaseParser):
                   ('average_memory_mb', 'average_memory',
                    r'^(\d+(?:\.\d+)?) MBytes$', float),
                  )
-        for (out_field, in_field, pattern, fn) in fields:
-            match = re.match(pattern, raw_summary_dict[in_field])
-            if not match:
-                raise ValueError('Summary field %s did not match pattern %s' %
-                                 (in_field, pattern))
-            parsed_summary_dict[out_field] = fn(match.group(1))
-        return parsed_summary_dict
+        for raw_summary_dict in self.raw_summary_dicts():
+            summary_dict = {}
+            for (out_field, in_field, pattern, fn) in fields:
+                match = re.match(pattern, raw_summary_dict[in_field])
+                if not match:
+                    raise ValueError('Summary field %s did not match '
+                                     'pattern %s' % (in_field, pattern))
+                summary_dict[out_field] = fn(match.group(1))
+            summary_dicts.append(summary_dict)
+        # Reduce to a single dict with weighted averages for each
+        # field except "total_instances".
+        total_instances = sum(d['total_instances'] for d in summary_dicts)
+        summary = {'total_instances': total_instances}
+        for field, _, _, _ in fields[1:]:
+            instance_weighted_sum = sum(d['total_instances'] * d[field]
+                                        for d in summary_dicts)
+            summary[field] = float(instance_weighted_sum) / total_instances
+        # Beautify rounding precision to match the App Engine UI.
+        summary['average_qps'] = round(summary['average_qps'], 3)
+        summary['average_latency_ms'] = round(summary['average_latency_ms'], 1)
+        summary['average_memory_mb'] = round(summary['average_memory_mb'], 1)
+        return summary
+
+
+class Instances(BaseParser):
+    """An API for the contents of /instances as structured data."""
+
+    def version(self):
+        """The app version that owns these instances."""
+        selector = '#ae-appbar-version-id option[selected="selected"]'
+        # There should be exactly one selected version.
+        (version_element, ) = self.doc.cssselect(selector)
+        return version_element.text.strip()
 
     def raw_detail_dicts(self):
         """Performance statistics specific to each instance.

@@ -35,7 +35,7 @@ if [ ! -e "${private_pw}" ]; then
 fi
 
 timestamp=`date +%s`
-"${curl_app}" "${base_url}/instances?app_id=${app_id}" "${username}" \
+"${curl_app}" "${base_url}/instance_summary?app_id=${app_id}" "${username}" \
     < "${private_pw}" \
     | "${srcdir}/instance_report.py" ${report_opts} ${timestamp}
 

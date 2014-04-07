@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
-"""Extract statistics from App Engine's /instances dashboard and store
-them in the analytics database.
+"""Extract statistics from App Engine's /instance_summary dashboard
+and store them in the analytics database.
 
 The statistics are stored in the mongo collection
 "gae_dashboard_instance_reports", and each record has the structure:
@@ -34,12 +34,13 @@ def parse_and_commit_record(input_html, download_dt, verbose=False,
     """Parse and store instance summary data.
 
     Arguments:
-      input_html: HTML contents of App Engine's /instances dashboard.
-      download_dt: Datetime when /instances was downloaded.
+      input_html: HTML contents of App Engine's /instance_summary
+        dashboard.
+      download_dt: Datetime when /instance_summary was downloaded.
       verbose: If True, print report to stdout.
       dry_run: If True, do not store report in the database.
     """
-    summary = parsers.Instances(input_html).summary_dict()
+    summary = parsers.InstanceSummary(input_html).summary_dict()
     record = {'utc_datetime': download_dt,
               'num_instances': summary['total_instances'],
               'average_qps': summary['average_qps'],
