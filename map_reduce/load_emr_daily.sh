@@ -65,6 +65,17 @@ echo "Upload to S3"
 /usr/local/bin/s3cmd sync ~/kalogs/${day_as_path}/ \
   s3://ka-mapreduce/rawdata/server_logs/website/${day}/ 2>&1
 
+
+# TODO(jace) As of 4/13/2014, the rest of this script has been
+# broken for over a month.  I am inserting an early exit, until
+# I can determine whather (or how much) of this pipeline can be killed
+# with fire.
+exit 0
+
+# -------------------------------------------------------------------
+# NOTE:  the rest of this script will not execute due to above exit()
+# -------------------------------------------------------------------
+
 # We need to get a route-map onto s3 for raw_log_to_request_log_mapper.py.
 # This requires the shared secret to be in the analytics homedir.
 route_map_path="s3://ka-mapreduce/rawdata/route_maps/route_map.${day}.json"
