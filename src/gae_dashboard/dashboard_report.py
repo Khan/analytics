@@ -71,7 +71,10 @@ and each has the structure:
 
 import argparse
 import calendar
+import cPickle
 import datetime
+import socket
+import struct
 import sys
 
 import GChartWrapper
@@ -186,7 +189,7 @@ def get_axis_labels(chart):
 
       Specifically, "chxl" indexes into "chxt".  Given Chart API
       parameters like these:
-    
+
         chxt=x,y
         chxl=0:|now|-6hr|-12hr|-18hr|-1d|1:|400.00|800.00|1200|1600|2000
 
@@ -194,7 +197,7 @@ def get_axis_labels(chart):
 
         {"x": ["now", "-6hr", "-12hr", "-18hr", "-1d"],
          "y": ["400.00", "800.00", "1200", "1600", "2000"]}
-    """ 
+    """
     axes = chart['chxt'].split(',')
     axis_labels = [[] for _ in axes]
     axis_index = 0
@@ -299,8 +302,45 @@ def aggregate_series_by_time(named_series):
         yield x_value, record
 
 
-def parse_and_commit_record(input_html, download_time_t, verbose=False,
-                            dry_run=False):
+def send_to_graphite(graphite_host, records):
+    """Send dashboard statistics to the graphite timeseries-graphing tool."""
+    # Load the api key that we need to send data to graphite.
+    # This will (properly) raise an exception if this file isn't installed
+    # (based on the contents of webapp secrets.py).
+    with open('/home/analytics/hostedgraphite_secret') as f:
+        api_key = f.read().strip()
+
+    # The format of the pickle-protocol data is described at:
+    # http://graphite.readthedocs.org/en/latest/feeding-carbon.html#the-pickle-protocol
+    graphite_data = []
+    for record in records:
+        record = record.copy()    # since we're munging it in placed
+
+        timestamp = record.pop('utc_datetime')
+        # Convert the timestamp to a time_t
+        epoch = datetime.datetime.utcfromtimestamp(0)
+        timestamp = int((timestamp - epoch).total_seconds())
+
+        for (field, value) in record.iteritems():
+            key = '%s.webapp.gae.dashboard.%s' % (api_key, field)
+            graphite_data.append((key, (timestamp, value)))
+
+    if graphite_data:
+        (hostname, port_string) = graphite_host.split(':')
+        host_ip = socket.gethostbyname(hostname)
+        port = int(port_string)
+
+        pickled_data = cPickle.dumps(graphite_data, cPickle.HIGHEST_PROTOCOL)
+        payload = struct.pack("!L", len(pickled_data)) + pickled_data
+
+        graphite_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        graphite_socket.connect((host_ip, port))
+        graphite_socket.send(payload)
+        graphite_socket.close()
+
+
+def parse_and_commit_record(input_html, download_time_t, graphite_host='',
+                            verbose=False, dry_run=False):
     """Parse and store dashboard chart data.
 
     Arguments:
@@ -330,7 +370,7 @@ def parse_and_commit_record(input_html, download_time_t, verbose=False,
         print >>sys.stderr, ('No dashboard records found in mongo. '
                              'Importing all records as new.')
         time_t_of_latest_record = 0
-    
+
     # Build time-keyed records from the named time series data and
     # decide which records will be stored.
     records = []
@@ -349,6 +389,9 @@ def parse_and_commit_record(input_html, download_time_t, verbose=False,
     if dry_run:
         print >>sys.stderr, 'Skipping import during dry-run.'
     elif records:
+        # Do the graphite send first, since mongo modifies 'records' in place.
+        if graphite_host:
+            send_to_graphite(graphite_host, records)
         mongo_collection.insert(records)
 
 
@@ -360,6 +403,12 @@ def main():
                         default=sys.stdin,
                         help=("HTML contents of App Engine's /dashboard "
                               "[default: read from stdin]"))
+    parser.add_argument('--graphite_host',
+                        default='carbon.hostedgraphite.com:2004',
+                        help=('host:port to send stats to graphite '
+                              '(using the pickle protocol). '
+                              'Use the empty string to disable graphite. '
+                              '(Default: %(default)s)'))
     parser.add_argument('-v', '--verbose', action='store_true', default=False,
                         help='print report on stdout')
     parser.add_argument('-n', '--dry-run', action='store_true', default=False,
@@ -367,7 +416,7 @@ def main():
     args = parser.parse_args()
     input_html = args.infile.read()
     parse_and_commit_record(input_html, args.unix_timestamp,
-                            args.verbose, args.dry_run)
+                            args.graphite_host, args.verbose, args.dry_run)
 
 
 if __name__ == '__main__':
