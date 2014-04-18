@@ -71,15 +71,13 @@ and each has the structure:
 
 import argparse
 import calendar
-import cPickle
 import datetime
-import socket
-import struct
 import sys
 
 import GChartWrapper
 import pymongo
 
+import graphite_util
 import parsers
 
 
@@ -302,43 +300,6 @@ def aggregate_series_by_time(named_series):
         yield x_value, record
 
 
-def send_to_graphite(graphite_host, records):
-    """Send dashboard statistics to the graphite timeseries-graphing tool."""
-    # Load the api key that we need to send data to graphite.
-    # This will (properly) raise an exception if this file isn't installed
-    # (based on the contents of webapp secrets.py).
-    with open('/home/analytics/hostedgraphite_secret') as f:
-        api_key = f.read().strip()
-
-    # The format of the pickle-protocol data is described at:
-    # http://graphite.readthedocs.org/en/latest/feeding-carbon.html#the-pickle-protocol
-    graphite_data = []
-    for record in records:
-        record = record.copy()    # since we're munging it in placed
-
-        timestamp = record.pop('utc_datetime')
-        # Convert the timestamp to a time_t
-        epoch = datetime.datetime.utcfromtimestamp(0)
-        timestamp = int((timestamp - epoch).total_seconds())
-
-        for (field, value) in record.iteritems():
-            key = '%s.webapp.gae.dashboard.%s' % (api_key, field)
-            graphite_data.append((key, (timestamp, value)))
-
-    if graphite_data:
-        (hostname, port_string) = graphite_host.split(':')
-        host_ip = socket.gethostbyname(hostname)
-        port = int(port_string)
-
-        pickled_data = cPickle.dumps(graphite_data, cPickle.HIGHEST_PROTOCOL)
-        payload = struct.pack("!L", len(pickled_data)) + pickled_data
-
-        graphite_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        graphite_socket.connect((host_ip, port))
-        graphite_socket.send(payload)
-        graphite_socket.close()
-
-
 def parse_and_commit_record(input_html, download_time_t, graphite_host='',
                             verbose=False, dry_run=False):
     """Parse and store dashboard chart data.
@@ -346,6 +307,7 @@ def parse_and_commit_record(input_html, download_time_t, graphite_host='',
     Arguments:
       input_html: HTML contents of App Engine's /dashboard dashboard.
       download_time_t: When /dashboard was downloaded in seconds (UTC).
+      graphite_host: host:port of graphite server to send data to, or ''/None
       verbose: If True, print report to stdout.
       dry_run: If True, do not store report in the database.
     """
@@ -390,8 +352,7 @@ def parse_and_commit_record(input_html, download_time_t, graphite_host='',
         print >>sys.stderr, 'Skipping import during dry-run.'
     elif records:
         # Do the graphite send first, since mongo modifies 'records' in place.
-        if graphite_host:
-            send_to_graphite(graphite_host, records)
+        graphite_util.maybe_send_to_graphite(graphite_host, 'summary', records)
         mongo_collection.insert(records)
 
 

@@ -19,6 +19,7 @@ import sys
 
 import pymongo
 
+import graphite_util
 import parsers
 
 
@@ -29,14 +30,15 @@ def _mongo_collection():
     return collection
 
 
-def parse_and_commit_record(input_html, download_dt, verbose=False,
-                            dry_run=False):
+def parse_and_commit_record(input_html, download_dt, graphite_host='',
+                            verbose=False, dry_run=False):
     """Parse and store instance summary data.
 
     Arguments:
       input_html: HTML contents of App Engine's /instance_summary
         dashboard.
       download_dt: Datetime when /instance_summary was downloaded.
+      graphite_host: host:port of graphite server to send data to, or ''/None
       verbose: If True, print report to stdout.
       dry_run: If True, do not store report in the database.
     """
@@ -51,6 +53,9 @@ def parse_and_commit_record(input_html, download_dt, verbose=False,
         print record
 
     if not dry_run:
+        # Do the graphite send first, since mongo modifies 'records' in place.
+        graphite_util.maybe_send_to_graphite(graphite_host, 'instances',
+                                             [record])
         _mongo_collection().insert(record)
 
 
@@ -62,6 +67,12 @@ def main():
                         default=sys.stdin,
                         help=("HTML contents of App Engine's /instances "
                               "[default: read from stdin]"))
+    parser.add_argument('--graphite_host',
+                        default='carbon.hostedgraphite.com:2004',
+                        help=('host:port to send stats to graphite '
+                              '(using the pickle protocol). '
+                              'Use the empty string to disable graphite. '
+                              '(Default: %(default)s)'))
     parser.add_argument('-v', '--verbose', action='store_true', default=False,
                         help='print report on stdout')
     parser.add_argument('-n', '--dry-run', action='store_true', default=False,
@@ -69,7 +80,7 @@ def main():
     args = parser.parse_args()
     input_html = args.infile.read()
     download_dt = datetime.datetime.utcfromtimestamp(args.unix_timestamp)
-    parse_and_commit_record(input_html, download_dt,
+    parse_and_commit_record(input_html, download_dt, args.graphite_host,
                             args.verbose, args.dry_run)
 
 
