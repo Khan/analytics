@@ -22,7 +22,7 @@ dry_run = True
 # How old the datastore entity data needs to be before we archive it
 STALE_THRESHOLD_ENTITIES = datetime.timedelta(weeks=5)
 # How old the RequestLog/AppLog data needs to be before we archive it
-STALE_THRESHOLD_LOGS = datetime.timedelta(weeks=15)
+STALE_THRESHOLD_LOGS = datetime.timedelta(weeks=12)
 
 
 def run_shell_command(command_string):
