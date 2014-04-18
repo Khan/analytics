@@ -6,12 +6,6 @@ and store them in the analytics database.
 This script considers the most recently added records in the database
 and only adds records that are more recent, up to 6 hours of data.
 
-TODO(chris): this method used to collect the data across all graphs
-for the "6 hrs" period, but currently only the "Summary" graph is
-rendered into the page. In the future, we should instead hit the
-"/stats" endpoint that client JavaScript loads when switching between
-graphs.
-
 CAVEAT: sometimes a subsequent run will log the same data points as a
 new record.  The heart of the problem is that the x-axis of the
 scraped 6-hour graphs covers 21,600 seconds, but the charting data may
@@ -23,62 +17,97 @@ one run and in another record on a different run since we batch data
 points into records by timestamp.
 
 Records are stored in the collection "gae_dashboard_chart_reports",
-and each has the structure:
-
-    { utc_datetime: DATETIME,
-      # From the chart "Summary"
-      requests_per_second: FLOAT,
-      errors_per_second: FLOAT,
-
-      # From the chart "Requests by Type/Second"
-      static_requests_per_second: FLOAT,
-      dynamic_requests_per_second: FLOAT,
-      cached_requests_per_second: FLOAT,
-      pagespeed_requests_per_second: FLOAT,
-
-      # From the chart "Latency"
-      milliseconds_per_dynamic_request: FLOAT,
-
-      # From the chart "Loading Latency"
-      milliseconds_per_loading_request: FLOAT,
-
-      # From the chart "Traffic (Bytes/Second)"
-      bytes_received_per_second: FLOAT,
-      bytes_sent_per_second: FLOAT,
-
-      # From the chart "Utilization"
-      total_cpu_seconds_used_per_second: FLOAT,
-      api_cpu_seconds_used_per_second: FLOAT,
-
-      # From the chart "Milliseconds Used/Second"
-      milliseconds_used_per_second: FLOAT,
-
-      # From the chart "Error Details"
-      quota_denials_per_second: FLOAT,
-      dos_api_denials_per_second: FLOAT,
-      client_errors_per_second: FLOAT,
-      server_errors_per_second: FLOAT,
-
-      # From the chart "Instances".
-      total_instance_count: FLOAT,
-      active_instance_count: FLOAT,
-      billed_instance_count: FLOAT,
-
-      # From the chart "Memory Usage (MB)".
-      memory_usage_mb: FLOAT }
-
+and each has utc_datetime plus all of the (sub)fields listed in
+_label_to_field_map: requests_per_second, errors_per_second,
+milliseconds_per_dynamic_request, etc.
 """
 
 import argparse
 import calendar
+import collections
 import datetime
+import json
 import sys
 
 import GChartWrapper
 import pymongo
 
 import graphite_util
-import parsers
+
+
+# This mapping is used to turn chart labels and possibly data labels
+# into field names on the record to save. There are two rules:
+#
+#   1) If the chart label maps to a string then the string is the
+#   field name for the lone series in the chart.
+#
+#   2) If the label maps to a dictionary then the dictionary's keys
+#   map from the chart's data labels (the "chdl" query parameter) to
+#   the field names for the named series data.
+#
+# We use an OrderedDict since the input to dashboard_report includes
+# a chartnum, which is an index into this field-map.  The ordering
+# *must* match the ordering of the dropdown at the GAE dashboard homepage.
+_label_to_field_map = collections.OrderedDict(
+    [('Summary', {
+        'Total Errors': 'errors_per_second',
+        'Total Requests': 'requests_per_second',
+        }),
+     ('Requests by Type/Second', {
+         'Static Requests': 'static_requests_per_second',
+         'Dynamic Requests': 'dynamic_requests_per_second',
+         'Cached Requests': 'cached_requests_per_second',
+         'PageSpeed Requests': 'pagespeed_requests_per_second',
+         }),
+     ('Latency', 'milliseconds_per_dynamic_request'),
+     ('Loading Latency', 'milliseconds_per_loading_request'),
+     ('Error Details', {
+         'Client (4xx)': 'client_errors_per_second',
+         'Server (5xx)': 'server_errors_per_second',
+         'Quota Denials': 'quota_denials_per_second',
+         'DoS API Denials': 'dos_api_denials_per_second',
+         }),
+     ('Traffic (Bytes/Second)', {
+         'Sent': 'bytes_sent_per_second',
+         'Received': 'bytes_received_per_second',
+         }),
+     ('Utilization', {
+         'Total CPU': 'total_cpu_seconds_used_per_second',
+         'API Calls CPU': 'api_cpu_seconds_used_per_second',
+         }),
+     ('Milliseconds Used/Second', 'milliseconds_used_per_second'),
+     ('Instances', {
+         'Total': 'total_instance_count',
+         'Active': 'active_instance_count',
+         'Billed': 'billed_instance_count',
+         }),
+     ('Memory Usage (MB)', 'memory_usage_mb'),
+     ('Memcache Operations/Second', 'memcache_ops_per_second'),
+     ('Memcache Compute Units/Second', 'memcache_compute_units_per_second'),
+     ('Memcache Traffic (Bytes/Second)', {
+         'Sent': 'memcache_bytes_sent_per_second',
+         'Received': 'memcache_bytes_received_per_second',
+         'Total': 'memcache_total_bytes_per_second',
+         }),
+     ('Memcache Total Cache Size (MB)', 'memcache_size_mb'),
+     ])
+
+
+# Map from the text on the time-window picker on the GAE dashboards
+# homepage, to how long that is, in hours.  The ordering *must* match
+# the ordering of the selectors on the GAE dashboard homepage.
+_time_windows = [
+    ('30 mins', 0.5),
+    ('3 hrs', 3),
+    ('6 hrs', 6),
+    ('12 hrs', 12),
+    ('24 hrs', 24),
+    ('2 days', 2 * 24),
+    ('4 days', 4 * 24),
+    ('7 days', 7 * 24),
+    ('14 days', 14 * 24),
+    ('30 days', 30 * 24),
+    ]
 
 
 def _mongo_collection():
@@ -115,52 +144,6 @@ def round_to_n_significant_digits(x, n):
     if n < 1:
         raise ValueError('Number of significant digits must be >= 1')
     return float('%.*e' % (n - 1, x))
-
-
-# This mapping is used to turn chart labels and possibly data labels
-# into field names on the record to save. There are two rules:
-#
-#   1) If the chart label maps to a string then the string is the
-#   field name for the lone series in the chart.
-#
-#   2) If the label maps to a dictionary then the dictionary's keys
-#   map from the chart's data labels (the "chdl" query parameter) to
-#   the field names for the named series data.
-_label_to_field_map = {
-    'Summary': {
-        'Total Errors': 'errors_per_second',
-        'Total Requests': 'requests_per_second',
-        },
-    'Requests by Type/Second': {
-        'Static Requests': 'static_requests_per_second',
-        'Dynamic Requests': 'dynamic_requests_per_second',
-        'Cached Requests': 'cached_requests_per_second',
-        'PageSpeed Requests': 'pagespeed_requests_per_second',
-        },
-    'Latency': 'milliseconds_per_dynamic_request',
-    'Loading Latency': 'milliseconds_per_loading_request',
-    'Error Details': {
-        'Client (4xx)': 'client_errors_per_second',
-        'Server (5xx)': 'server_errors_per_second',
-        'Quota Denials': 'quota_denials_per_second',
-        'DoS API Denials': 'dos_api_denials_per_second',
-        },
-    'Traffic (Bytes/Second)': {
-        'Send': 'bytes_sent_per_second',
-        'Received': 'bytes_received_per_second',
-        },
-    'Utilization': {
-        'Total CPU': 'total_cpu_seconds_used_per_second',
-        'API Calls CPU': 'api_cpu_seconds_used_per_second',
-        },
-    'Milliseconds Used/Second': 'milliseconds_used_per_second',
-    'Instances': {
-        'Total': 'total_instance_count',
-        'Active': 'active_instance_count',
-        'Billed': 'billed_instance_count',
-        },
-    'Memory Usage (MB)': 'memory_usage_mb',
-    }
 
 
 def lookup_field_name(chart_label, series_label=None):
@@ -300,28 +283,45 @@ def aggregate_series_by_time(named_series):
         yield x_value, record
 
 
-def parse_and_commit_record(input_html, download_time_t, graphite_host='',
+def parse_and_commit_record(input_json, download_time_t, graphite_host='',
                             verbose=False, dry_run=False):
     """Parse and store dashboard chart data.
 
     Arguments:
-      input_html: HTML contents of App Engine's /dashboard dashboard.
+      input_json: A JSON list of dicts containing the chart-url for
+         one chart, along with an int describing which chart it is
+         and other identifying data; see the help for <infile> in main(),
+         or just look at how this json is constructed in fetch_stats.sh.
       download_time_t: When /dashboard was downloaded in seconds (UTC).
       graphite_host: host:port of graphite server to send data to, or ''/None
       verbose: If True, print report to stdout.
       dry_run: If True, do not store report in the database.
     """
-    time_label, time_delta = '24 hrs', datetime.timedelta(hours=24)
-    chart_start_time_t = download_time_t - time_delta.total_seconds()
+    # Strip off the None sentinel we add to the end of the input json.
+    input_json = [j for j in input_json if j is not None]
+    if not input_json:
+        return
 
     # Extract named time series data from the raw HTML.
     named_series = {}
-    charts = parsers.Dashboard(input_html).charts(time_label)
-    for chart_label, url in charts:
-        chart_data = unpack_chart_data(url, time_delta.total_seconds())
+    for chart_json in input_json:
+        chart_label_index = chart_json['chart_num']
+        chart_label = _label_to_field_map.keys()[chart_label_index]
+
+        time_label_index = chart_json['time_window']
+        (time_label, time_duration) = _time_windows[time_label_index]
+        time_delta = datetime.timedelta(hours=time_duration)
+
+        chart_url = chart_json['chart_url_data']['chart_url']
+        chart_data = unpack_chart_data(chart_url, time_delta.total_seconds())
         for series_label, xy_pairs in chart_data:
             field_name = lookup_field_name(chart_label, series_label)
             named_series[field_name] = xy_pairs
+
+    # Assume all elements of our input_json list have the same time window.
+    assert all(input_json[i]['time_window'] == input_json[0]['time_window']
+               for i in xrange(len(input_json)))
+    chart_start_time_t = download_time_t - time_delta.total_seconds()
 
     # Determine the starting point for records we want to add.  This
     # script may be run by cron and fetches a minimum of 6 hours of
@@ -362,21 +362,26 @@ def main():
                         help='time_t the input data was downloaded')
     parser.add_argument('infile', nargs='?', type=argparse.FileType('r'),
                         default=sys.stdin,
-                        help=("HTML contents of App Engine's /dashboard "
-                              "[default: read from stdin]"))
+                        help=("JSON-encoded list of maps with three keys: "
+                              "chart_num: an index into _label_to_field_map; "
+                              "time_window: an index into _time_windows; "
+                              "chart_url_data: a map containing chart_url->url"
+                              " [default: read from stdin]"))
     parser.add_argument('--graphite_host',
                         default='carbon.hostedgraphite.com:2004',
                         help=('host:port to send stats to graphite '
                               '(using the pickle protocol). '
                               'Use the empty string to disable graphite. '
-                              '(Default: %(default)s)'))
+                              '[default: %(default)s]'))
     parser.add_argument('-v', '--verbose', action='store_true', default=False,
                         help='print report on stdout')
     parser.add_argument('-n', '--dry-run', action='store_true', default=False,
                         help='do not store report in the database')
     args = parser.parse_args()
-    input_html = args.infile.read()
-    parse_and_commit_record(input_html, args.unix_timestamp,
+
+    # This json.load() will raise an exception error if the input is
+    # malformed, e.g. if the wget we did for this data failed.
+    parse_and_commit_record(json.load(args.infile), args.unix_timestamp,
                             args.graphite_host, args.verbose, args.dry_run)
 
 

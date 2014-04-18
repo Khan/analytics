@@ -44,7 +44,33 @@ timestamp=`date +%s`
     < "${private_pw}" \
     | "${srcdir}/memcache_report.py" ${report_opts} ${timestamp}
 
-timestamp=`date +%s`
-"${curl_app}" "${base_url}/dashboard?app_id=${app_id}" "${username}" \
-    < "${private_pw}" \
-    | "${srcdir}/dashboard_report.py" ${report_opts} ${timestamp}
+# For the dashboard, we have to fetch lots of different urls these
+# days, since each of the dashboard graphs is from a different url.
+# The urls send back json with chart_url data, which we then send
+# to the dashboard_report script to parse.
+#
+{
+    timestamp=`date +%s`
+    # We look in dashboard_report.py to get the number of charts to
+    # fetch.  Ugh.
+    num_charts=`env PYTHONPATH="${srcdir}" python -c "import dashboard_report as dr; print len(dr._label_to_field_map) - 1"`
+
+    # We are manually going to create json to send to dashboard_report.
+    # Since the url we fetch gives back json already, it's easy to turn
+    # it into a bigger json struct.
+    echo '['
+    for chartnum in `seq $num_charts`; do
+        # window=2 gives us 6 hours of data (cf. dashboard_report.py:_time_windows)
+        window=2
+        url="/dashboard/stats?app_id=${app_id}&version_id=&type=${chartnum}&window=${window}"
+        echo '{"chart_num": '$chartnum', '
+        echo ' "time_window": '$window', '
+        echo ' "chart_url_data": '
+        "${curl_app}" "${base_url}/${url}" "${username}" < "${private_pw}"
+        echo "},"
+    done
+    # Darn json and its requirement the last list element doesn't have
+    # a trailing comma.  Easiest way around this is to have a sentinel.
+    echo 'null'
+    echo ']'
+} | "${srcdir}/dashboard_report.py" ${report_opts} ${timestamp}
