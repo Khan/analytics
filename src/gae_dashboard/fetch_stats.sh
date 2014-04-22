@@ -59,7 +59,7 @@ timestamp=`date +%s`
     # Since the url we fetch gives back json already, it's easy to turn
     # it into a bigger json struct.
     echo '['
-    for chartnum in `seq $num_charts`; do
+    for chartnum in `seq 0 $num_charts`; do
         # window=2 gives us 6 hours of data (cf. dashboard_report.py:_time_windows)
         window=2
         url="/dashboard/stats?app_id=${app_id}&version_id=&type=${chartnum}&window=${window}"
