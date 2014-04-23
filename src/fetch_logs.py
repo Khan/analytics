@@ -109,16 +109,11 @@ def get_cmd_line_args():
                             "If None, will fetch from all versions (but "
                             "only from one 'class' of versions, like frontend "
                             "vs. backends)."))
-    parser.add_option("-b", "--backend", action="store_true", default=False,
-                      help=("If set will try and read the logs from all of "
-                        "the currently deployed logical backends (those "
-                        "that end with 'backend')."))
+    parser.add_option("-m", "--module", default=None,
+                      help=("If set, the name of the module to request logs "
+                            "from. If None, will fetch from all modules."))
 
     options, extra_args = parser.parse_args()
-
-    if options.appengine_version and options.backend:
-        parser.error("options --appengine_version and --backend are "
-            "mutually exclusive")
 
     if extra_args:
         sys.exit('Unknown arguments %s. See --help.' % extra_args)
@@ -126,17 +121,18 @@ def get_cmd_line_args():
     return options
 
 
-def fetch_appengine_logs(start_time, end_time, server_class,
-    appengine_version):
+def fetch_appengine_logs(start_time, end_time, module=None,
+    appengine_version=None):
     """Return the output from /api/v1/fetch_logs.
 
     Arguments:
       start_time: a datetime object saying when to start fetching from.
       end_time: a datetime object saying when to stop fetching.
-      server_class: class to download from, valid options are "frontend" or
-        "backend".  Ignored if appengine_version is specified.
-      appengine_version: Optional. If passed, the version to download logs
-        from.  If missing, will download all logs from the specified class.
+      module: a string giving the name of a module to retrieve logs
+        from.  If None, will download logs from all modules.
+      appengine_version: a string giving the version of 'module' to
+        retrieve logs from.  If you specify a version, you must
+        specify a module.
 
     Returns:
       A string, the output of the /api/v1/fetch_logs/x/x?... command.
@@ -146,13 +142,15 @@ def fetch_appengine_logs(start_time, end_time, server_class,
     url_base = LOGS_URL % {'start_time_t': start_time_t,
                            'end_time_t': end_time_t}
 
-    if appengine_version or server_class != 'frontend':
+    if appengine_version and not module:
         raise NotImplementedError(
-                "fetch_logs tempoarily does not support fetching of "
-                "backend logs or a specific version's logs. If you're "
-                "seeing this error, contact Jace.  It's his fault.")
-    else:
-        url = url_base + '?module=%s' % 'default'
+                "If you specify a version, you must also specify a module.")
+
+    url = url_base
+    if module:
+        url += '?module=%s' % module
+    if appengine_version:
+        url += '&version=%s' % appengine_version
 
     compressed_retval = oauth_util.fetch_url.fetch_url(url)
     retval = zlib.decompress(compressed_retval)
@@ -181,15 +179,8 @@ def main():
 
         for tries in xrange(max_retries):
             try:
-                if options.backend:
-                    response = fetch_appengine_logs(start_dt, next_dt,
-                        "backend", None)
-                elif options.appengine_version:
-                    response = fetch_appengine_logs(start_dt, next_dt,
-                        None, options.appengine_version)
-                else:
-                    response = fetch_appengine_logs(start_dt, next_dt,
-                        "frontend", None)
+                response = fetch_appengine_logs(start_dt, next_dt,
+                        options.module, options.appengine_version)
             except Exception, why:
                 sleep_secs = 2 ** tries
                 print >>sys.stderr, ('ERROR: %s.\n'
