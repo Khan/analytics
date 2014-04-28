@@ -26,7 +26,6 @@ done
 : ${private_pw:="${HOME}/private_pw"}
 : ${username:="khanbackups@gmail.com"}
 : ${curl_app:="${srcdir}/gae_dashboard_curl.py"}
-: ${base_url:="https://appengine.google.com"}
 : ${app_id:="s~khan-academy"}
 
 if [ ! -e "${private_pw}" ]; then
@@ -34,23 +33,16 @@ if [ ! -e "${private_pw}" ]; then
     exit 1
 fi
 
-timestamp=`date +%s`
-"${curl_app}" "${base_url}/instance_summary?app_id=${app_id}" "${username}" \
-    < "${private_pw}" \
-    | "${srcdir}/instance_report.py" ${report_opts} ${timestamp}
-
-timestamp=`date +%s`
-"${curl_app}" "${base_url}/memcache?app_id=${app_id}" "${username}" \
-    < "${private_pw}" \
-    | "${srcdir}/memcache_report.py" ${report_opts} ${timestamp}
+< "${private_pw}" "${srcdir}/ka_report.py" -e "${username}" \
+    -A "${app_id}" ${report_opts}
 
 # For the dashboard, we have to fetch lots of different urls these
 # days, since each of the dashboard graphs is from a different url.
 # The urls send back json with chart_url data, which we then send
 # to the dashboard_report script to parse.
 #
+timestamp=`date +%s`
 {
-    timestamp=`date +%s`
     # We look in dashboard_report.py to get the number of charts to
     # fetch.  Ugh.
     num_charts=`env PYTHONPATH="${srcdir}" python -c "import dashboard_report as dr; print len(dr._label_to_field_map) - 1"`
@@ -66,7 +58,7 @@ timestamp=`date +%s`
         echo '{"chart_num": '$chartnum', '
         echo ' "time_window": '$window', '
         echo ' "chart_url_data": '
-        "${curl_app}" "${base_url}/${url}" "${username}" < "${private_pw}"
+        "${curl_app}" "${url}" "${username}" < "${private_pw}"
         echo "},"
     done
     # Darn json and its requirement the last list element doesn't have

@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-"""Download the contents of a GAE admin UI page.
+"""Download the contents of an AppEngine admin UI page.
 
 Usage: echo GAE_PASSWORD | gae_dashboard_curl.py URL GAE_USERNAME
 
@@ -9,8 +9,14 @@ server-relative URL, e.g., /instances.
 
 The URL's contents are printed to standard output or an error is raised.
 
-The Google Appengine SDK must be installed in /usr/local/google_appengine,
-which is the location where it is installed on the analytics machine.
+The Google AppEngine SDK's dev_appserver.py must be available on PATH.
+
+To use this module as a library:
+
+  import gae_dashboard_curl
+  dashclient = gae_dashboard_curl.DashboardClient(email, password)
+  instances_html = dashclient.fetch('/instances?app_id=s~test-app')
+
 """
 
 import os
@@ -31,6 +37,15 @@ USER_AGENT = 'gae_dashboard_curl.py/1.0'
 class UnsupportedUrlError(Exception):
     """Raised when given an URL that is not an App Engine dashboard."""
     pass
+
+
+class DashboardClient(object):
+    """Fetch URLs in the AppEngine admin interface."""
+    def __init__(self, email, password):
+        self.rpcserver = create_rpcserver(email, password)
+
+    def fetch(self, url):
+        return fetch_contents(self.rpcserver, url)
 
 
 def create_rpcserver(email, password):
@@ -61,7 +76,7 @@ def create_rpcserver(email, password):
         secure=True,
         rpc_tries=3)
     return rpcserver
-    
+
 
 def fetch_contents(rpcserver, url):
     """Fetch a URL from the AppEngine admin interface."""
@@ -74,20 +89,25 @@ def fetch_contents(rpcserver, url):
     elif url.startswith(valid_host_prefix):
         request_path = url[len(valid_host_prefix):]
     else:
-        raise UnsupportedUrlError('URL to fetch must start with / or %s/' %
-                                  valid_host_prefix)
+        raise UnsupportedUrlError(
+            'URL to fetch must start with / or %s/. Saw %s' %
+            (valid_host_prefix, url))
 
     return rpcserver.Send(request_path, None)
 
 
-if __name__ == '__main__':
+def main():
     if len(sys.argv) != 3:
         print >>sys.stderr, (
             'Usage: echo GAE_PASSWORD | gae_dashboard_curl.py URL GAE_USER')
+        return 1
     _, url, email = sys.argv
     password = sys.stdin.read().rstrip('\n')
-    rpcserver = create_rpcserver(email, password)
-    try:
-        print fetch_contents(rpcserver, url)
-    except UnsupportedUrlError, e:
-        sys.exit(str(e))
+    dashclient = DashboardClient(email, password)
+    print dashclient.fetch(url)
+    return 0
+
+
+if __name__ == '__main__':
+    exit_status = min(main(), 127)  # 128+ is for signals.
+    sys.exit(exit_status)

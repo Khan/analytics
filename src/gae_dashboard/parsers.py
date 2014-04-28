@@ -1,40 +1,11 @@
 """Classes to extract useful data from App Engine admin console pages."""
 
+# Has a "debug mode" when __name__ == '__main__'. See the bottom of
+# the file for details.
+
 from lxml import html
 import re
-
-# TODO(chris): implement more parsers.
-#
-# Instances:
-# - expand detail dicts to contain all info (but no links).
-#
-# Logs:
-# - application_id()/version_id()
-# - logs_storage() -> {total: "", version: ""}
-#
-# Deployment:
-# - application_id()
-# - version_dicts()
-#   {version_id: "", size: "", runtime: "", api_version: "", is_default: "",
-#    deployed: ""}
-#
-# Backends:
-# - application_id()
-# - backend_dicts()
-#   {version_id: "", size: "", runtime: "", api_version: "", deployed: "",
-#    class: "B2", num_instances: "", options: ""}
-#
-# Queues:
-# - application_id()
-# - summary_dict()
-#   {api_calls: "", stored_task_count: "", stored_task_bytes: ""}
-# - push_queue_detail_dicts()
-#   {queue_name: "", max_rate: "", enforced_rate: "", bucket_size: "",
-#    oldest_task: "", in_queue: "", "run_last_minute": "", running: ""}
-#
-# BillingHistory:
-# - event_dicts() for event types other than usage reports.
-# - filtered_event_dicts(title="")
+import sys
 
 
 def text(html_element):
@@ -50,7 +21,96 @@ def text(html_element):
     <p>There are <b>5</b> pears</p>
 
     """
-    return html_element.xpath("string()")
+    return html_element.xpath("string()") or ''  # avoid returning None
+
+
+def _to_num(val):
+    """Return first numeric thing as float or int.
+
+    Some examples:
+
+      "1,234" -> 1234
+
+      "There were 5 flies." -> 5
+
+      "1,234.56" -> 1234.56
+
+    """
+    m = re.search(r'\d+(?:\.\d+)?', val.replace(',', ''))
+    if not m:
+        raise ValueError('No number found in %s' % val)
+    numstr = m.group(0)
+    if '.' in numstr:
+        return float(numstr)
+    else:
+        return int(numstr)
+
+
+class Value(object):
+    """Information about a scraped value.
+
+    A scraped value always has two components: the scraped HTML text,
+    like "1,234 instances" and the parsed value, like the integer 1234.
+
+    This object retains both parts of the original value and provides
+    class methods that make it easier to parse out the value portion
+    from scraped HTML text.
+    """
+    def __init__(self, text, value):
+        self._text = self._normalize_html(text)
+        self._value = value
+
+    def text(self):
+        """Scraped HTML text."""
+        return self._text
+
+    def value(self):
+        """Value derived from the scraped HTML text."""
+        return self._value
+
+    def __str__(self):
+        return str(self.value())
+
+    @classmethod
+    def _normalize_html(cls, s):
+        # Strip leading/trailing whitespace and normalize internal
+        # whitespace to how HTML displays text.
+        return ' '.join(s.split()).strip()
+
+    @classmethod
+    def from_number(cls, value_str):
+        """Read a number: "1,234.56" -> float(1234.56) and "12" -> int(12)."""
+        return cls(value_str, _to_num(value_str))
+
+    @classmethod
+    def from_percent(cls, value_str):
+        """Read "93%" into the float value 0.93."""
+        return cls(value_str, _to_num(value_str) / 100.0)
+
+    @classmethod
+    def from_str(cls, value_str):
+        """Read "  One fish\nTwo fish " as the string "One fish Two fish"."""
+        return cls(value_str, cls._normalize_html(value_str))
+
+    @classmethod
+    def from_time_ago(cls, value_str):
+        """Read "3 day(s) 23 hour(s) 38 min(s) 16 second(s)" as 344296."""
+        value_str = cls._normalize_html(value_str)
+        pattern = (r'^(?:(\d+) day\(s\)\s+)?'
+                   r'(?:(\d+) hour\(s\)\s+)?'
+                   r'(?:(\d+) min\(s\)\s+)?'
+                   r'(\d+) second\(s\)$')
+        match = re.match(pattern, value_str)
+        if not match:
+            raise ValueError('%r did not match in %r' % (pattern, value_str))
+        seconds = int(match.group(4))
+        if match.group(3):
+            seconds += int(match.group(3)) * 60  # minutes
+        if match.group(2):
+            seconds += int(match.group(2)) * 60 * 60  # hours
+        if match.group(1):
+            seconds += int(match.group(1)) * 60 * 60 * 24  # days
+        return cls(value_str, seconds)
 
 
 class BaseParser(object):
@@ -159,18 +219,21 @@ class Dashboard(BaseParser):
 class InstanceSummary(BaseParser):
     """An API for the contents of /instance_summary as structured data."""
 
-    def raw_summary_dicts(self):
-        """Performance statistics summarized across instances.
+    def summaries(self):
+        """Performance statistics summarized by App Engine release.
 
         Returns:
-          A list of one or more dicts with fields like these:
+          A list of one or more dicts with fields like these, where
+          value is a Value instance whose .text() is shown as an
+          example:
 
           [{'appengine_release': '1.9.2',
-            'total_instances': '100 total (10 Resident)',
+            'total_instances': '100 total',
             'average_qps': '2.243',
             'average_latency': '180.3 ms',
             'average_memory': '134.8 MBytes'},
            ...]
+
         """
         summaries = []
         selector = '#ae-content tr'
@@ -183,65 +246,42 @@ class InstanceSummary(BaseParser):
             # 'Average QPS', 'Average Latency', 'Average Memory'
             assert len(children) == 5, [child.text for child in children]
             summaries.append({
-                'appengine_release': children[0].text.strip(),
-                'total_instances': children[1].text.strip().replace('\n', ' '),
-                'average_qps': children[2].text.strip(),
-                'average_latency': children[3].text.strip(),
-                'average_memory': children[4].text.strip()
+                'appengine_release': Value.from_str(text(children[0])),
+                'total_instances': Value.from_number(text(children[1])),
+                'average_qps': Value.from_number(text(children[2])),
+                'average_latency': Value.from_number(text(children[3])),
+                'average_memory': Value.from_number(text(children[4])),
             })
         return summaries
 
-    def summary_dict(self):
-        """A parsed representation of performance statistics.
-
-        Raises ValueError if unable to parse elements of the raw
-        summary. For example if input like '180.3 ms' later changes to
-        '0.1803 s' ValueError will be raised and this code will need an
-        update.
+    def summary(self):
+        """Performance statistics summarized across all instances.
 
         Returns:
-          A dict with fields like this:
+          A dict with fields like these:
 
           {'total_instances': 100,
            'average_qps': 2.243,
            'average_latency_ms': 180.3,
            'average_memory_mb': 134.8}
+
         """
-        summary_dicts = []
-        raw_summary_dict = self.raw_summary_dicts()
-        # Validate the raw summary and convert to a parsed
-        # representation using this table of tuples whose fields are:
-        #   (OUTPUT_FIELD, INPUT_FIELD, PATTERN, MATCHED_GROUP_PARSER)
-        fields = (('total_instances', 'total_instances',
-                   r'^(\d+) total.*', int),
-                  ('average_qps', 'average_qps',
-                   r'^(\d+(?:\.\d+)?$)', float),
-                  ('average_latency_ms', 'average_latency',
-                   r'^(\d+(?:\.\d+)?) ms$', float),
-                  ('average_memory_mb', 'average_memory',
-                   r'^(\d+(?:\.\d+)?) MBytes$', float),
-                 )
-        for raw_summary_dict in self.raw_summary_dicts():
-            summary_dict = {}
-            for (out_field, in_field, pattern, fn) in fields:
-                match = re.match(pattern, raw_summary_dict[in_field])
-                if not match:
-                    raise ValueError('Summary field %s did not match '
-                                     'pattern %s' % (in_field, pattern))
-                summary_dict[out_field] = fn(match.group(1))
-            summary_dicts.append(summary_dict)
-        # Reduce to a single dict with weighted averages for each
-        # field except "total_instances".
-        total_instances = sum(d['total_instances'] for d in summary_dicts)
+        summaries = self.summaries()
+        # Reduce to a single summary with weighted averages for each
+        # field except "total_instances", which is summed.
+        total_instances = sum(d['total_instances'].value() for d in summaries)
         summary = {'total_instances': total_instances}
-        for field, _, _, _ in fields[1:]:
-            instance_weighted_sum = sum(d['total_instances'] * d[field]
-                                        for d in summary_dicts)
+        for field in ('average_qps', 'average_latency', 'average_memory'):
+            instance_weighted_sum = sum(
+                d['total_instances'].value() * d[field].value()
+                for d in summaries)
             summary[field] = float(instance_weighted_sum) / total_instances
         # Beautify rounding precision to match the App Engine UI.
         summary['average_qps'] = round(summary['average_qps'], 3)
-        summary['average_latency_ms'] = round(summary['average_latency_ms'], 1)
-        summary['average_memory_mb'] = round(summary['average_memory_mb'], 1)
+        summary['average_latency_ms'] = round(summary['average_latency'], 1)
+        summary['average_memory_mb'] = round(summary['average_memory'], 1)
+        del summary['average_latency']
+        del summary['average_memory']
         return summary
 
 
@@ -291,67 +331,12 @@ class Instances(BaseParser):
 
 class Memcache(BaseParser):
     """An API for the contents of /memcache as structured data."""
-
-    def statistics_dict(self):
-        """A parsed representation of memcache statistics.
-
-        Raises ValueError if unable to parse elements of the raw
-        summary. For example if input like '1024 byte(s)' later changes
-        to '1 kilobyte(s)' a ValueError will be raised.
-
-        Returns:
-          A dict with fields like this:
-
-          {'hit_count': 12345,
-           'miss_count': 123,
-           'hit_ratio': 0.99,
-           'item_count': 678,
-           'total_cache_size': 91011,
-           'oldest_item_age': 26}
-        """
-        raw_dict = self.raw_statistics_dict()
-        parsed_dict = {}
-        # Validate the raw summary and convert to a parsed
-        # representation using this table of tuples whose fields are:
-        #   (OUTPUT_FIELD, INPUT_FIELD, PATTERN, MATCHED_GROUP_PARSER)
-        fields = (('hit_count', 'hit_count', r'^(\d+)$', int),
-                  ('miss_count', 'miss_count', r'^(\d+)$', int),
-                  ('hit_ratio', 'hit_ratio', r'^(\d+)%$', int),
-                  ('item_count', 'item_count', r'^(\d+) item\(s\)$', int),
-                  ('total_cache_size_bytes', 'total_cache_size',
-                   r'^(\d+)$', int),
-                  ('oldest_item_age_seconds', 'oldest_item_age',
-                   r'^(?:(\d+) day\(s\)\s+)?'
-                   r'(?:(\d+) hour\(s\)\s+)?'
-                   r'(?:(\d+) min\(s\)\s+)?'
-                   r'(\d+) second\(s\)$',
-                   int),
-                 )
-        for (out_field, in_field, pattern, fn) in fields:
-            match = re.match(pattern, raw_dict[in_field])
-            if not match:
-                raise ValueError('Field "%s" did not match %r on %r' %
-                                 (in_field, pattern, raw_dict[in_field]))
-            if in_field == 'oldest_item_age':
-                seconds = int(match.group(4))
-                if match.group(3):
-                    seconds += int(match.group(3)) * 60  # minutes
-                if match.group(2):
-                    seconds += int(match.group(2)) * 60 * 60  # hours
-                if match.group(1):
-                    seconds += int(match.group(1)) * 60 * 60 * 24  # days
-                value = seconds
-            else:
-                value = match.group(1)
-            parsed_dict[out_field] = fn(value)
-        parsed_dict['hit_ratio'] = float(parsed_dict['hit_ratio']) / 100
-        return parsed_dict
-
-    def raw_statistics_dict(self):
+    def statistics(self):
         """Memcache statistics for the current application.
 
         Returns:
-          A dict with fields like this:
+          A dict with fields like this, where value is a Value
+          instance whose .text() is shown as an example:
 
           {'hit_count': '12345',
            'miss_count': '123',
@@ -359,22 +344,69 @@ class Memcache(BaseParser):
            'item_count': '678 item(s)',
            'total_cache_size': '91011',
            'oldest_item_age': '19 day(s) 20 hour(s) 27 min(s) 26 second(s)'}
+
         """
         stats = {}
-        fields = {'Hit count:': 'hit_count',
-                  'Miss count:': 'miss_count',
-                  'Hit ratio:': 'hit_ratio',
-                  'Item count:': 'item_count',
-                  'Total cache size:': 'total_cache_size',
-                  'Oldest item age:': 'oldest_item_age'}
+        fields = {
+            'Hit count:': ('hit_count', Value.from_number),
+            'Miss count:': ('miss_count', Value.from_number),
+            'Hit ratio:': ('hit_ratio', Value.from_percent),
+            'Item count:': ('item_count', Value.from_number),
+            'Total cache size:': ('total_cache_size', Value.from_number),
+            'Oldest item age:': ('oldest_item_age', Value.from_time_ago),
+            }
         selector = '#ae-stats-table tr'
         for element in self.doc.cssselect(selector):
             children = list(element)
             assert len(children) == 2, [text(child) for child in children]
-            if text(children[0]) and text(children[0]).strip() in fields:
+            if text(children[0]).strip() in fields:
                 # skip rows with invalid or empty cells
-                field_name = fields[text(children[0]).strip()]
-                stats[field_name] = text(children[1]).strip()
+                field_name, value_fn = fields[text(children[0]).strip()]
+                stats[field_name] = value_fn(text(children[1]))
         # Ensure all fields were filled.
         assert len(stats) == len(fields), (fields.keys(), stats.keys())
         return stats
+
+
+class Deployment(BaseParser):
+    """An API for the contents of /deployment as structured data."""
+
+    def default_version(self):
+        """Default version as a string, e.g., "1"."""
+        # Seen in 1.9.3 within the version table and only for the
+        # default version:
+        #
+        # <strong class="ae-deployment-live" id="ae-deployment-live<VERSION>">
+        # Yes
+        # </strong>
+        #
+        cssclass = 'ae-deployment-live'
+        elements = list(self.doc.cssselect('.' + cssclass))
+        assert len(elements) == 1, elements
+        child = elements[0]
+        assert text(child).strip() == 'Yes', text(child)
+        assert child.attrib['id'].startswith(cssclass), child.attrib['id']
+        return Value.from_str(child.attrib['id'][len(cssclass):])
+
+
+if __name__ == '__main__':
+    # Entry point for debugging. Create a parser that wraps the
+    # contents of stdin and call the first argument on it as a
+    # function and print the result, e.g.,
+    #
+    #   python parsers.py Dashboard summary_dict <dashboard.html
+    #
+    # Is like:
+    #
+    #   print Dashboard(open('dashboard.html').read()).summary_dict()
+    #
+
+    # Some late imports only needed for debugging output.
+    import pprint
+    import types
+    _, parser_class, method = sys.argv
+    parser = globals()[parser_class](sys.stdin.read())
+    value = getattr(parser, method)()
+    if isinstance(value, types.GeneratorType):
+        value = list(value)  # unpack generator
+    pprint.pprint(value)
