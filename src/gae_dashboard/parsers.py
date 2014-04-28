@@ -96,14 +96,18 @@ class Value(object):
     def from_time_ago(cls, value_str):
         """Read "3 day(s) 23 hour(s) 38 min(s) 16 second(s)" as 344296."""
         value_str = cls._normalize_html(value_str)
+        value_str = value_str + ' '  # add trailing space to simplify regex
+        # Only one of these time specifiers must be found.
         pattern = (r'^(?:(\d+) day\(s\)\s+)?'
                    r'(?:(\d+) hour\(s\)\s+)?'
                    r'(?:(\d+) min\(s\)\s+)?'
-                   r'(\d+) second\(s\)$')
+                   r'(?:(\d+) second\(s\)\s+)?$')
         match = re.match(pattern, value_str)
-        if not match:
+        if not match or not any(match.groups()):
             raise ValueError('%r did not match in %r' % (pattern, value_str))
-        seconds = int(match.group(4))
+        seconds = 0
+        if match.group(4):
+            seconds += int(match.group(4))  # seconds
         if match.group(3):
             seconds += int(match.group(3)) * 60  # minutes
         if match.group(2):
