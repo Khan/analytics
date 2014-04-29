@@ -7,6 +7,5 @@ Task.add('static/css/third_party/*.css')
 Task.add('static/js/third_party/*.js')
 Task.add('static/js/*.js')
 Task.add('templates/*.html')
-Task.add('templates/webpagetest/*.html')
 Task.add('templates/gae-stats/*.html')
 
