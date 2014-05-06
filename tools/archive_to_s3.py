@@ -36,22 +36,6 @@ def date_as_path(date_string):
     return date_string.replace('-', '/')
 
 
-def archive_logs_day(date_string):
-    local_path = '/home/analytics/kalogs/%s/' % date_as_path(date_string)
-    s3_path = 's3://ka-mapreduce/rawdata/server_logs/website/%s/' % date_string
-
-    if not os.path.exists(local_path):
-        return
-
-    cmd = '/usr/local/bin/s3cmd sync %s %s' % (local_path, s3_path)
-    run_shell_command(cmd)
-
-    # assertion for safety, before doing `rm -rf`
-    assert re.match('/home/analytics/kalogs/.+/', local_path)
-    cmd = 'rm -rf %s' % (local_path)
-    run_shell_command(cmd)
-
-
 def archive_entities_day(date_string):
     local_path = '/home/analytics/kabackup/daily_new/%s/' % date_string
     s3_path = 's3://ka-mapreduce/rawdata/%s/' % date_string
@@ -82,7 +66,6 @@ def archive_data(archive_day_function, timedelta_to_keep):
 
 def main():
     archive_data(archive_entities_day, STALE_THRESHOLD_ENTITIES)
-    archive_data(archive_logs_day, STALE_THRESHOLD_LOGS)
 
 
 if __name__ == '__main__':
