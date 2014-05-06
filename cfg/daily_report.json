@@ -1,9 +1,6 @@
 {
   "name": "Daily report generation for <day>",
   "wait_for": [
-    { "table_name": "website_request_logs",
-      "partitions": [ "dt=<day>" ]
-    },
     { "table_name": "feedbackp",
       "partitions": [ "dt=<day>" ]
     },
@@ -44,18 +41,6 @@
       "hive_args": {"dt": "<day>", "branch": "/"},
       "hive_table": "daily_exercise_stats",
       "mongo_collection":  "daily_exercise_stats",
-      "importer_args": "dt=<day>",
-      "hive_init": true
-    },
-    { "hive_script": "s3://ka-mapreduce/code/hive/daily_request_log_url_stats.q",
-      "hive_args": {"dt": "<day>"},
-      "hive_table": "daily_request_log_url_stats",
-      "mongo_collection":  "daily_request_log_url_stats",
-      "importer_args": "dt=<day>",
-      "hive_init": true
-    },
-    { "hive_table": "daily_request_log_urlroute_stats",
-      "mongo_collection":  "daily_request_log_urlroute_stats",
       "importer_args": "dt=<day>",
       "hive_init": true
     },

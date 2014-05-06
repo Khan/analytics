@@ -62,8 +62,6 @@ echo "Upload to S3"
   s3://ka-mapreduce/rawdata/${day}/ 2>&1
 /usr/local/bin/s3cmd sync ~/kabackup/bulkdownload/${day}/ \
   s3://ka-mapreduce/rawdata/bulk/${day}/ 2>&1
-/usr/local/bin/s3cmd sync ~/kalogs/${day_as_path}/ \
-  s3://ka-mapreduce/rawdata/server_logs/website/${day}/ 2>&1
 
 
 # TODO(jace) As of 4/13/2014, the rest of this script has been
@@ -75,16 +73,6 @@ exit 0
 # -------------------------------------------------------------------
 # NOTE:  the rest of this script will not execute due to above exit()
 # -------------------------------------------------------------------
-
-# We need to get a route-map onto s3 for raw_log_to_request_log_mapper.py.
-# This requires the shared secret to be in the analytics homedir.
-route_map_path="s3://ka-mapreduce/rawdata/route_maps/route_map.${day}.json"
-curl "http://www.khanacademy.org/stats/route_map?key=`cat ~/sleep_secret | tr -d '\012'`" \
-    > /tmp/`basename $route_map_path`
-# HACK(jace) temporarily hardcode route_map until the API if fixed
-# /usr/local/bin/s3cmd put /tmp/`basename $route_map_path` "$route_map_path"
-/usr/local/bin/s3cmd put /tmp/route_map.2014-01-17.json "$route_map_path"
-# TODO(jace) fix the API call, and restore this properly.
 
 # Convert pbuf to json + additional daily aggregation jobs
 echo "Convert pbuf to json and load into the datastore"
@@ -113,16 +101,6 @@ echo "$status"
 jobid=$(echo "$status" | awk '{print $4}')
 ${current_dir}/../src/monitor_jobflow.py $jobid &
 
-echo "Convert raw logs to TSV request logs"
-status=$(elastic-mapreduce --create --name "${day} Request Logs Upload" \
-  --num-instance 5 --master-instance-type m2.xlarge \
-  --slave-instance-type m2.xlarge \
-  --log-uri "$LOG_URI" \
-  --json ${current_dir}/load_request_logs_to_hive.json \
-  --param "<route_map_path>=${route_map_path}" \
-  --param "<dt>=${day}" 2>&1 )
-echo "$status"
-
 jobid=$(echo "$status" | awk '{print $4}')
 ${current_dir}/../src/monitor_jobflow.py $jobid &
 
@@ -133,4 +111,3 @@ ${current_dir}/../src/report_generator.py \
   "<day>=${day}" "<day_before>=${day_before}" "<day_after>=${day_after}" \
   "<month_first_day>=${month_first_day}" "<month_last_day>=${month_last_day}" \
   "<month>=${month}" 2>&1
-
