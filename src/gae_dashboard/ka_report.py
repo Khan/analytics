@@ -2,8 +2,7 @@
 
 """Store data from App Engine's admin UI in the analytics database.
 
-Data from /memcache are stored in the mongo collection
-"gae_dashboard_memcache_reports" and sent to graphite with the prefix
+Data from /memcache are sent to graphite with the prefix
 "webapp.gae.dashboard.memcache":
 
   utc_datetime: DATETIME
@@ -14,8 +13,7 @@ Data from /memcache are stored in the mongo collection
   total_cache_size_bytes: INTEGER
   oldest_item_age_seconds: INTEGER
 
-Data from /instance_summary are stored in the mongo collection
-"gae_dashboard_instance_reports" and sent to graphite with the prefix
+Data from /instance_summary are sent to graphite with the prefix
 "webapp.gae.dashboard.instances":
 
   utc_datetime: DATETIME
@@ -30,23 +28,13 @@ import argparse
 import datetime
 import sys
 
-import pymongo
-
 import gae_dashboard_scrape
 import graphite_util
 
 
-def _mongo_db():
-    """The pymongo.database.Database where reports are stored."""
-    if not getattr(_mongo_db, '__db', None):
-        conn = pymongo.Connection('107.21.23.204')
-        _mongo_db.__db = conn['report']
-    return _mongo_db.__db
-
-
-def report_instance_summary(summary, download_dt, graphite_host='',
+def report_instance_summary(summary, download_dt, graphite_host,
                             verbose=False, dry_run=False):
-    """Store instance summary in mongo and maybe graphite.
+    """Send instance summary to graphite.
 
     Arguments:
       summary: Dict returned by parsers.InstanceSummary.summary().
@@ -65,13 +53,11 @@ def report_instance_summary(summary, download_dt, graphite_host='',
         print record
 
     if not dry_run:
-        # Do the graphite send first, since mongo modifies 'records' in place.
         graphite_util.maybe_send_to_graphite(graphite_host, 'instances',
                                              [record])
-        _mongo_db()['gae_dashboard_instance_reports'].insert(record)
 
 
-def report_memcache_statistics(stats, download_dt, graphite_host='',
+def report_memcache_statistics(stats, download_dt, graphite_host,
                                verbose=False, dry_run=False):
     """Store memcache statistics in mongo and maybe graphite.
 
@@ -94,10 +80,8 @@ def report_memcache_statistics(stats, download_dt, graphite_host='',
         print record
 
     if not dry_run:
-        # Do the graphite send first, since mongo modifies 'records' in place.
         graphite_util.maybe_send_to_graphite(graphite_host, 'memcache',
                                              [record])
-        _mongo_db()['gae_dashboard_memcache_reports'].insert(record)
 
 
 def main():
@@ -106,7 +90,6 @@ def main():
                         default='carbon.hostedgraphite.com:2004',
                         help=('host:port to send stats to graphite '
                               '(using the pickle protocol). '
-                              'Use the empty string to disable graphite. '
                               '(Default: %(default)s)'))
     parser.add_argument('-v', '--verbose', action='store_true', default=False,
                         help='print report on stdout')

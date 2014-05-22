@@ -33,15 +33,20 @@ if [ ! -e "${private_pw}" ]; then
     exit 1
 fi
 
-< "${private_pw}" "${srcdir}/ka_report.py" -e "${username}" \
-    -A "${app_id}" ${report_opts}
+"${srcdir}/ka_report.py" -e "${username}" -A "${app_id}" ${report_opts} \
+    < "${private_pw}"
 
 # For the dashboard, we have to fetch lots of different urls these
 # days, since each of the dashboard graphs is from a different url.
 # The urls send back json with chart_url data, which we then send
 # to the dashboard_report script to parse.
 #
-timestamp=`date +%s`
+# We set the time-range to 5 minutes since we run this from a cronjob
+# once every 5 minutes.
+# TODO(csilvers): store the last timestamp we got data from in a file,
+#     instead of hard-coding '5 minutes ago'.
+start_time=`date +%s -d '5 minutes ago'`
+end_time=`date +%s`
 {
     # We look in dashboard_report.py to get the number of charts to
     # fetch.  Ugh.
@@ -52,8 +57,8 @@ timestamp=`date +%s`
     # it into a bigger json struct.
     echo '['
     for chartnum in `seq 0 $num_charts`; do
-        # window=2 gives us 6 hours of data (cf. dashboard_report.py:_time_windows)
-        window=2
+        # window=0 gives us 30 minutes of data (cf. dashboard_report.py:_time_windows)
+        window=0
         url="/dashboard/stats?app_id=${app_id}&version_id=&type=${chartnum}&window=${window}"
         echo '{"chart_num": '$chartnum', '
         echo ' "time_window": '$window', '
@@ -65,4 +70,4 @@ timestamp=`date +%s`
     # a trailing comma.  Easiest way around this is to have a sentinel.
     echo 'null'
     echo ']'
-} | "${srcdir}/dashboard_report.py" ${report_opts} ${timestamp}
+} | "${srcdir}/dashboard_report.py" ${report_opts} ${start_time} ${end_time}

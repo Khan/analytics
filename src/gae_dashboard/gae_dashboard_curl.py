@@ -50,7 +50,7 @@ class DashboardClient(object):
 
 def create_rpcserver(email, password):
     """Create an instance of an RPC server to access GAE dashboard pages."""
-    
+
     # Executing "appcfg.py update ." results in the following
     # arguments to appengine_rpc.HttpRpcServer.__init__():
     #

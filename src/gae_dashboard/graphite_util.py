@@ -67,4 +67,3 @@ def maybe_send_to_graphite(graphite_host, category, records):
         graphite_socket.connect((host_ip, port))
         graphite_socket.send(payload)
         graphite_socket.close()
-

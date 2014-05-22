@@ -1,10 +1,9 @@
 #!/usr/bin/env python
 
-"""Extract statistics from the charts on App Engine's /dashboard page
-and store them in the analytics database.
+"""Send statistics from the charts on App Engine's /dashboard page to graphite.
 
-This script considers the most recently added records in the database
-and only adds records that are more recent, up to 6 hours of data.
+You give the script a time-range, and it scrapes the charts on the
+appengine console and downloads data within that timerange.
 
 CAVEAT: sometimes a subsequent run will log the same data points as a
 new record.  The heart of the problem is that the x-axis of the
@@ -16,21 +15,16 @@ with each other.  A single data point might appear in one record on
 one run and in another record on a different run since we batch data
 points into records by timestamp.
 
-Records are stored in the collection "gae_dashboard_chart_reports",
-and each has utc_datetime plus all of the (sub)fields listed in
-_label_to_field_map: requests_per_second, errors_per_second,
-milliseconds_per_dynamic_request, etc.
+Records are sent to graphite under the keys webapp.gae.dashboard.summary.*
 """
 
 import argparse
-import calendar
 import collections
 import datetime
 import json
 import sys
 
 import GChartWrapper
-import pymongo
 
 import graphite_util
 
@@ -108,31 +102,6 @@ _time_windows = [
     ('14 days', 14 * 24),
     ('30 days', 30 * 24),
     ]
-
-
-def _mongo_collection():
-    """The pymongo.Collection where records are stored."""
-    db = pymongo.Connection('107.21.23.204')
-    collection = db['report']['gae_dashboard_chart_reports']
-    return collection
-
-
-def _time_t_of_latest_record(collection):
-    """time_t of the most recently stored dashboard record.
-
-    Arguments:
-      collection: pymongo.Collection where records are stored.
-
-    Returns:
-      The time_t (# of seconds since the UNIX epoch in UTC) or None if
-      there is no previous record.
-    """
-    partial_doc = collection.find_one(None,
-                                      ['utc_datetime'],
-                                      sort=[('utc_datetime', -1)])
-    if not partial_doc:
-        return None
-    return calendar.timegm(partial_doc['utc_datetime'].utctimetuple())
 
 
 def round_to_n_significant_digits(x, n):
@@ -283,8 +252,8 @@ def aggregate_series_by_time(named_series):
         yield x_value, record
 
 
-def parse_and_commit_record(input_json, download_time_t, graphite_host='',
-                            verbose=False, dry_run=False):
+def parse_and_commit_record(input_json, start_time_t, download_time_t,
+                            graphite_host, verbose=False, dry_run=False):
     """Parse and store dashboard chart data.
 
     Arguments:
@@ -292,8 +261,10 @@ def parse_and_commit_record(input_json, download_time_t, graphite_host='',
          one chart, along with an int describing which chart it is
          and other identifying data; see the help for <infile> in main(),
          or just look at how this json is constructed in fetch_stats.sh.
+      start_time_t: Ignore all datapoints before this time_t (given that
+         the last datapoint is at time download_time_t).
       download_time_t: When /dashboard was downloaded in seconds (UTC).
-      graphite_host: host:port of graphite server to send data to, or ''/None
+      graphite_host: host:port of graphite server to send data to.
       verbose: If True, print report to stdout.
       dry_run: If True, do not store report in the database.
     """
@@ -323,22 +294,12 @@ def parse_and_commit_record(input_json, download_time_t, graphite_host='',
                for i in xrange(len(input_json)))
     chart_start_time_t = download_time_t - time_delta.total_seconds()
 
-    # Determine the starting point for records we want to add.  This
-    # script may be run by cron and fetches a minimum of 6 hours of
-    # data, but chances are good that it runs more frequently.
-    mongo_collection = _mongo_collection()
-    time_t_of_latest_record = _time_t_of_latest_record(mongo_collection)
-    if time_t_of_latest_record is None:
-        print >>sys.stderr, ('No dashboard records found in mongo. '
-                             'Importing all records as new.')
-        time_t_of_latest_record = 0
-
     # Build time-keyed records from the named time series data and
     # decide which records will be stored.
     records = []
     for time_value, record in aggregate_series_by_time(named_series):
         record_time_t = chart_start_time_t + time_value
-        if record_time_t > time_t_of_latest_record:
+        if record_time_t > start_time_t:
             record['utc_datetime'] = datetime.datetime.utcfromtimestamp(
                 record_time_t)
             records.append(record)
@@ -351,14 +312,14 @@ def parse_and_commit_record(input_json, download_time_t, graphite_host='',
     if dry_run:
         print >>sys.stderr, 'Skipping import during dry-run.'
     elif records:
-        # Do the graphite send first, since mongo modifies 'records' in place.
         graphite_util.maybe_send_to_graphite(graphite_host, 'summary', records)
-        mongo_collection.insert(records)
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__.split('\n\n', 1)[0])
-    parser.add_argument('unix_timestamp', type=int,
+    parser.add_argument('start_timestamp', type=int,
+                        help='time_t to start collecting data from')
+    parser.add_argument('end_timestamp', type=int,
                         help='time_t the input data was downloaded')
     parser.add_argument('infile', nargs='?', type=argparse.FileType('r'),
                         default=sys.stdin,
@@ -371,7 +332,6 @@ def main():
                         default='carbon.hostedgraphite.com:2004',
                         help=('host:port to send stats to graphite '
                               '(using the pickle protocol). '
-                              'Use the empty string to disable graphite. '
                               '[default: %(default)s]'))
     parser.add_argument('-v', '--verbose', action='store_true', default=False,
                         help='print report on stdout')
@@ -381,8 +341,9 @@ def main():
 
     # This json.load() will raise an exception error if the input is
     # malformed, e.g. if the wget we did for this data failed.
-    parse_and_commit_record(json.load(args.infile), args.unix_timestamp,
-                            args.graphite_host, args.verbose, args.dry_run)
+    parse_and_commit_record(json.load(args.infile), args.start_timestamp,
+                            args.end_timestamp, args.graphite_host,
+                            args.verbose, args.dry_run)
 
 
 if __name__ == '__main__':

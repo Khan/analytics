@@ -200,7 +200,7 @@ class Dashboard(BaseParser):
           (label, url) pairs. For example, ('Requests/Second', ...).
           When returning all charts, the time span is included in the
           chart label, e.g., ('Requests/Second (6 hrs)', ...).
-          
+
         NOTE: Other time spans are not supported yet and those chart
         URLs are not in the HTML of /dashboard on initial page load.
         """
