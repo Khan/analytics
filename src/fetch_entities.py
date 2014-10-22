@@ -60,7 +60,8 @@ def fetch_entities(entity_type, is_ndb, start_date=None, end_date=None,
     query_string = urllib.urlencode(qs_map)
 
     # TODO(david): Send request headers that we accept gzipped data?
-    response_url = '/api/v1/dev/protobuf/%s?%s' % (entity_type, query_string)
+    response_url = ('/api/internal/dev/protobuf/%s?%s' %
+                        (entity_type, query_string))
 
     return oauth_util.fetch_url.fetch_url(response_url)
 
@@ -80,7 +81,7 @@ def attempt_fetch_entities(kind,
     while True:
         if tries > max_attempts:
             # This is a useful zgrep command when this happens:
-            # zgrep -A30 -e "GET /api/v1/dev/protobuf.* HTTP/1.1\" 500"
+            # zgrep -A30 -e "GET /api/internal/dev/protobuf.* HTTP/1.1\" 500"
             raise UserWarning(
                 ("Trying %s times to fetch %s from GAE but not working. "
                 + "You should investigate the server logs.") % (tries, kind))

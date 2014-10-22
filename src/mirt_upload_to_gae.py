@@ -47,7 +47,7 @@ def upload_to_gae(filename, options):
     ans = raw_input("Are you sure you want to upload to GAE? [y/N] ")
     if ans in ['Y', 'y']:
         oauth_fetcher.fetch_url(
-            '/api/v1/dev/assessment/params', {'data': model_json})
+            '/api/internal/dev/assessment/params', {'data': model_json})
     else:
         print "Canceling upload."
 

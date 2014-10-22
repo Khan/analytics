@@ -18,7 +18,7 @@ def main(score_type, version):
     if confirm.lower() in ['y', 'yes']:
         # This will throw on 4xx, 5xx
         resp = oauth_fetcher.fetch_url(
-                '/api/v1/dev/videorec_version', {
+                '/api/internal/dev/videorec_version', {
                     'score_type': score_type,
                     'version': version,
                 })

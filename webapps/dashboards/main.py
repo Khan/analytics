@@ -818,11 +818,11 @@ def statusboard_videos_today_widget():
 def statusboard_stories_widget():
     """Return a story widget for http://panic.com/statusboard/"""
     return flask.render_template(
-                "statusboard-story-widget.html",
-                title="Stories",
-                value="",
-                source="http://www.khanacademy.org/api/v1/stories?count=100"
-            )
+        "statusboard-story-widget.html",
+        title="Stories",
+        value="",
+        source="http://www.khanacademy.org/api/internal/stories?count=100"
+    )
 
 
 @app.route("/is-ka-fast-yet")

@@ -55,7 +55,7 @@ def upload_to_gae(score_type, version, video_infos):
             row_dicts[info.index] = info.best_matches
 
         oauth_fetcher.fetch_url(
-            '/api/v1/dev/videorec_matrix', {
+            '/api/internal/dev/videorec_matrix', {
                 'score_type': score_type,
                 'version': version,
                 'data': json.dumps({
