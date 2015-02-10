@@ -10,13 +10,16 @@ To use this script,
 https://console.developers.google.com/project/124072386181/storage/browser/ka_prediction_data/
 
 2) Download the performance data with gsutil, like:
-    gsutil cp gs://ka_prediction_data/classic-2014_12_05-a97c65107cd411e4aeda1e7f2780d096/performance_data /tmp  # @Nolint
+    gsutil cp gs://ka_prediction_data/classic-2014_12_05-a97c65107cd411e4aeda1e7f2780d096/performance_data/* /tmp  # @Nolint
 
 3) Graph the performance data with this script
     graph_auto_trained_models.py --data /tmp
 
 4) Open the resulting PDF
     open /tmp/graphs.pdf
+
+5) For posterity, upload the graphs.pdf into the job folder on GCS that
+    you generated it from.
 
 Furthermore, this tool is meant to handle multiple jobs worth of performance
 data so that jobs may be compared against one another. To do that, simply
@@ -175,14 +178,40 @@ def read_all_performance_data(data_path):
 
 def _plot_perf_data(name, perf_data):
     """Calls plt.plot() for the original and new prediction data."""
+    if 'prediction' in perf_data:
+        new_total_samples = (perf_data['prediction']['positive_samples']
+            + perf_data['prediction']['negative_samples'])
+        new_denom = (perf_data['prediction']['positive_samples']
+            * perf_data['prediction']['negative_samples'])
+    else:
+        new_total_samples = 0
+        new_denom = 0
+
+    if 'original_prediction' in perf_data:
+        orig_total_samples = (
+            perf_data['original_prediction']['positive_samples']
+            + perf_data['original_prediction']['negative_samples'])
+        orig_denom = (perf_data['original_prediction']['positive_samples']
+            * perf_data['original_prediction']['negative_samples'])
+    else:
+        orig_total_samples = 0
+        orig_denom = 0
+
+    # As discussed in https://phabricator.khanacademy.org/D15835, there was
+    # a period of time between 7/12/2014 and 10/18/2014 where ProblemLog's were
+    # written with pre_attempt_prediction filled in when it should not have
+    # been. We did not discover the route cause of this, and it happened
+    # rarely enough that we decided to filter these out in post-processing with
+    # this if-statement.
+    orig_corrupt = False
+    if orig_total_samples < 0.9 * new_total_samples:
+        orig_corrupt = True
+
     new_plotted = False
-    if ('prediction' in perf_data
-        and perf_data['prediction']['positive_samples']
-            + perf_data['prediction']['negative_samples']
-            > MINIMUM_SAMPLES
-        and perf_data['prediction']['positive_samples']
-            * perf_data['prediction']['negative_samples']
-            != 0):
+    if (    # We need a certain minimum
+            new_total_samples > MINIMUM_SAMPLES
+            # We don't want divide-by-zero errors
+            and new_denom != 0):
         # Draw this curve
         plt.plot(perf_data['prediction']['false_positive_rate'],
             perf_data['prediction']['true_positive_rate'],
@@ -194,13 +223,12 @@ def _plot_perf_data(name, perf_data):
         new_plotted = True
 
     orig_plotted = False
-    if ('original_prediction' in perf_data
-        and perf_data['original_prediction']['positive_samples']
-            + perf_data['original_prediction']['negative_samples']
-            > MINIMUM_SAMPLES
-        and perf_data['original_prediction']['positive_samples']
-            * perf_data['original_prediction']['negative_samples']
-            != 0):
+    if (    # We need a certain minimum
+            orig_total_samples > MINIMUM_SAMPLES
+            # We don't want divide-by-zero errors
+            and orig_denom != 0
+            # See note above
+            and not orig_corrupt):
         # Draw this curve
         plt.plot(
         perf_data['original_prediction']['false_positive_rate'],
