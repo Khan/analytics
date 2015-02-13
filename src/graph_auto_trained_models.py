@@ -13,7 +13,7 @@ https://console.developers.google.com/project/124072386181/storage/browser/ka_pr
     gsutil cp gs://ka_prediction_data/classic-2014_12_05-a97c65107cd411e4aeda1e7f2780d096/performance_data/* /tmp  # @Nolint
 
 3) Graph the performance data with this script
-    graph_auto_trained_models.py --data /tmp
+    graph_auto_trained_models.py /tmp
 
 4) Open the resulting PDF
     open /tmp/graphs.pdf
@@ -30,6 +30,7 @@ import argparse
 import copy
 import itertools
 import json
+import operator
 import os
 import os.path
 
@@ -46,11 +47,11 @@ import matplotlib.backends.backend_pdf as pdf
 
 
 # The minimum number of samples required to plot the curve
-MINIMUM_SAMPLES = 1000
+MINIMUM_SAMPLES = 20000
 
 
 def parse_command_line():
-    parser = argparse.ArgumentParser(description='Graph performance data.')
+    parser = argparse.ArgumentParser(description='Interpret performance data.')
 
     parser.add_argument("--data", help="Path to performance_data.json files")
 
@@ -82,6 +83,7 @@ def deserialize_file(perf_file_path):
 
     """
     results = {}
+    temporal_data_results = {}
     with open(perf_file_path, 'r') as perf_file:
         for line in perf_file.readlines():
             json_start = line.index(' {')
@@ -96,13 +98,27 @@ def deserialize_file(perf_file_path):
 
             # Note: We assume a single performance_data file only has results
             # from a single job.
-            results[exercise] = perf_data
+            # TODO(mattfaus): This if-clause is only needed for transition into
+            # the new performance_data output format introduced with D16110
+            if 'performance_data' in perf_data:
+                results[exercise] = perf_data['performance_data']
+            else:
+                results[exercise] = perf_data
 
-    return results
+            if 'temporal_perf_data' in perf_data:
+                temporal_data_results[exercise] = (
+                    perf_data['temporal_perf_data'])
+
+    return results, temporal_data_results
 
 
 def read_all_performance_data(data_path):
-    """Reads all performance data from a directory.
+    """Reads all performance data from a directory. To understand the format
+    of the .json files this function parses, see
+    compute_knowledge_model_performance() in prediction/pipelines.py (in the
+    webapp repo).
+
+    Prints a summary of the parsed data.
 
     Returns: {
         'exercise_1': {
@@ -119,25 +135,30 @@ def read_all_performance_data(data_path):
     }
     """
     all_perf_data = {}
+    all_temporal_perf_data = {}
 
     for data_file in os.listdir(data_path):
         path = os.path.join(data_path, data_file)
         if data_file.endswith(".json"):
-            perf_data = deserialize_file(path)
+            perf_data, temporal_perf_data = deserialize_file(path)
 
             # Intelligently merge in performance data, such that data from
             # different jobs is picked up correctly
             for exercise in perf_data.keys():
-                if exercise not in all_perf_data:
-                    all_perf_data[exercise] = perf_data[exercise]
-                else:
-                    cur_job_id = perf_data[exercise].keys()[0]
-                    if cur_job_id not in set(all_perf_data[exercise].keys()):
-                        all_perf_data[exercise][cur_job_id] = (
-                            perf_data[exercise][cur_job_id])
+                for data_to_update, data_to_read in zip(
+                        (all_perf_data, all_temporal_perf_data),
+                        (perf_data, temporal_perf_data)):
+                    if exercise not in data_to_update:
+                        data_to_update[exercise] = data_to_read[exercise]
                     else:
-                        print ("Ignoring second instance of data from job "
-                            "%s for exercise %s" % (cur_job_id, exercise))
+                        cur_job_id = data_to_read[exercise].keys()[0]
+                        if cur_job_id not in set(
+                                data_to_update[exercise].keys()):
+                            data_to_update[exercise][cur_job_id] = (
+                                data_to_read[exercise][cur_job_id])
+                        else:
+                            print ("Ignoring second instance of data from job "
+                                "%s for exercise %s" % (cur_job_id, exercise))
 
     # Print some summary statistics about the performance data read
     all_job_ids = [p.keys() for p in all_perf_data.values()]
@@ -173,7 +194,7 @@ def read_all_performance_data(data_path):
     print "Summary of all performance data:"
     print json.dumps(all_overall, indent=4)
 
-    return all_perf_data
+    return all_perf_data, all_temporal_perf_data
 
 
 def _plot_perf_data(name, perf_data):
@@ -334,9 +355,8 @@ def _merge_performance_data(running_data, new_data):
     return to_return
 
 
-def generate_pdf(all_perf_data, pdf_path):
-    """Iterates over all performance data and outputs a PDF full of graphs."""
-
+def _generate_roc_curves(all_perf_data, pdf_file):
+    """Draws ROC curves onto the PDF."""
     # Sort exercises by total samples, so more frequent exercises are first
     exercise_items = all_perf_data.items()
 
@@ -348,74 +368,288 @@ def generate_pdf(all_perf_data, pdf_path):
 
     exercise_items.sort(key=total_samples)
 
-    with pdf.PdfPages(pdf_path) as pdf_file:
+    orig_vs_new_overall = {}
+    only_new_overall = {}
+    all_new_overall = {}
 
-        orig_vs_new_overall = {}
-        only_new_overall = {}
-        all_new_overall = {}
+    # Each exercise may have many different jobs with performance data
+    # that we'll want to graph.
+    for exercise, jobs in exercise_items:
+        something_plotted = False
 
-        # Each exercise may have many different jobs with performance data
-        # that we'll want to graph.
-        for exercise, jobs in exercise_items:
-            something_plotted = False
+        for job, perf_data in jobs.iteritems():
 
-            for job, perf_data in jobs.iteritems():
-
-                # Iterate over each exercise, compute and draw the ROC curve
-                _compute_curve_data(perf_data['prediction'])
-                _compute_curve_data(perf_data['original_prediction'])
-                new_plotted, orig_plotted = _plot_perf_data(job[:5], perf_data)
-
-                something_plotted = (something_plotted or new_plotted
-                    or orig_plotted)
-
-                # Update the various aggregate curve data
-                if new_plotted:
-                    to_merge = copy.deepcopy(perf_data)
-                    del to_merge['original_prediction']
-                    all_new_overall[job] = _merge_performance_data(
-                        all_new_overall.get(job), to_merge)
-
-                if new_plotted and orig_plotted:
-                    orig_vs_new_overall[job] = _merge_performance_data(
-                        orig_vs_new_overall.get(job), perf_data)
-                else:
-                    to_merge = copy.deepcopy(perf_data)
-                    del to_merge['original_prediction']
-                    only_new_overall[job] = _merge_performance_data(
-                        only_new_overall.get(job), to_merge)
-
-            if something_plotted:
-                _plot_chance_and_save(pdf_file, exercise)
-
-        # Draw the total ROC curves
-        # Original vs. New only for exercises that had original
-        for job, perf_data in orig_vs_new_overall.iteritems():
+            # Iterate over each exercise, compute and draw the ROC curve
             _compute_curve_data(perf_data['prediction'])
             _compute_curve_data(perf_data['original_prediction'])
-            _plot_perf_data(job[:5], perf_data)
-            _plot_chance_and_save(pdf_file, "Original vs. New")
+            new_plotted, orig_plotted = _plot_perf_data(job[:5], perf_data)
 
-        # New for exercises that didn't have original
-        for job, perf_data in only_new_overall.iteritems():
-            _compute_curve_data(perf_data['prediction'])
-            _plot_perf_data(job[:5], perf_data)
-            _plot_chance_and_save(pdf_file, "Only New")
+            something_plotted = (something_plotted or new_plotted
+                or orig_plotted)
 
-        # All New
-        for job, perf_data in all_new_overall.iteritems():
-            _compute_curve_data(perf_data['prediction'])
-            _plot_perf_data(job[:5], perf_data)
-            _plot_chance_and_save(pdf_file, "All New")
+            # Update the various aggregate curve data
+            if new_plotted:
+                to_merge = copy.deepcopy(perf_data)
+                del to_merge['original_prediction']
+                all_new_overall[job] = _merge_performance_data(
+                    all_new_overall.get(job), to_merge)
+
+            if new_plotted and orig_plotted:
+                orig_vs_new_overall[job] = _merge_performance_data(
+                    orig_vs_new_overall.get(job), perf_data)
+            else:
+                to_merge = copy.deepcopy(perf_data)
+                del to_merge['original_prediction']
+                only_new_overall[job] = _merge_performance_data(
+                    only_new_overall.get(job), to_merge)
+
+        if something_plotted:
+            _plot_chance_and_save(pdf_file, exercise)
+
+    # Draw the total ROC curves
+    # Original vs. New only for exercises that had original
+    for job, perf_data in orig_vs_new_overall.iteritems():
+        _compute_curve_data(perf_data['prediction'])
+        _compute_curve_data(perf_data['original_prediction'])
+        _plot_perf_data(job[:5], perf_data)
+        _plot_chance_and_save(pdf_file, "Original vs. New")
+
+    # New for exercises that didn't have original
+    for job, perf_data in only_new_overall.iteritems():
+        _compute_curve_data(perf_data['prediction'])
+        _plot_perf_data(job[:5], perf_data)
+        _plot_chance_and_save(pdf_file, "Only New")
+
+    # All New
+    for job, perf_data in all_new_overall.iteritems():
+        _compute_curve_data(perf_data['prediction'])
+        _plot_perf_data(job[:5], perf_data)
+        _plot_chance_and_save(pdf_file, "All New")
+
+
+def _merge_temporal_perf_data(running_data, new_data):
+    """Utility function to merge new_data into running_data."""
+    if not running_data:
+        return new_data
+
+    def _merge_inner_temporal_perf_data(r, n):
+        if not r:
+            return n
+
+        return {
+            "total_log_liklihood": (
+                r['total_log_liklihood'] + n['total_log_liklihood']),
+            "total_samples": (
+                r['total_samples'] + n['total_samples']),
+            "fp_total_log_liklihood": (
+                r['fp_total_log_liklihood'] + n['fp_total_log_liklihood']),
+            "fp_total_samples": (
+                r['fp_total_samples'] + n['fp_total_samples']),
+        }
+
+    for num_prev_exes, data in new_data.iteritems():
+        if num_prev_exes in running_data:
+            if 'prediction' in data:
+                running_data[num_prev_exes]['prediction'] = (
+                    _merge_inner_temporal_perf_data(
+                        running_data[num_prev_exes].get('prediction'),
+                        data['prediction']))
+
+            if 'original_prediction' in data:
+                running_data[num_prev_exes]['original_prediction'] = (
+                    _merge_inner_temporal_perf_data(
+                        running_data[num_prev_exes].get('original_prediction'),
+                        data['original_prediction']))
+        else:
+            running_data[num_prev_exes] = data
+
+    return running_data
+
+
+def _generate_temporal_analysis(all_temporal_perf_data, pdf_file):
+    """Plots temporal analysis curves by iterating over all exercises, plotting
+    individual curves while aggregating information across all exercises. At
+    the end, plots aggregate temporal analysis curves.
+
+    all_temporal_perf_data looks like: {
+        "exercise": {
+            "job_id": {
+                "num_prev_exes_1": {
+                    "prediction: {
+                        "total_log_liklihood": 0,
+                        "total_samples": 0,
+                        "fp_total_log_liklihood": 0,
+                        "fp_total_samples": 0,
+                    },
+                    "original_prediction": {
+                        <same as above>
+                    }
+                }
+            }
+        }
+    }
+    """
+    # Sort exercises by total samples, so more frequent exercises are first
+    exercise_items = all_temporal_perf_data.items()
+
+    def total_samples(item):
+        total_samples = 0
+        exercise, jobs = item
+
+        for job, all_data in jobs.iteritems():
+            for num_prev_exes, data in all_data.iteritems():
+                total_samples += data['prediction']['total_samples']
+
+        return -total_samples
+
+    exercise_items.sort(key=total_samples)
+
+    def compute_points(all_data, which_prediction, which_problem):
+        x_points = []
+        y_points = []
+        weights = []
+
+        if which_problem == 'all':
+            prefix = ""
+        elif which_problem == 'first_only':
+            prefix = "fp_"
+        else:
+            raise ValueError("Do not understand " + which_problem)
+
+        for num_prev_exes, data in all_data.iteritems():
+            x_points.append(int(num_prev_exes))
+
+            avg_log_liklihood = (
+                data[which_prediction][prefix + 'total_log_liklihood']
+                / (data[which_prediction][prefix + 'total_samples']
+                    or 0.00001))
+
+            y_points.append(avg_log_liklihood)
+            weights.append(data[which_prediction][prefix + 'total_samples'])
+
+        # Normalize the weights
+        weights = numpy.asarray(weights, dtype=numpy.float64)
+        weights /= weights.sum()
+
+        return x_points, y_points, weights
+
+    def compute_weighted_average_curve(y_points, weights, left_trail=7,
+            right_trail=7):
+        # Compute the start and end indexes for each "window". Note that there
+        # are "edge effects" since the window has less data at the start and
+        # end of the array, respectively.
+        start_idxs = [0] * left_trail + range(len(y_points) - left_trail)
+        end_idxs = (range(right_trail, len(y_points))
+            + [len(y_points) - 1] * right_trail)
+
+        ya = []
+        for (si, ei) in zip(start_idxs, end_idxs):
+            sub_y = y_points[si:ei]
+            sub_w = weights[si:ei]
+            if sum(sub_w) == 0:
+                ya.append(0.0)  # Avoid ZeroDivisionError
+            else:
+                ya.append(numpy.average(sub_y, weights=sub_w))
+
+        return ya
+
+    def plot_temporal_data(all_data, job_id):
+        for which_problem in ('all', 'first_only'):
+            for which_prediction in ('prediction', 'original_prediction'):
+                x_points, y_points, weights = compute_points(
+                    all_data, which_prediction, which_problem)
+
+                # Sort the 3 parallel array by ascending x_points values
+                zipped = [(x, y, w) for x, y, w
+                    in sorted(zip(x_points, y_points, weights),
+                        key=operator.itemgetter(0))]
+
+                # http://stackoverflow.com/questions/19339/a-transpose-unzip-function-in-python-inverse-of-zip
+                x_points, y_points, weights = zip(*zipped)
+
+                # TODO(mattfaus): This takes FOREVER to render, skipping
+                # Draw scatter plot with size = weights
+                # plt.scatter(x_points, y_points,
+                #     # 0 to 15 point radius (scaled within this dataset)
+                #     s=[numpy.pi * (15 * w)**2 for w in weights],
+                #     alpha=0.5)
+
+                # Draw weighted moving average curve
+                smooth_y = compute_weighted_average_curve(
+                    y_points, weights)
+                plt.plot(x_points, smooth_y,
+                    label="%s %s %s" % (
+                        job_id, which_problem, which_prediction))
+
+    def finalize_page(title):
+        plt.xlim((0.0, 400.0))
+        plt.ylim((-2.0, 0.0))
+        plt.xlabel("# previous exercises")
+        plt.ylabel("Avg Log Liklihood")
+        plt.title(title)
+        plt.legend(loc=4)
+        pdf_file.savefig()
+
+        # Prepare for new page
+        plt.clf()
+
+    agg_original_vs_new = {}
+    agg_only_new = {}
+    # TODO(mattfaus): Also compute agg_all_new?
+
+    for exercise, jobs in exercise_items:
+        something_plotted = False
+        for job, all_data in jobs.iteritems():
+            total_original_samples = sum(
+                ad['original_prediction']['total_samples']
+                for _, ad in all_data.iteritems())
+            total_new_samples = sum(
+                ad['prediction']['total_samples']
+                for _, ad in all_data.iteritems())
+
+            # Skip exercises that do not have enough data points
+            if total_new_samples < MINIMUM_SAMPLES:
+                continue
+
+            # Merge data into aggregates
+            if total_original_samples > 0:
+                # If there were original predictions, add to original_vs_new
+                agg_original_vs_new = _merge_temporal_perf_data(
+                    agg_original_vs_new, all_data)
+            else:
+                # Else, add to only_new
+                agg_only_new = _merge_temporal_perf_data(
+                    agg_only_new, all_data)
+
+            # Plot this temporal data
+            plot_temporal_data(all_data, job[:5])
+            something_plotted = True
+
+        if something_plotted:
+            finalize_page("%s : %d/%d orig/new samples" % (
+                exercise, total_original_samples, total_new_samples))
+
+    # Plot the aggregate curves
+    plot_temporal_data(agg_original_vs_new, "")
+    finalize_page("Original vs New")
+
+    plot_temporal_data(agg_only_new, "")
+    finalize_page("Only New")
 
 
 def main():
     options = parse_command_line()
 
-    all_perf_data = read_all_performance_data(options.data)
+    all_perf_data, all_temporal_perf_data = read_all_performance_data(
+        options.data)
 
-    output_path = os.path.join(options.data, 'graphs.pdf')
-    generate_pdf(all_perf_data, output_path)
+    # output_path = os.path.join(options.data, 'roc_curves.pdf')
+    # with pdf.PdfPages(output_path) as pdf_file:
+    #     _generate_roc_curves(all_perf_data, pdf_file)
+
+    output_path = os.path.join(options.data, 'temporal_curves.pdf')
+    with pdf.PdfPages(output_path) as pdf_file:
+        _generate_temporal_analysis(all_temporal_perf_data, pdf_file)
 
 
 if __name__ == "__main__":
