@@ -13,7 +13,7 @@ https://console.developers.google.com/project/124072386181/storage/browser/ka_pr
     gsutil cp gs://ka_prediction_data/classic-2014_12_05-a97c65107cd411e4aeda1e7f2780d096/performance_data/* /tmp  # @Nolint
 
 3) Graph the performance data with this script
-    graph_auto_trained_models.py /tmp
+    graph_auto_trained_models.py --data /tmp
 
 4) Open the resulting PDF
     open /tmp/graphs.pdf
@@ -47,6 +47,8 @@ import matplotlib.backends.backend_pdf as pdf
 
 
 # The minimum number of samples required to plot the curve
+# NOTE: Be sure to set this to a low value for test data sets
+# TODO(mattfaus): Make this a command-line parameter
 MINIMUM_SAMPLES = 20000
 
 
@@ -406,25 +408,35 @@ def _generate_roc_curves(all_perf_data, pdf_file):
         if something_plotted:
             _plot_chance_and_save(pdf_file, exercise)
 
-    # Draw the total ROC curves
-    # Original vs. New only for exercises that had original
-    for job, perf_data in orig_vs_new_overall.iteritems():
-        _compute_curve_data(perf_data['prediction'])
-        _compute_curve_data(perf_data['original_prediction'])
-        _plot_perf_data(job[:5], perf_data)
-        _plot_chance_and_save(pdf_file, "Original vs. New")
+    if orig_vs_new_overall:
+        # Draw the total ROC curves
+        # Original vs. New only for exercises that had original
+        for job, perf_data in orig_vs_new_overall.iteritems():
+            _compute_curve_data(perf_data['prediction'])
+            _compute_curve_data(perf_data['original_prediction'])
+            _plot_perf_data(job[:5], perf_data)
+            _plot_chance_and_save(pdf_file, "Original vs. New")
+    else:
+        print ("ROC: No original vs new data to plot. "
+            "Is MINIMUM_SAMPLES low enough?")
 
-    # New for exercises that didn't have original
-    for job, perf_data in only_new_overall.iteritems():
-        _compute_curve_data(perf_data['prediction'])
-        _plot_perf_data(job[:5], perf_data)
-        _plot_chance_and_save(pdf_file, "Only New")
+    if only_new_overall:
+        # New for exercises that didn't have original
+        for job, perf_data in only_new_overall.iteritems():
+            _compute_curve_data(perf_data['prediction'])
+            _plot_perf_data(job[:5], perf_data)
+            _plot_chance_and_save(pdf_file, "Only New")
+    else:
+        print "ROC: No only new data to plot. Is MINIMUM_SAMPLES low enough?"
 
-    # All New
-    for job, perf_data in all_new_overall.iteritems():
-        _compute_curve_data(perf_data['prediction'])
-        _plot_perf_data(job[:5], perf_data)
-        _plot_chance_and_save(pdf_file, "All New")
+    if all_new_overall:
+        # All New
+        for job, perf_data in all_new_overall.iteritems():
+            _compute_curve_data(perf_data['prediction'])
+            _plot_perf_data(job[:5], perf_data)
+            _plot_chance_and_save(pdf_file, "All New")
+    else:
+        print "ROC: No all new data to plot. Is MINIMUM_SAMPLES low enough?"
 
 
 def _merge_temporal_perf_data(running_data, new_data):
@@ -535,6 +547,12 @@ def _generate_temporal_analysis(all_temporal_perf_data, pdf_file):
 
     def compute_weighted_average_curve(y_points, weights, left_trail=7,
             right_trail=7):
+        if (len(y_points) < left_trail):
+            left_trail = len(y_points)
+
+        if (len(y_points) < right_trail):
+            right_trail = len(y_points)
+
         # Compute the start and end indexes for each "window". Note that there
         # are "edge effects" since the window has less data at the start and
         # end of the array, respectively.
@@ -629,12 +647,20 @@ def _generate_temporal_analysis(all_temporal_perf_data, pdf_file):
             finalize_page("%s : %d/%d orig/new samples" % (
                 exercise, total_original_samples, total_new_samples))
 
-    # Plot the aggregate curves
-    plot_temporal_data(agg_original_vs_new, "")
-    finalize_page("Original vs New")
+    if agg_original_vs_new:
+        # Plot the aggregate curves
+        plot_temporal_data(agg_original_vs_new, "")
+        finalize_page("Original vs New")
+    else:
+        print ("TEMPORAL: No original vs new data to plot. "
+            "Is MINIMUM_SAMPLES low enough?")
 
-    plot_temporal_data(agg_only_new, "")
-    finalize_page("Only New")
+    if agg_only_new:
+        plot_temporal_data(agg_only_new, "")
+        finalize_page("Only New")
+    else:
+        print ("TEMPORAL: No only new data to plot. "
+            "Is MINIMUM_SAMPLES low enough?")
 
 
 def main():
@@ -643,9 +669,9 @@ def main():
     all_perf_data, all_temporal_perf_data = read_all_performance_data(
         options.data)
 
-    # output_path = os.path.join(options.data, 'roc_curves.pdf')
-    # with pdf.PdfPages(output_path) as pdf_file:
-    #     _generate_roc_curves(all_perf_data, pdf_file)
+    output_path = os.path.join(options.data, 'roc_curves.pdf')
+    with pdf.PdfPages(output_path) as pdf_file:
+        _generate_roc_curves(all_perf_data, pdf_file)
 
     output_path = os.path.join(options.data, 'temporal_curves.pdf')
     with pdf.PdfPages(output_path) as pdf_file:
